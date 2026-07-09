@@ -154,7 +154,16 @@ export default function App() {
   // Default to 'customer' view ONLY, so the customer app is used alone!
   const [viewMode, setViewMode] = useState<'customer' | 'admin' | 'dual'>('customer');
   const [customerActiveTab, setCustomerActiveTab] = useState<'home' | 'order' | 'prices' | 'history' | 'support'>('home');
-  const [adminActiveTab, setAdminActiveTab] = useState<'overview' | 'orders' | 'prices' | 'customers'>('overview');
+  const [adminActiveTab, setAdminActiveTab] = useState<'overview' | 'orders' | 'prices' | 'customers' | 'settings'>('overview');
+  const [upiDetails, setUpiDetails] = useState<{ phone: string, id: string }>(() => {
+    const saved = localStorage.getItem('iron_upi_details');
+    return saved ? JSON.parse(saved) : { phone: '9791019505', id: '9791019505@ybl' };
+  });
+
+  useEffect(() => {
+    localStorage.setItem('iron_upi_details', JSON.stringify(upiDetails));
+  }, [upiDetails]);
+
 
   // Customer Form / Auth State
   const [authStep, setAuthStep] = useState<'login' | 'otp' | 'register'>('login');
@@ -880,15 +889,42 @@ export default function App() {
                           </div>
 
                           {/* Address Details Card */}
-                          <div className="bg-slate-950 p-3 rounded-xl border border-slate-850 text-xs">
-                            <div className="font-bold text-white flex items-center gap-1.5">
-                              <MapPin className="size-3.5 text-rose-500" /> Pickup Location
+                          <div className="bg-slate-950 p-3 rounded-xl border border-slate-850 text-xs flex flex-col gap-2">
+                            <div className="font-bold text-white flex items-center justify-between">
+                              <span className="flex items-center gap-1.5"><MapPin className="size-3.5 text-rose-500" /> Pickup Details</span>
+                              <span className="text-[9px] text-slate-500 font-normal">Editable</span>
                             </div>
-                            <div className="text-slate-400 mt-1">
-                              <strong>Apartment:</strong> {currentCustomer.apartmentNo}
-                            </div>
-                            <div className="text-slate-400">
-                              <strong>Address:</strong> {currentCustomer.address}
+                            
+                            <div className="flex flex-col gap-2 mt-1">
+                              <div className="flex flex-col gap-1">
+                                <label className="text-[9px] font-bold text-slate-400 uppercase">Customer Name</label>
+                                <input 
+                                  type="text" 
+                                  value={currentCustomer.name} 
+                                  onChange={e => setCurrentCustomer({...currentCustomer, name: e.target.value})}
+                                  className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-rose-500"
+                                />
+                              </div>
+                              <div className="flex gap-2">
+                                <div className="flex flex-col gap-1 w-1/3">
+                                  <label className="text-[9px] font-bold text-slate-400 uppercase">Apt No.</label>
+                                  <input 
+                                    type="text" 
+                                    value={currentCustomer.apartmentNo} 
+                                    onChange={e => setCurrentCustomer({...currentCustomer, apartmentNo: e.target.value})}
+                                    className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-rose-500"
+                                  />
+                                </div>
+                                <div className="flex flex-col gap-1 flex-1">
+                                  <label className="text-[9px] font-bold text-slate-400 uppercase">Full Address</label>
+                                  <input 
+                                    type="text" 
+                                    value={currentCustomer.address} 
+                                    onChange={e => setCurrentCustomer({...currentCustomer, address: e.target.value})}
+                                    className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-rose-500"
+                                  />
+                                </div>
+                              </div>
                             </div>
                           </div>
 
@@ -1282,22 +1318,35 @@ export default function App() {
                   </div>
 
                   {paymentMethod === 'UPI' && (
-                    <div className="bg-slate-950 border border-slate-850 p-3 rounded-xl flex flex-col gap-1.5 mt-1 text-left text-xs animate-pulse">
-                      <div className="font-bold text-white flex items-center gap-1">
-                        📱 Direct GPay / PhonePe Transfer
+                    <div className="bg-slate-950 border border-slate-850 p-3 rounded-xl flex flex-col gap-2 mt-1 text-left text-xs animate-fade-in">
+                      <div className="font-bold text-white flex items-center justify-between">
+                        <span>📱 Direct UPI Transfer</span>
                       </div>
-                      <div className="flex flex-col gap-1 text-[10px] text-slate-400">
-                        <div className="flex justify-between border-b border-slate-900 pb-1">
-                          <span>Phone Number:</span>
-                          <span className="font-bold text-white select-all">9791019505</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>UPI ID:</span>
-                          <span className="font-bold text-rose-500 select-all">9791019505@ybl</span>
+                      
+                      <div className="flex gap-3 items-center">
+                        {upiDetails.id && (
+                          <div className="bg-white p-1 rounded shrink-0">
+                            <img 
+                              src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=upi://pay?pa=${upiDetails.id}&pn=IronEase&cu=INR`} 
+                              alt="UPI QR Code" 
+                              className="w-16 h-16 object-contain"
+                            />
+                          </div>
+                        )}
+                        <div className="flex-1 flex flex-col gap-1 text-[10px] text-slate-400">
+                          <div className="flex justify-between border-b border-slate-900 pb-1">
+                            <span>Phone Number:</span>
+                            <span className="font-bold text-white select-all">{upiDetails.phone}</span>
+                          </div>
+                          <div className="flex justify-between pt-0.5">
+                            <span>UPI ID:</span>
+                            <span className="font-bold text-rose-500 select-all">{upiDetails.id}</span>
+                          </div>
                         </div>
                       </div>
-                      <p className="text-[8px] text-slate-500 leading-relaxed italic bg-slate-900/50 p-1 rounded">
-                        *Complete payment on your GPay/PhonePe app using the details above, then click "Confirm & Submit Order".
+
+                      <p className="text-[8px] text-slate-500 leading-relaxed italic bg-slate-900/50 p-1.5 rounded">
+                        *Scan QR or use details to pay, then click "Confirm & Submit Order".
                       </p>
                     </div>
                   )}
@@ -1327,7 +1376,8 @@ export default function App() {
                     { tab: 'overview', label: 'Overview', icon: TrendingUp },
                     { tab: 'orders', label: 'Manage Orders', icon: ShoppingBag },
                     { tab: 'prices', label: 'Pricing Rates', icon: Settings },
-                    { tab: 'customers', label: 'Customers', icon: Users }
+                    { tab: 'customers', label: 'Customers', icon: Users },
+                    { tab: 'settings', label: 'UPI Settings', icon: Key }
                   ].map(item => {
                     const Icon = item.icon
                     const isActive = adminActiveTab === item.tab
@@ -1640,6 +1690,64 @@ export default function App() {
                     </div>
                   </div>
                 )}
+
+                {/* SETTINGS PANEL */}
+                {adminActiveTab === 'settings' && (
+                  <div className="flex flex-col gap-4 text-left">
+                    <h3 className="text-sm font-bold text-white">Payment & UPI Settings</h3>
+                    
+                    <div className="bg-slate-900 border border-slate-850 p-5 rounded-2xl flex flex-col gap-4">
+                      <p className="text-xs text-slate-400 leading-relaxed">
+                        Update your direct UPI details (GPay/PhonePe). These details and a QR code will be dynamically generated for your customers during checkout.
+                      </p>
+                      
+                      <div className="flex flex-col gap-3 max-w-sm">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] font-semibold text-slate-400">Merchant Phone Number</label>
+                          <input 
+                            type="text"
+                            value={upiDetails.phone}
+                            onChange={e => setUpiDetails({ ...upiDetails, phone: e.target.value })}
+                            placeholder="e.g. 9791019505"
+                            className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-rose-500"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] font-semibold text-slate-400">Merchant UPI ID</label>
+                          <input 
+                            type="text"
+                            value={upiDetails.id}
+                            onChange={e => setUpiDetails({ ...upiDetails, id: e.target.value })}
+                            placeholder="e.g. 9791019505@ybl"
+                            className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-rose-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-2 flex gap-4 items-start">
+                        <div className="bg-white p-2 rounded-lg">
+                          <img 
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=upi://pay?pa=${upiDetails.id}&pn=IronEase&cu=INR`} 
+                            alt="Live QR Preview" 
+                            className="w-[100px] h-[100px]"
+                          />
+                        </div>
+                        <div className="text-[10px] text-slate-500 pt-2 flex-1">
+                          <strong>Live QR Preview:</strong>
+                          <br />This QR code updates instantly. Customers can scan this directly to pay you on PhonePe, GPay, or Paytm.
+                        </div>
+                      </div>
+
+                      <button 
+                        onClick={() => triggerNotification('✅ UPI Settings Saved Successfully!')}
+                        className="bg-rose-500 hover:bg-rose-600 text-white py-2.5 rounded-xl text-xs font-semibold self-start px-6 shadow-md mt-2"
+                      >
+                        Save Settings
+                      </button>
+                    </div>
+                  </div>
+                )}
+
 
               </div>
             </div>
