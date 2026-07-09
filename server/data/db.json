@@ -82,6 +82,38 @@
   ],
   "orders": [
     {
+      "id": "ORD-830428",
+      "invoiceNo": "IE-8454",
+      "customerName": "Shanthi Jayaraman",
+      "customerPhone": "9791019505",
+      "apartmentNo": "Apt 402, Block C",
+      "address": "123 Tech Park, Whitefield, Bengaluru",
+      "pickupDate": "2026-12-08",
+      "pickupTime": "09:00 - 12:00",
+      "speed": "Normal",
+      "items": [
+        {
+          "name": "Shirt",
+          "qty": 1,
+          "price": 15
+        },
+        {
+          "name": "T-Shirt",
+          "qty": 1,
+          "price": 12
+        }
+      ],
+      "subtotal": 27,
+      "markup": 0,
+      "tax": 1.35,
+      "total": 28.35,
+      "status": "Placed",
+      "paymentStatus": "Paid",
+      "paymentMethod": "Card",
+      "specialInstructions": "",
+      "createdAt": "09 Jul 2026, 01:41 pm"
+    },
+    {
       "id": "ORD-354396",
       "invoiceNo": "IE-9309",
       "customerName": "Shanthi Jayaraman",

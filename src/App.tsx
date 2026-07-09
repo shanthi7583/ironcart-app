@@ -1117,6 +1117,27 @@ export default function App() {
                     </button>
                   </div>
 
+                  {paymentMethod === 'UPI' && (
+                    <div className="bg-slate-950 border border-slate-850 p-3 rounded-xl flex flex-col gap-1.5 mt-1 text-left text-xs animate-pulse">
+                      <div className="font-bold text-white flex items-center gap-1">
+                        📱 Direct GPay / PhonePe Transfer
+                      </div>
+                      <div className="flex flex-col gap-1 text-[10px] text-slate-400">
+                        <div className="flex justify-between border-b border-slate-900 pb-1">
+                          <span>Phone Number:</span>
+                          <span className="font-bold text-white select-all">9791019505</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>UPI ID:</span>
+                          <span className="font-bold text-rose-500 select-all">9791019505@ybl</span>
+                        </div>
+                      </div>
+                      <p className="text-[8px] text-slate-500 leading-relaxed italic bg-slate-900/50 p-1 rounded">
+                        *Complete payment on your GPay/PhonePe app using the details above, then click "Confirm & Submit Order".
+                      </p>
+                    </div>
+                  )}
+
                   <button 
                     onClick={handleCheckoutSubmit}
                     className="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-3 rounded-xl text-xs tracking-wider uppercase text-center mt-2 shadow-md active:translate-y-0.5"
