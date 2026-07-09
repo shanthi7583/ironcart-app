@@ -69,49 +69,37 @@ const DEFAULT_PRICE_LIST: GarmentItem[] = [
 ];
 
 export default function App() {
-  // --- Persistent State using LocalStorage ---
-  const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem('iron_orders');
-    return saved ? JSON.parse(saved) : [];
-  });
+  // --- Persistent State using Backend API & LocalStorage ---
+  const API_URL = 'http://localhost:5000/api';
 
-  const [priceList, setPriceList] = useState<GarmentItem[]>(() => {
-    const saved = localStorage.getItem('iron_prices');
-    return saved ? JSON.parse(saved) : DEFAULT_PRICE_LIST;
-  });
-
-  const [customers, setCustomers] = useState<CustomerProfile[]>(() => {
-    const saved = localStorage.getItem('iron_customers');
-    const defaultCustomer = [
-      { 
-        name: 'Shanthi Jayaraman', 
-        phone: '9791019505', 
-        email: 'shanthi.jayaraman7@gmail.com', 
-        apartmentNo: 'Apt 402, Block C', 
-        address: '123 Tech Park, Whitefield, Bengaluru' 
-      }
-    ];
-    return saved ? JSON.parse(saved) : defaultCustomer;
-  });
-
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [priceList, setPriceList] = useState<GarmentItem[]>(DEFAULT_PRICE_LIST);
+  const [customers, setCustomers] = useState<CustomerProfile[]>([]);
+  
   const [currentCustomer, setCurrentCustomer] = useState<CustomerProfile | null>(() => {
     const saved = localStorage.getItem('iron_current_user');
     return saved ? JSON.parse(saved) : null;
   });
 
-  // Sync state to LocalStorage
+  // Fetch initial data from Backend API on mount
   useEffect(() => {
-    localStorage.setItem('iron_orders', JSON.stringify(orders));
-  }, [orders]);
+    fetch(`${API_URL}/prices`)
+      .then(res => res.json())
+      .then(data => setPriceList(data))
+      .catch(err => console.error('Failed to fetch prices:', err));
 
-  useEffect(() => {
-    localStorage.setItem('iron_prices', JSON.stringify(priceList));
-  }, [priceList]);
+    fetch(`${API_URL}/orders`)
+      .then(res => res.json())
+      .then(data => setOrders(data))
+      .catch(err => console.error('Failed to fetch orders:', err));
 
-  useEffect(() => {
-    localStorage.setItem('iron_customers', JSON.stringify(customers));
-  }, [customers]);
+    fetch(`${API_URL}/customers`)
+      .then(res => res.json())
+      .then(data => setCustomers(data))
+      .catch(err => console.error('Failed to fetch customers:', err));
+  }, []);
 
+  // Sync user session to LocalStorage
   useEffect(() => {
     if (currentCustomer) {
       localStorage.setItem('iron_current_user', JSON.stringify(currentCustomer));
@@ -179,8 +167,17 @@ export default function App() {
     if (authOTP === sentOTP || authOTP === '1234') { // Fallback bypass
       const existing = customers.find(c => c.phone === authPhone);
       if (existing) {
-        setCurrentCustomer(existing);
-        setCustomerActiveTab('home');
+        fetch(`${API_URL}/customers`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(existing)
+        })
+          .then(res => res.json())
+          .then(data => {
+            setCurrentCustomer(data);
+            setCustomerActiveTab('home');
+          })
+          .catch(err => alert('API Connection Error: ' + err.message));
       } else {
         setAuthStep('register');
       }
@@ -200,10 +197,20 @@ export default function App() {
       apartmentNo: authApartment,
       address: authAddress
     };
-    setCustomers(prev => [...prev, newProfile]);
-    setCurrentCustomer(newProfile);
-    setCustomerActiveTab('home');
-    triggerNotification(`👋 Welcome to IronEase, ${authName}!`);
+
+    fetch(`${API_URL}/customers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newProfile)
+    })
+      .then(res => res.json())
+      .then(data => {
+        setCustomers(prev => [...prev, data]);
+        setCurrentCustomer(data);
+        setCustomerActiveTab('home');
+        triggerNotification(`👋 Welcome to IronEase, ${authName}!`);
+      })
+      .catch(err => alert('API Connection Error: ' + err.message));
   };
 
   const handleLogout = () => {
@@ -284,39 +291,54 @@ export default function App() {
       createdAt: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     };
 
-    setOrders(prev => [newOrder, ...prev]);
-    setSelectedItems({});
-    setSpecialInstructions('');
-    setShowCheckoutModal(false);
-    setSelectedOrderForTracking(newOrder);
-    setCustomerActiveTab('history');
-
-    // Notify Admin via simulated WhatsApp
-    triggerNotification(`🔔 New Order Alert to Owner: received order ${newOrder.id} from ${newOrder.customerName} (${newOrder.apartmentNo})`);
+    fetch(`${API_URL}/orders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newOrder)
+    })
+      .then(res => res.json())
+      .then(data => {
+        setOrders(prev => [data, ...prev]);
+        setSelectedItems({});
+        setSpecialInstructions('');
+        setShowCheckoutModal(false);
+        setSelectedOrderForTracking(data);
+        setCustomerActiveTab('history');
+        triggerNotification(`🔔 New Order Alert to Owner: received order ${data.id} from ${data.customerName} (${data.apartmentNo})`);
+      })
+      .catch(err => alert('API Connection Error: ' + err.message));
   };
 
   // --- Admin Actions ---
   const updateOrderStatus = (orderId: string, nextStatus: 'Placed' | 'Picked Up' | 'Ironing' | 'Ready' | 'Delivered') => {
-    setOrders(prev => prev.map(o => {
-      if (o.id === orderId) {
-        let notifyMsg = `📱 SMS: Order ${o.id} updated to [${nextStatus}]`;
+    fetch(`${API_URL}/orders/${orderId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: nextStatus })
+    })
+      .then(res => res.json())
+      .then(data => {
+        setOrders(prev => prev.map(o => o.id === orderId ? data : o));
+        let notifyMsg = `📱 SMS: Order ${orderId} updated to [${nextStatus}]`;
         if (nextStatus === 'Ready') notifyMsg = `🎉 WhatsApp sent: Your ironing is ready for pickup!`;
         if (nextStatus === 'Delivered') notifyMsg = `🚚 Delivered! Invoice generated.`;
         triggerNotification(notifyMsg);
-        return { ...o, status: nextStatus };
-      }
-      return o;
-    }));
+      })
+      .catch(err => alert('API Connection Error: ' + err.message));
   };
 
   const markOrderPaid = (orderId: string) => {
-    setOrders(prev => prev.map(o => {
-      if (o.id === orderId) {
-        triggerNotification(`💳 Payment received for order ${o.id}`);
-        return { ...o, paymentStatus: 'Paid' };
-      }
-      return o;
-    }));
+    fetch(`${API_URL}/orders/${orderId}/payment`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paymentStatus: 'Paid' })
+    })
+      .then(res => res.json())
+      .then(data => {
+        setOrders(prev => prev.map(o => o.id === orderId ? data : o));
+        triggerNotification(`💳 Payment received for order ${orderId}`);
+      })
+      .catch(err => alert('API Connection Error: ' + err.message));
   };
 
   const deleteOrder = (orderId: string) => {
@@ -332,9 +354,19 @@ export default function App() {
       }
       return item;
     });
-    setPriceList(updated);
-    setEditingPrices({});
-    triggerNotification(`⚙️ Price rates updated successfully!`);
+
+    fetch(`${API_URL}/prices`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated)
+    })
+      .then(res => res.json())
+      .then(data => {
+        setPriceList(data.prices);
+        setEditingPrices({});
+        triggerNotification(`⚙️ Price rates updated successfully!`);
+      })
+      .catch(err => alert('API Connection Error: ' + err.message));
   };
 
   const handleAdminAccess = () => {
