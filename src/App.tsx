@@ -317,12 +317,13 @@ export default function App() {
       supabase.from('customers').insert([newProfile])
         .then(({ error }) => {
           if (error) {
-            alert('Failed to register on Supabase: ' + error.message);
+            alert('Failed to register: ' + error.message);
           } else {
             setCustomers(prev => [...prev, newProfile]);
-            setCurrentCustomer(newProfile);
-            setCustomerActiveTab('home');
-            triggerNotification(`👋 Welcome to IronEase, ${authName}!`);
+            setAuthStep('login');
+            setAuthPhone('');
+            setAuthOTP('');
+            triggerNotification(`✅ Registration Successful! Please login using your mobile number.`);
           }
         });
       return;
@@ -333,14 +334,18 @@ export default function App() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newProfile)
     })
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('API Error');
+        return res.json();
+      })
       .then(data => {
         setCustomers(prev => [...prev, data]);
-        setCurrentCustomer(data);
-        setCustomerActiveTab('home');
-        triggerNotification(`👋 Welcome to IronEase, ${authName}!`);
+        setAuthStep('login');
+        setAuthPhone('');
+        setAuthOTP('');
+        triggerNotification(`✅ Registration Successful! Please login using your mobile number.`);
       })
-      .catch(err => alert('API Connection Error: ' + err.message));
+      .catch(err => alert('Registration failed. Is the backend running?'));
   };
 
   const handleLogout = () => {
@@ -706,6 +711,30 @@ export default function App() {
                           Send OTP Verification
                         </button>
                         <div id="recaptcha-container"></div>
+                        
+                        {/* Owner Admin Gateway Switcher */}
+                        <div className="mt-8 border-t border-slate-800 pt-5 text-left">
+                          <h4 className="text-[10px] font-bold text-slate-400 flex items-center gap-1.5">
+                            <Key className="size-3 text-amber-500" />
+                            Owner Admin Gateway
+                          </h4>
+                          <div className="flex gap-2 mt-2">
+                            <input 
+                              type="password"
+                              maxLength={4}
+                              placeholder="PIN"
+                              value={adminPin}
+                              onChange={e => setAdminPin(e.target.value.replace(/\D/g, ''))}
+                              className="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white w-20 text-center outline-none"
+                            />
+                            <button 
+                              onClick={handleAdminAccess}
+                              className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg"
+                            >
+                              Login
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     )}
 
@@ -783,16 +812,16 @@ export default function App() {
                     
                     {/* Customer Top App Bar */}
                     <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
-                      <div className="flex items-center gap-2">
-                        <div className="size-8 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500">
-                          <User className="size-4" />
+                      <div className="flex items-center gap-3">
+                        <div className="size-10 rounded-full bg-rose-500 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                          {currentCustomer.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="text-left">
-                          <div className="text-[10px] text-slate-400">Welcome,</div>
-                          <div className="text-xs font-bold text-white max-w-[120px] truncate">{currentCustomer.name}</div>
+                          <div className="text-[10px] text-rose-300 font-bold tracking-wide uppercase">Warm Welcome Back</div>
+                          <div className="text-sm font-black text-white max-w-[160px] truncate">{currentCustomer.name}</div>
                         </div>
                       </div>
-                      <button onClick={handleLogout} className="text-slate-500 hover:text-rose-500 p-1.5 rounded-lg">
+                      <button onClick={handleLogout} className="text-slate-500 hover:text-rose-500 p-2 rounded-lg bg-slate-900 border border-slate-800">
                         <LogOut className="size-4" />
                       </button>
                     </div>
