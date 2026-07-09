@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { 
-  Plus, Minus, Calendar, Clock, Check, 
-  TrendingUp, Users, Smartphone, Laptop, 
+  Plus, Minus, Calendar, Clock, Check, MapPin,
+  TrendingUp, Users, Smartphone, 
   ChevronRight, User, ShoppingBag, 
   FileText, CreditCard, ArrowLeft, Settings, 
-  Bell, HelpCircle, LogOut, Eye, RefreshCw
+  Bell, HelpCircle, LogOut, Eye, RefreshCw, Key
 } from 'lucide-react'
 
 // Define interfaces
@@ -25,6 +25,7 @@ interface Order {
   invoiceNo: string;
   customerName: string;
   customerPhone: string;
+  apartmentNo: string;
   address: string;
   pickupDate: string;
   pickupTime: string;
@@ -46,6 +47,7 @@ interface CustomerProfile {
   phone: string;
   email?: string;
   password?: string;
+  apartmentNo: string;
   address: string;
 }
 
@@ -81,7 +83,13 @@ export default function App() {
   const [customers, setCustomers] = useState<CustomerProfile[]>(() => {
     const saved = localStorage.getItem('iron_customers');
     const defaultCustomer = [
-      { name: 'Shanthi Jayaraman', phone: '9791019505', email: 'shanthi.jayaraman7@gmail.com', address: '123 Tech Park, Whitefield, Bengaluru' }
+      { 
+        name: 'Shanthi Jayaraman', 
+        phone: '9791019505', 
+        email: 'shanthi.jayaraman7@gmail.com', 
+        apartmentNo: 'Apt 402, Block C', 
+        address: '123 Tech Park, Whitefield, Bengaluru' 
+      }
     ];
     return saved ? JSON.parse(saved) : defaultCustomer;
   });
@@ -113,19 +121,23 @@ export default function App() {
   }, [currentCustomer]);
 
   // --- Layout and Navigation State ---
-  // viewMode: 'dual' (simulator + admin dashboard for desktop), 'customer' (mobile full screen), 'admin' (admin full screen)
-  const [viewMode, setViewMode] = useState<'dual' | 'customer' | 'admin'>('dual');
-  const [customerActiveTab, setCustomerActiveTab] = useState<'home' | 'order' | 'prices' | 'history' | 'profile' | 'support'>('home');
+  // Default to 'customer' view ONLY, so the customer app is used alone!
+  const [viewMode, setViewMode] = useState<'customer' | 'admin' | 'dual'>('customer');
+  const [customerActiveTab, setCustomerActiveTab] = useState<'home' | 'order' | 'prices' | 'history' | 'support'>('home');
   const [adminActiveTab, setAdminActiveTab] = useState<'overview' | 'orders' | 'prices' | 'customers'>('overview');
 
   // Customer Form / Auth State
   const [authStep, setAuthStep] = useState<'login' | 'otp' | 'register'>('login');
   const [authPhone, setAuthPhone] = useState('');
   const [authName, setAuthName] = useState('');
+  const [authApartment, setAuthApartment] = useState('');
   const [authAddress, setAuthAddress] = useState('');
   const [authOTP, setAuthOTP] = useState('');
   const [sentOTP, setSentOTP] = useState('');
   const [notification, setNotification] = useState<string | null>(null);
+
+  // Admin access state
+  const [adminPin, setAdminPin] = useState('');
 
   // Customer Placing Order State
   const [orderSpeed, setOrderSpeed] = useState<'Normal' | 'Express' | 'Urgent'>('Normal');
@@ -142,20 +154,6 @@ export default function App() {
 
   // Active modal invoice state
   const [selectedInvoice, setSelectedInvoice] = useState<Order | null>(null);
-
-  // Set default viewMode based on screen size on mount
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 1024) {
-        setViewMode('customer');
-      } else {
-        setViewMode('dual');
-      }
-    };
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   // Show simulated WhatsApp / System Notification banners
   const triggerNotification = (message: string) => {
@@ -192,13 +190,14 @@ export default function App() {
   };
 
   const handleRegister = () => {
-    if (!authName || !authAddress) {
-      alert('Please enter your name and pickup address');
+    if (!authName || !authApartment || !authAddress) {
+      alert('Please enter your name, apartment number, and street address');
       return;
     }
     const newProfile: CustomerProfile = {
       name: authName,
       phone: authPhone,
+      apartmentNo: authApartment,
       address: authAddress
     };
     setCustomers(prev => [...prev, newProfile]);
@@ -268,7 +267,8 @@ export default function App() {
       invoiceNo: `IE-${Math.floor(1000 + Math.random() * 9000)}`,
       customerName: currentCustomer?.name || 'Walk-in Customer',
       customerPhone: currentCustomer?.phone || '',
-      address: currentCustomer?.address || 'Pickup Address',
+      apartmentNo: currentCustomer?.apartmentNo || '',
+      address: currentCustomer?.address || '',
       pickupDate,
       pickupTime,
       speed: orderSpeed,
@@ -292,19 +292,17 @@ export default function App() {
     setCustomerActiveTab('history');
 
     // Notify Admin via simulated WhatsApp
-    triggerNotification(`🔔 New Order Alert to Admin: +91 9791019505 received order ${newOrder.id} for Pickup on ${pickupDate}`);
+    triggerNotification(`🔔 New Order Alert to Owner: received order ${newOrder.id} from ${newOrder.customerName} (${newOrder.apartmentNo})`);
   };
 
   // --- Admin Actions ---
   const updateOrderStatus = (orderId: string, nextStatus: 'Placed' | 'Picked Up' | 'Ironing' | 'Ready' | 'Delivered') => {
     setOrders(prev => prev.map(o => {
       if (o.id === orderId) {
-        // Trigger status updates to the customer
-        let notifyMsg = `📱 Customer SMS: Order ${o.id} status updated to [${nextStatus}]`;
-        if (nextStatus === 'Ready') notifyMsg = `🎉 WhatsApp: Your laundry is ready! Delivery scheduled.`;
-        if (nextStatus === 'Delivered') notifyMsg = `🚚 Order Delivered! Invoice generated.`;
+        let notifyMsg = `📱 SMS: Order ${o.id} updated to [${nextStatus}]`;
+        if (nextStatus === 'Ready') notifyMsg = `🎉 WhatsApp sent: Your ironing is ready for pickup!`;
+        if (nextStatus === 'Delivered') notifyMsg = `🚚 Delivered! Invoice generated.`;
         triggerNotification(notifyMsg);
-
         return { ...o, status: nextStatus };
       }
       return o;
@@ -339,6 +337,16 @@ export default function App() {
     triggerNotification(`⚙️ Price rates updated successfully!`);
   };
 
+  const handleAdminAccess = () => {
+    if (adminPin === '9791') {
+      setViewMode('dual');
+      setAdminPin('');
+      triggerNotification('🔓 Admin mode activated successfully!');
+    } else {
+      alert('Invalid PIN. Use default PIN 9791 to switch views.');
+    }
+  };
+
   // Metrics calculations
   const completedOrders = orders.filter(o => o.status === 'Delivered');
   const totalRevenue = orders.filter(o => o.paymentStatus === 'Paid').reduce((acc, o) => acc + o.total, 0);
@@ -357,65 +365,34 @@ export default function App() {
       )}
 
       {/* Main Top Header */}
-      <header className="border-b border-slate-800 bg-slate-950 px-6 py-4 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between shadow-md">
+      <header className="border-b border-slate-800 bg-slate-950 px-6 py-4 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-3">
           <div className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-tr from-rose-500 to-amber-500 shadow-md">
             <span className="font-extrabold text-white text-lg tracking-wider">IE</span>
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-white m-0 p-0 text-left">IronEase App</h1>
-            <p className="text-xs text-slate-400 text-left">Customer Pickup & Owner Admin Workspace</p>
+            <h1 className="text-xl font-bold tracking-tight text-white m-0 p-0 text-left">IronEase Portal</h1>
+            <p className="text-xs text-slate-400 text-left">Professional Ironing & Pickup Service</p>
           </div>
         </div>
 
-        {/* Viewport Toggles (Desktop only) */}
-        <div className="hidden lg:flex items-center bg-slate-900 border border-slate-800 p-1 rounded-xl gap-1">
-          <button 
-            onClick={() => setViewMode('dual')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${viewMode === 'dual' ? 'bg-rose-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
-          >
-            <Laptop className="size-3.5" /> Dual Simulator
-          </button>
+        {/* View toggles visible only when in Dual/Admin Mode to return to Customer mode */}
+        {viewMode !== 'customer' && (
           <button 
             onClick={() => setViewMode('customer')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${viewMode === 'customer' ? 'bg-rose-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+            className="flex items-center gap-1.5 bg-rose-500 hover:bg-rose-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-all"
           >
-            <Smartphone className="size-3.5" /> Customer App
+            <Smartphone className="size-3.5" /> Exit Admin View
           </button>
-          <button 
-            onClick={() => setViewMode('admin')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${viewMode === 'admin' ? 'bg-rose-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
-          >
-            <Settings className="size-3.5" /> Admin Dashboard
-          </button>
-        </div>
-
-        {/* Viewport Toggles (Mobile/Tablet viewport) */}
-        <div className="flex lg:hidden bg-slate-900 border border-slate-800 p-1 rounded-xl gap-1 w-full justify-between">
-          <button 
-            onClick={() => setViewMode('customer')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold ${viewMode === 'customer' ? 'bg-rose-500 text-white shadow-sm' : 'text-slate-400'}`}
-          >
-            <Smartphone className="size-4" /> Customer App
-          </button>
-          <button 
-            onClick={() => setViewMode('admin')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold ${viewMode === 'admin' ? 'bg-rose-500 text-white shadow-sm' : 'text-slate-400'}`}
-          >
-            <Settings className="size-4" /> Admin Portal
-          </button>
-        </div>
+        )}
       </header>
 
-      {/* Main Workspace */}
+      {/* Main Workspace Layout */}
       <main className="flex-1 flex p-6 gap-6 justify-center max-w-7xl mx-auto w-full">
         
-        {/* --- 1. CUSTOMER MOBILE APP SIMULATOR --- */}
+        {/* --- 1. CUSTOMER MOBILE APP VIEW --- */}
         {(viewMode === 'customer' || viewMode === 'dual') && (
-          <div className="flex-1 max-w-[400px] flex flex-col">
-            <div className="text-center mb-2 font-semibold text-xs text-slate-400 tracking-widest uppercase flex items-center justify-center gap-1.5">
-              <Smartphone className="size-3.5 text-rose-500" /> Customer Mobile App
-            </div>
+          <div className="flex-1 max-w-[400px] flex flex-col items-center">
             
             {/* Phone shell container */}
             <div className="w-full aspect-[9/19.5] border-8 border-slate-850 bg-slate-950 rounded-[40px] shadow-2xl flex flex-col overflow-hidden relative border-t-[12px] border-b-[12px]">
@@ -491,7 +468,7 @@ export default function App() {
                     )}
 
                     {authStep === 'register' && (
-                      <div className="flex flex-col gap-3">
+                      <div className="flex flex-col gap-3 max-h-[380px] overflow-y-auto pr-1">
                         <h3 className="text-sm font-bold text-white text-left">Setup New Account</h3>
                         <div className="flex flex-col gap-1 text-left">
                           <label className="text-[9px] font-semibold text-slate-400 uppercase">Full Name</label>
@@ -499,18 +476,28 @@ export default function App() {
                             type="text"
                             value={authName}
                             onChange={e => setAuthName(e.target.value)}
-                            placeholder="Your full name"
-                            className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white outline-none"
+                            placeholder="Shanthi Jayaraman"
+                            className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none"
                           />
                         </div>
                         <div className="flex flex-col gap-1 text-left">
-                          <label className="text-[9px] font-semibold text-slate-400 uppercase">Pickup & Delivery Address</label>
+                          <label className="text-[9px] font-semibold text-slate-400 uppercase">Apartment / Flat Number</label>
+                          <input 
+                            type="text"
+                            value={authApartment}
+                            onChange={e => setAuthApartment(e.target.value)}
+                            placeholder="Apt 402, Block C"
+                            className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1 text-left">
+                          <label className="text-[9px] font-semibold text-slate-400 uppercase">Street Address / Landmark</label>
                           <textarea 
                             value={authAddress}
                             onChange={e => setAuthAddress(e.target.value)}
-                            placeholder="Flat/House No, Building, Street, Area"
+                            placeholder="123 Tech Park, Whitefield, Bengaluru"
                             rows={3}
-                            className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white outline-none"
+                            className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none resize-none"
                           />
                         </div>
                         <button 
@@ -642,6 +629,19 @@ export default function App() {
                             <h3 className="text-sm font-bold text-white">Schedule Ironing Pickup</h3>
                           </div>
 
+                          {/* Address Details Card */}
+                          <div className="bg-slate-950 p-3 rounded-xl border border-slate-850 text-xs">
+                            <div className="font-bold text-white flex items-center gap-1.5">
+                              <MapPin className="size-3.5 text-rose-500" /> Pickup Location
+                            </div>
+                            <div className="text-slate-400 mt-1">
+                              <strong>Apartment:</strong> {currentCustomer.apartmentNo}
+                            </div>
+                            <div className="text-slate-400">
+                              <strong>Address:</strong> {currentCustomer.address}
+                            </div>
+                          </div>
+
                           {/* Speed Selection */}
                           <div className="flex flex-col gap-1.5">
                             <label className="text-[9px] font-bold text-slate-400 uppercase">Delivery Speed</label>
@@ -698,7 +698,7 @@ export default function App() {
                           {/* Garment Selection Basket */}
                           <div className="flex flex-col gap-1.5">
                             <label className="text-[9px] font-bold text-slate-400 uppercase">Select Garments</label>
-                            <div className="max-h-[160px] overflow-y-auto flex flex-col gap-2 pr-1">
+                            <div className="max-h-[140px] overflow-y-auto flex flex-col gap-2 pr-1">
                               {priceList.map(item => {
                                 const qty = selectedItems[item.name] || 0;
                                 return (
@@ -735,13 +735,13 @@ export default function App() {
                               type="text"
                               value={specialInstructions}
                               onChange={e => setSpecialInstructions(e.target.value)}
-                              placeholder="e.g. starch saree, crease shirt sleeves"
+                              placeholder="starch saree, crease shirt sleeves"
                               className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none"
                             />
                           </div>
 
                           {/* Price calculation summary */}
-                          <div className="bg-slate-950 border border-slate-850 p-3 rounded-xl flex flex-col gap-1 text-[10px] text-slate-400 mt-1">
+                          <div className="bg-slate-950 border border-slate-850 p-3 rounded-xl flex flex-col gap-1 text-[10px] text-slate-400">
                             <div className="flex justify-between">
                               <span>Subtotal</span>
                               <span className="font-bold text-white">₹{calculateTotals().subtotal}</span>
@@ -762,7 +762,7 @@ export default function App() {
 
                           <button 
                             onClick={handlePlaceOrder}
-                            className="w-full bg-rose-500 hover:bg-rose-600 text-white py-2.5 rounded-xl text-xs font-semibold shadow-md active:translate-y-0.5 text-center mt-1"
+                            className="w-full bg-rose-500 hover:bg-rose-600 text-white py-2.5 rounded-xl text-xs font-semibold shadow-md active:translate-y-0.5 text-center"
                           >
                             Proceed to Digital Payment
                           </button>
@@ -834,6 +834,10 @@ export default function App() {
 
                               <div className="bg-slate-900/60 p-3 rounded-xl text-[10px] text-slate-400 flex flex-col gap-1 border border-slate-850">
                                 <div className="flex justify-between">
+                                  <span>Apartment No</span>
+                                  <span className="font-bold text-white">{selectedOrderForTracking.apartmentNo}</span>
+                                </div>
+                                <div className="flex justify-between">
                                   <span>Pickup slot</span>
                                   <span className="font-bold text-white">{selectedOrderForTracking.pickupDate} ({selectedOrderForTracking.pickupTime})</span>
                                 </div>
@@ -884,7 +888,7 @@ export default function App() {
                         </div>
                       )}
 
-                      {/* SUPPORT TAB */}
+                      {/* SUPPORT & ADMIN GATEWAY TAB */}
                       {customerActiveTab === 'support' && (
                         <div className="flex flex-col gap-3 text-left">
                           <h3 className="text-sm font-bold text-white">Help & Support</h3>
@@ -892,24 +896,49 @@ export default function App() {
                           <div className="bg-slate-950 border border-slate-850 p-4 rounded-2xl flex flex-col gap-4">
                             <div>
                               <h4 className="text-xs font-bold text-white mb-1">📞 Contact Support</h4>
-                              <p className="text-[10px] text-slate-400 leading-relaxed">For immediate help regarding your pickup schedule or custom garments, contact us:</p>
-                              <div className="flex flex-col gap-1.5 mt-3 text-[10px]">
+                              <p className="text-[10px] text-slate-400 leading-relaxed">For immediate support regarding delivery schedules, reach us:</p>
+                              <div className="flex flex-col gap-1.5 mt-2.5 text-[10px]">
                                 <a href="tel:+919791019505" className="text-rose-500 font-bold hover:underline">Phone: +91 9791019505</a>
                                 <a href="mailto:support@ironease.com" className="text-rose-500 font-bold hover:underline">Email: support@ironease.com</a>
                               </div>
                             </div>
                             
                             <div className="border-t border-slate-800 pt-3">
-                              <h4 className="text-xs font-bold text-white mb-1">💬 Chat via WhatsApp</h4>
-                              <p className="text-[10px] text-slate-400 leading-relaxed">Instantly reach our delivery coordinators on WhatsApp Business API for order adjustments.</p>
+                              <h4 className="text-xs font-bold text-white mb-1">💬 WhatsApp Chat</h4>
                               <a 
                                 href="https://wa.me/919791019505" 
                                 target="_blank" 
                                 rel="noreferrer" 
-                                className="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl mt-3 text-center"
+                                className="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] px-3.5 py-2 rounded-xl mt-2 text-center"
                               >
-                                Open WhatsApp Chat
+                                Chat on WhatsApp
                               </a>
+                            </div>
+
+                            {/* Owner Admin Gateway Switcher */}
+                            <div className="border-t border-slate-800 pt-3 bg-slate-950/60 p-2.5 rounded-xl border border-dashed border-slate-800">
+                              <h4 className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                                <Key className="size-3.5 text-amber-500 animate-pulse" />
+                                Owner Portal Gateway
+                              </h4>
+                              <p className="text-[9px] text-slate-500 mt-1">If you are the business owner, enter your access PIN to open the dashboard:</p>
+                              <div className="flex gap-2 mt-3">
+                                <input 
+                                  type="password"
+                                  maxLength={4}
+                                  placeholder="PIN (9791)"
+                                  value={adminPin}
+                                  onChange={e => setAdminPin(e.target.value.replace(/\D/g, ''))}
+                                  className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-white w-24 text-center outline-none"
+                                />
+                                <button 
+                                  onClick={handleAdminAccess}
+                                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] px-3 py-1 rounded-lg"
+                                >
+                                  Enter Portal
+                                </button>
+                              </div>
+                              <span className="text-[8px] text-slate-600 block mt-1.5">Demo bypass: Enter PIN <strong>9791</strong></span>
                             </div>
                           </div>
                         </div>
@@ -1018,10 +1047,6 @@ export default function App() {
         {/* --- 2. ADMIN PORTAL / WEB DASHBOARD --- */}
         {(viewMode === 'admin' || viewMode === 'dual') && (
           <div className="flex-1 flex flex-col min-w-0">
-            <div className="text-left mb-2 font-semibold text-xs text-slate-400 tracking-widest uppercase flex items-center gap-1.5">
-              <Laptop className="size-3.5 text-rose-500" /> Admin Dashboard (Owner Portal)
-            </div>
-
             <div className="flex-1 bg-slate-950 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col gap-6">
               
               {/* Admin Tabs */}
@@ -1112,6 +1137,7 @@ export default function App() {
                                 <tr>
                                   <th className="p-3">Order ID</th>
                                   <th className="p-3">Customer</th>
+                                  <th className="p-3">Address</th>
                                   <th className="p-3">Schedule</th>
                                   <th className="p-3">Total</th>
                                   <th className="p-3">Status</th>
@@ -1125,6 +1151,10 @@ export default function App() {
                                     <td className="p-3">
                                       <div className="font-semibold text-white">{o.customerName}</div>
                                       <div className="text-[9px] text-slate-400">{o.customerPhone}</div>
+                                    </td>
+                                    <td className="p-3">
+                                      <div className="font-semibold text-white truncate max-w-[120px]">{o.apartmentNo}</div>
+                                      <div className="text-[9px] text-slate-400 truncate max-w-[120px]">{o.address}</div>
                                     </td>
                                     <td className="p-3">
                                       <div className="font-semibold text-white">{o.pickupDate}</div>
@@ -1180,6 +1210,9 @@ export default function App() {
                               </div>
                               <div className="text-xs text-white">
                                 <strong>Customer:</strong> {o.customerName} ({o.customerPhone})
+                              </div>
+                              <div className="text-xs text-slate-400 leading-relaxed">
+                                <strong>Apartment:</strong> {o.apartmentNo}
                               </div>
                               <div className="text-xs text-slate-400 leading-relaxed">
                                 <strong>Address:</strong> {o.address}
@@ -1323,11 +1356,12 @@ export default function App() {
                         <div key={c.phone} className="bg-slate-900 border border-slate-850 p-4 rounded-2xl flex flex-col gap-1">
                           <div className="flex justify-between items-center">
                             <h4 className="text-xs font-bold text-white">{c.name}</h4>
-                            <span className="text-[9px] bg-slate-950 text-slate-400 px-2 py-0.5 rounded">Customer</span>
+                            <span className="text-[9px] bg-slate-950 text-slate-400 px-2 py-0.5 rounded font-bold">Active Customer</span>
                           </div>
-                          <div className="text-[10px] text-slate-400 mt-1 flex flex-col gap-0.5">
+                          <div className="text-[10px] text-slate-400 mt-1 flex flex-col gap-0.5 border-t border-slate-800/50 pt-2">
                             <span>📞 Phone: +91 {c.phone}</span>
                             {c.email && <span>📧 Email: {c.email}</span>}
+                            <span>🏢 Apartment: {c.apartmentNo}</span>
                             <span>📍 Address: {c.address}</span>
                           </div>
                         </div>
@@ -1367,7 +1401,8 @@ export default function App() {
               <div className="font-bold text-slate-800">Bill To:</div>
               <div className="mt-1 text-slate-600">{selectedInvoice.customerName}</div>
               <div className="text-slate-600">{selectedInvoice.customerPhone}</div>
-              <div className="text-[10px] text-slate-400 mt-1 truncate">{selectedInvoice.address}</div>
+              <div className="text-[10px] text-slate-400 mt-1 font-semibold">{selectedInvoice.apartmentNo}</div>
+              <div className="text-[10px] text-slate-400 truncate">{selectedInvoice.address}</div>
             </div>
 
             {/* Date Details */}
@@ -1428,8 +1463,37 @@ export default function App() {
         </div>
       )}
 
+      {/* Real-time details guide drawer */}
+      <section className="bg-slate-950 p-6 text-left border-t border-slate-850 mt-6 flex flex-col gap-4">
+        <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+          <HelpCircle className="size-4 text-rose-500" />
+          Technical Guide: How to Go Real-time with Payments & Databases
+        </h3>
+        
+        <div className="grid md:grid-cols-3 gap-6 text-[11px] text-slate-400 leading-relaxed">
+          <div>
+            <h4 className="font-bold text-slate-200 mb-1">1. Moving from LocalStorage to PostgreSQL/MongoDB</h4>
+            <p>
+              Replace the React `useState` hooks synced with `localStorage` by setting up a Node.js/Express backend API. Create API endpoints like `POST /api/orders` and `GET /api/orders` that interact with a cloud database hosted on AWS RDS or MongoDB Atlas to persist customer orders instantly and securely in the cloud.
+            </p>
+          </div>
+          <div>
+            <h4 className="font-bold text-slate-200 mb-1">2. Integrating Real-Time UPI & Cards Payments</h4>
+            <p>
+              To collect real money, integrate a payment gateway SDK such as Razorpay or Stripe. When the customer clicks "Pay", call your backend API to create an order instance with the gateway, load the Razorpay checkout modal in React, collect payments via cards/UPI, and let the gateway webhook securely update the order's payment status to "Paid".
+            </p>
+          </div>
+          <div>
+            <h4 className="font-bold text-slate-200 mb-1">3. Triggering Real WhatsApp & SMS Alerts</h4>
+            <p>
+              Integrate the WhatsApp Business API or Twilio SMS API on your Node.js backend. Inside your status transition controller (e.g. `PATCH /api/orders/:id/status`), invoke the notification API to automatically send transactional templates (like pickup confirmation, OTPs, or "ready for delivery" messages) directly to the customer's phone number.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Simulation Dashboard Footer */}
-      <footer className="border-t border-slate-800 bg-slate-950 px-6 py-4 text-center text-xs text-slate-500">
+      <footer className="border-t border-slate-850 bg-slate-950 px-6 py-4 text-center text-xs text-slate-500">
         <p>© 2026 IronEase Ironing Service Inc. All systems simulated. Workflows are fully responsive and digital ready.</p>
       </footer>
 
