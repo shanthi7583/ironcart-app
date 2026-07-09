@@ -178,6 +178,25 @@ app.post('/api/customers', (req, res) => {
   console.log(`👋 New Customer Registered: ${newCustomer.name} (${newCustomer.phone})`);
   res.status(201).json(newCustomer);
 });
+// 9. Payment order creation simulation (Razorpay/Stripe)
+app.post('/api/payments/create-order', (req, res) => {
+  const { amount, currency } = req.body;
+  if (!amount) {
+    return res.status(400).json({ error: 'Amount is required' });
+  }
+  
+  // Simulated gateway transaction payload
+  const gatewayOrder = {
+    gatewayOrderId: `rzp_order_${Math.random().toString(36).substring(2, 11).toUpperCase()}`,
+    amount: amount,
+    currency: currency || 'INR',
+    status: 'created',
+    createdAt: Date.now()
+  };
+  
+  console.log(`🏦 Payment Gateway Order Initialized: ${gatewayOrder.gatewayOrderId} for ₹${amount}`);
+  res.json(gatewayOrder);
+});
 
 app.listen(PORT, () => {
   console.log(`🚀 IronEase Backend API Server is running on http://localhost:${PORT}`);

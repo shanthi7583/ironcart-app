@@ -1,0 +1,112 @@
+{
+  "prices": [
+    {
+      "name": "Shirt",
+      "price": 15,
+      "category": "Apparel"
+    },
+    {
+      "name": "T-Shirt",
+      "price": 12,
+      "category": "Apparel"
+    },
+    {
+      "name": "Pant",
+      "price": 15,
+      "category": "Apparel"
+    },
+    {
+      "name": "Jeans",
+      "price": 18,
+      "category": "Apparel"
+    },
+    {
+      "name": "Saree",
+      "price": 50,
+      "category": "Apparel"
+    },
+    {
+      "name": "Kurta",
+      "price": 20,
+      "category": "Apparel"
+    },
+    {
+      "name": "Salwar",
+      "price": 20,
+      "category": "Apparel"
+    },
+    {
+      "name": "Blazer",
+      "price": 80,
+      "category": "Outerwear"
+    },
+    {
+      "name": "Coat",
+      "price": 90,
+      "category": "Outerwear"
+    },
+    {
+      "name": "Suit",
+      "price": 120,
+      "category": "Outerwear"
+    },
+    {
+      "name": "School Uniform",
+      "price": 25,
+      "category": "Apparel"
+    },
+    {
+      "name": "Bedsheet",
+      "price": 30,
+      "category": "Bedding"
+    },
+    {
+      "name": "Pillow Cover",
+      "price": 10,
+      "category": "Bedding"
+    },
+    {
+      "name": "Curtain",
+      "price": 60,
+      "category": "Bedding"
+    }
+  ],
+  "customers": [
+    {
+      "name": "Shanthi Jayaraman",
+      "phone": "9791019505",
+      "email": "shanthi.jayaraman7@gmail.com",
+      "apartmentNo": "Apt 402, Block C",
+      "address": "123 Tech Park, Whitefield, Bengaluru"
+    }
+  ],
+  "orders": [
+    {
+      "id": "ORD-738711",
+      "invoiceNo": "IE-1017",
+      "customerName": "Shanthi Jayaraman",
+      "customerPhone": "9791019505",
+      "apartmentNo": "Apt 402, Block C",
+      "address": "123 Tech Park, Whitefield, Bengaluru",
+      "pickupDate": "2026-08-07",
+      "pickupTime": "09:00 - 12:00",
+      "speed": "Normal",
+      "items": [
+        {
+          "name": "Pillow Cover",
+          "qty": 1,
+          "price": 10
+        }
+      ],
+      "subtotal": 10,
+      "markup": 0,
+      "tax": 0.5,
+      "total": 10.5,
+      "status": "Placed",
+      "paymentStatus": "Paid",
+      "paymentMethod": "UPI",
+      "specialInstructions": "",
+      "createdAt": "09 Jul 2026, 01:07 pm"
+    }
+  ]
+}

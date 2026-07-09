@@ -244,7 +244,7 @@ export default function App() {
 
   // --- Order Submission ---
   const handlePlaceOrder = () => {
-    const { subtotal } = calculateTotals();
+    const { subtotal, total } = calculateTotals();
     if (subtotal === 0) {
       alert('Please add at least one garment to your basket');
       return;
@@ -253,7 +253,21 @@ export default function App() {
       alert('Please select a pickup date');
       return;
     }
-    setShowCheckoutModal(true);
+
+    // Call payment gateway simulation API to generate a transaction session ID
+    fetch(`${API_URL}/payments/create-order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount: total })
+    })
+      .then(res => res.json())
+      .then(data => {
+        triggerNotification(`🏦 Payment Gateway Session: ${data.gatewayOrderId} created!`);
+        setShowCheckoutModal(true);
+      })
+      .catch(err => {
+        alert('Failed to connect to checkout gateway: ' + err.message);
+      });
   };
 
   const confirmOrderPayment = () => {
