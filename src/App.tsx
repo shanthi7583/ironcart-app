@@ -182,6 +182,10 @@ export default function App() {
   const [orderSpeed, setOrderSpeed] = useState<'Normal' | 'Express' | 'Urgent'>('Normal');
   const [pickupDate, setPickupDate] = useState('');
   const [pickupTime, setPickupTime] = useState('09:00 - 12:00');
+  const [orderName, setOrderName] = useState('');
+  const [orderPhone, setOrderPhone] = useState('');
+  const [orderApartment, setOrderApartment] = useState('');
+  const [orderAddress, setOrderAddress] = useState('');
   const [selectedItems, setSelectedItems] = useState<{ [key: string]: number }>({});
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'Card' | 'COD'>('UPI');
@@ -413,10 +417,10 @@ export default function App() {
     const newOrder: Order = {
       id: `ORD-${Math.floor(100000 + Math.random() * 900000)}`,
       invoiceNo: `IE-${Math.floor(1000 + Math.random() * 9000)}`,
-      customerName: currentCustomer?.name || 'Walk-in Customer',
-      customerPhone: currentCustomer?.phone || '',
-      apartmentNo: currentCustomer?.apartmentNo || '',
-      address: currentCustomer?.address || '',
+      customerName: orderName || 'Walk-in Customer',
+      customerPhone: orderPhone || '',
+      apartmentNo: orderApartment || '',
+      address: orderAddress || '',
       pickupDate,
       pickupTime,
       speed: orderSpeed,
@@ -483,8 +487,8 @@ export default function App() {
           confirmOrderPayment(response.razorpay_payment_id);
         },
         prefill: {
-          name: currentCustomer?.name || '',
-          contact: currentCustomer?.phone || ''
+          name: orderName || '',
+          contact: orderPhone || ''
         },
         theme: { color: "#F43F5E" }
       };
@@ -900,8 +904,18 @@ export default function App() {
                                 <label className="text-[9px] font-bold text-slate-400 uppercase">Customer Name</label>
                                 <input 
                                   type="text" 
-                                  value={currentCustomer.name} 
-                                  onChange={e => setCurrentCustomer({...currentCustomer, name: e.target.value})}
+                                  value={orderName} 
+                                  onChange={e => setOrderName(e.target.value)}
+                                  className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-rose-500"
+                                />
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <label className="text-[9px] font-bold text-slate-400 uppercase">Phone Number</label>
+                                <input 
+                                  type="text" 
+                                  value={orderPhone} 
+                                  onChange={e => setOrderPhone(e.target.value)}
+                                  placeholder="e.g. 9876543210"
                                   className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-rose-500"
                                 />
                               </div>
@@ -910,8 +924,8 @@ export default function App() {
                                   <label className="text-[9px] font-bold text-slate-400 uppercase">Apt No.</label>
                                   <input 
                                     type="text" 
-                                    value={currentCustomer.apartmentNo} 
-                                    onChange={e => setCurrentCustomer({...currentCustomer, apartmentNo: e.target.value})}
+                                    value={orderApartment} 
+                                    onChange={e => setOrderApartment(e.target.value)}
                                     className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-rose-500"
                                   />
                                 </div>
@@ -919,8 +933,8 @@ export default function App() {
                                   <label className="text-[9px] font-bold text-slate-400 uppercase">Full Address</label>
                                   <input 
                                     type="text" 
-                                    value={currentCustomer.address} 
-                                    onChange={e => setCurrentCustomer({...currentCustomer, address: e.target.value})}
+                                    value={orderAddress} 
+                                    onChange={e => setOrderAddress(e.target.value)}
                                     className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-rose-500"
                                   />
                                 </div>
