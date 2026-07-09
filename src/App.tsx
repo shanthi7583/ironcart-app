@@ -73,7 +73,7 @@ const DEFAULT_PRICE_LIST: GarmentItem[] = [
 
 export default function App() {
   // --- Persistent State using Backend API & LocalStorage ---
-  const API_URL = 'http://localhost:5000/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [priceList, setPriceList] = useState<GarmentItem[]>(DEFAULT_PRICE_LIST);
