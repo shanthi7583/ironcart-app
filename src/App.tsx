@@ -344,11 +344,13 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('iron_current_user');
     setCurrentCustomer(null);
     setAuthStep('login');
     setAuthPhone('');
     setAuthOTP('');
     setSelectedItems({});
+    window.location.reload();
   };
 
   // --- Calculation Helpers ---
@@ -692,7 +694,7 @@ export default function App() {
                               type="tel"
                               value={authPhone}
                               onChange={e => setAuthPhone(e.target.value.replace(/\D/g, '').slice(0,10))}
-                              placeholder="9791019505"
+                              placeholder="Enter 10 digit number"
                               className="bg-transparent text-sm text-white w-full outline-none"
                             />
                           </div>
@@ -703,9 +705,6 @@ export default function App() {
                         >
                           Send OTP Verification
                         </button>
-                        <div className="text-center text-xs text-slate-400 mt-2">
-                          Demo login: Use phone <strong className="text-slate-200">9791019505</strong>
-                        </div>
                         <div id="recaptcha-container"></div>
                       </div>
                     )}
@@ -729,8 +728,7 @@ export default function App() {
                         >
                           Verify & Continue
                         </button>
-                        <div className="flex justify-between items-center text-xs text-slate-400 mt-1">
-                          <span>Demo bypass: type <strong className="text-slate-200">1234</strong></span>
+                        <div className="flex justify-end items-center text-xs text-slate-400 mt-1">
                           <button onClick={() => setAuthStep('login')} className="text-rose-500 hover:underline">Change Number</button>
                         </div>
                       </div>
@@ -745,7 +743,7 @@ export default function App() {
                             type="text"
                             value={authName}
                             onChange={e => setAuthName(e.target.value)}
-                            placeholder="Shanthi Jayaraman"
+                            placeholder="Your Full Name"
                             className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none"
                           />
                         </div>
@@ -1244,7 +1242,6 @@ export default function App() {
                                   Enter Portal
                                 </button>
                               </div>
-                              <span className="text-[8px] text-slate-600 block mt-1.5">Demo bypass: Enter PIN <strong>9791</strong></span>
                             </div>
                           </div>
                         </div>
@@ -1861,34 +1858,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Real-time details guide drawer */}
-      <section className="bg-slate-950 p-6 text-left border-t border-slate-850 mt-6 flex flex-col gap-4">
-        <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
-          <HelpCircle className="size-4 text-rose-500" />
-          Technical Guide: How to Go Real-time with Payments & Databases
-        </h3>
-        
-        <div className="grid md:grid-cols-3 gap-6 text-[11px] text-slate-400 leading-relaxed">
-          <div>
-            <h4 className="font-bold text-slate-200 mb-1">1. Moving from LocalStorage to PostgreSQL/MongoDB</h4>
-            <p>
-              Replace the React `useState` hooks synced with `localStorage` by setting up a Node.js/Express backend API. Create API endpoints like `POST /api/orders` and `GET /api/orders` that interact with a cloud database hosted on AWS RDS or MongoDB Atlas to persist customer orders instantly and securely in the cloud.
-            </p>
-          </div>
-          <div>
-            <h4 className="font-bold text-slate-200 mb-1">2. Integrating Real-Time UPI & Cards Payments</h4>
-            <p>
-              To collect real money, integrate a payment gateway SDK such as Razorpay or Stripe. When the customer clicks "Pay", call your backend API to create an order instance with the gateway, load the Razorpay checkout modal in React, collect payments via cards/UPI, and let the gateway webhook securely update the order's payment status to "Paid".
-            </p>
-          </div>
-          <div>
-            <h4 className="font-bold text-slate-200 mb-1">3. Triggering Real WhatsApp & SMS Alerts</h4>
-            <p>
-              Integrate the WhatsApp Business API or Twilio SMS API on your Node.js backend. Inside your status transition controller (e.g. `PATCH /api/orders/:id/status`), invoke the notification API to automatically send transactional templates (like pickup confirmation, OTPs, or "ready for delivery" messages) directly to the customer's phone number.
-            </p>
-          </div>
-        </div>
-      </section>
+
 
       {/* Simulation Dashboard Footer */}
       <footer className="border-t border-slate-850 bg-slate-950 px-6 py-4 text-center text-xs text-slate-500">
