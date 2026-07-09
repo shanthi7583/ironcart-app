@@ -812,15 +812,31 @@ export default function App() {
                     
                     {/* Customer Top App Bar */}
                     <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="size-10 rounded-full bg-rose-500 flex items-center justify-center text-white font-bold text-lg shadow-lg">
-                          {currentCustomer.name.charAt(0).toUpperCase()}
+                      {customerActiveTab === 'home' ? (
+                        <div className="flex items-center gap-3">
+                          <div className="size-10 rounded-full bg-rose-500 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                            {currentCustomer.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="text-left">
+                            <div className="text-[10px] text-rose-300 font-bold tracking-wide uppercase">Warm Welcome Back</div>
+                            <div className="text-sm font-black text-white max-w-[160px] truncate">{currentCustomer.name}</div>
+                          </div>
                         </div>
-                        <div className="text-left">
-                          <div className="text-[10px] text-rose-300 font-bold tracking-wide uppercase">Warm Welcome Back</div>
-                          <div className="text-sm font-black text-white max-w-[160px] truncate">{currentCustomer.name}</div>
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <button 
+                            onClick={() => setCustomerActiveTab('home')} 
+                            className="p-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-400 hover:text-rose-500 transition-colors"
+                          >
+                            <ArrowLeft className="size-4" />
+                          </button>
+                          <h2 className="text-sm font-bold text-white uppercase tracking-wide">
+                            {customerActiveTab === 'order' ? 'Place Order' : 
+                             customerActiveTab === 'prices' ? 'Pricing' :
+                             customerActiveTab === 'history' ? 'My Orders' : 'Support'}
+                          </h2>
                         </div>
-                      </div>
+                      )}
                       <button onClick={handleLogout} className="text-slate-500 hover:text-rose-500 p-2 rounded-lg bg-slate-900 border border-slate-800">
                         <LogOut className="size-4" />
                       </button>
@@ -1259,7 +1275,7 @@ export default function App() {
                                 <input 
                                   type="password"
                                   maxLength={4}
-                                  placeholder="PIN (9791)"
+                                  placeholder="PIN"
                                   value={adminPin}
                                   onChange={e => setAdminPin(e.target.value.replace(/\D/g, ''))}
                                   className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-white w-24 text-center outline-none"
@@ -1271,7 +1287,6 @@ export default function App() {
                                   Enter Portal
                                 </button>
                               </div>
-                              <span className="text-[8px] text-slate-500 block mt-2 text-center bg-slate-900 py-1 rounded-md">Admin PIN: <strong>9791</strong></span>
                             </div>
                           </div>
                         </div>
