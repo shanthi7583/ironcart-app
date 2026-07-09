@@ -142,6 +142,7 @@ export default function App() {
 
   // Active modal invoice state
   const [selectedInvoice, setSelectedInvoice] = useState<Order | null>(null);
+  const [gatewayOrderData, setGatewayOrderData] = useState<any>(null);
 
   // Show simulated WhatsApp / System Notification banners
   const triggerNotification = (message: string) => {
@@ -272,6 +273,7 @@ export default function App() {
     })
       .then(res => res.json())
       .then(data => {
+        setGatewayOrderData(data);
         triggerNotification(`🏦 Payment Gateway Session: ${data.gatewayOrderId} created!`);
         setShowCheckoutModal(true);
       })
@@ -280,7 +282,7 @@ export default function App() {
       });
   };
 
-  const confirmOrderPayment = () => {
+  const confirmOrderPayment = (transactionId: string = 'Simulated') => {
     const { subtotal, markup, tax, total } = calculateTotals();
     const orderItems: OrderItem[] = Object.entries(selectedItems)
       .filter(([_, qty]) => qty > 0)
@@ -310,7 +312,7 @@ export default function App() {
       total,
       status: 'Placed',
       paymentStatus: paymentMethod === 'COD' ? 'Pending' : 'Paid',
-      paymentMethod,
+      paymentMethod: transactionId !== 'Simulated' ? `${paymentMethod} (Txn: ${transactionId})` : paymentMethod,
       specialInstructions,
       createdAt: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     };
@@ -331,6 +333,34 @@ export default function App() {
         triggerNotification(`🔔 New Order Alert to Owner: received order ${data.id} from ${data.customerName} (${data.apartmentNo})`);
       })
       .catch(err => alert('API Connection Error: ' + err.message));
+  };
+
+  const handleCheckoutSubmit = () => {
+    if ((paymentMethod === 'UPI' || paymentMethod === 'Card') && gatewayOrderData?.liveMode) {
+      // Trigger Live Razorpay Checkout
+      const options = {
+        key: gatewayOrderData.keyId,
+        amount: gatewayOrderData.amount * 100, // paise
+        currency: gatewayOrderData.currency,
+        name: "IronEase Service",
+        description: "Ironing Booking Service Payment",
+        order_id: gatewayOrderData.gatewayOrderId,
+        handler: function (response: any) {
+          console.log("Razorpay Success Transaction ID:", response.razorpay_payment_id);
+          confirmOrderPayment(response.razorpay_payment_id);
+        },
+        prefill: {
+          name: currentCustomer?.name || '',
+          contact: currentCustomer?.phone || ''
+        },
+        theme: { color: "#F43F5E" }
+      };
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
+    } else {
+      // Demo Mode or COD
+      confirmOrderPayment();
+    }
   };
 
   // --- Admin Actions ---
@@ -1088,7 +1118,7 @@ export default function App() {
                   </div>
 
                   <button 
-                    onClick={confirmOrderPayment}
+                    onClick={handleCheckoutSubmit}
                     className="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-3 rounded-xl text-xs tracking-wider uppercase text-center mt-2 shadow-md active:translate-y-0.5"
                   >
                     Confirm & Submit Order

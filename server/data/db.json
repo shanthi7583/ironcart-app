@@ -82,6 +82,38 @@
   ],
   "orders": [
     {
+      "id": "ORD-354396",
+      "invoiceNo": "IE-9309",
+      "customerName": "Shanthi Jayaraman",
+      "customerPhone": "9791019505",
+      "apartmentNo": "Apt 402, Block C",
+      "address": "123 Tech Park, Whitefield, Bengaluru",
+      "pickupDate": "2016-08-07",
+      "pickupTime": "09:00 - 12:00",
+      "speed": "Normal",
+      "items": [
+        {
+          "name": "Suit",
+          "qty": 1,
+          "price": 120
+        },
+        {
+          "name": "School Uniform",
+          "qty": 1,
+          "price": 25
+        }
+      ],
+      "subtotal": 145,
+      "markup": 0,
+      "tax": 7.25,
+      "total": 152.25,
+      "status": "Placed",
+      "paymentStatus": "Paid",
+      "paymentMethod": "UPI",
+      "specialInstructions": "",
+      "createdAt": "09 Jul 2026, 01:28 pm"
+    },
+    {
       "id": "ORD-738711",
       "invoiceNo": "IE-1017",
       "customerName": "Shanthi Jayaraman",

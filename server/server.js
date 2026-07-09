@@ -1,8 +1,11 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
+import https from 'https';
 import { fileURLToPath } from 'url';
+import Razorpay from 'razorpay';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,6 +23,18 @@ const DB_FILE = path.join(DB_DIR, 'db.json');
 // Ensure database directory exists
 if (!fs.existsSync(DB_DIR)) {
   fs.mkdirSync(DB_DIR, { recursive: true });
+}
+
+// Initialize Razorpay client only if keys are present in .env
+let razorpay = null;
+if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+  razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET
+  });
+  console.log('✅ Razorpay Live Gateway Client Initialized.');
+} else {
+  console.log('⚠️ Razorpay keys missing. Operating in simulated Payment Demo Mode.');
 }
 
 const DEFAULT_PRICE_LIST = [
@@ -77,6 +92,7 @@ const writeDB = (data) => {
 };
 
 // --- SIMULATED SMS / WHATSAPP GATEWAY DISPATCHER ---
+// Integrated with Fast2SMS for cost-effective Indian mobile SMS OTPs & Alerts
 const sendNotification = (type, phone, message) => {
   const timestamp = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   console.log(`\n======================================================`);
@@ -85,6 +101,43 @@ const sendNotification = (type, phone, message) => {
   console.log(`📞 Target Phone: +91 ${phone}`);
   console.log(`💬 Message: "${message}"`);
   console.log(`======================================================\n`);
+
+  const fast2smsKey = process.env.FAST2SMS_API_KEY;
+  if (fast2smsKey && (type === 'sms' || type === 'otp' || type === 'whatsapp')) {
+    const postData = JSON.stringify({
+      route: 'q',
+      message: message,
+      language: 'english',
+      flash: 0,
+      numbers: phone
+    });
+
+    const options = {
+      hostname: 'www.fast2sms.com',
+      path: '/dev/bulkV2',
+      method: 'POST',
+      headers: {
+        'authorization': fast2smsKey,
+        'Content-Type': 'application/json',
+        'Content-Length': postData.length
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        console.log(`✉️ Fast2SMS Live Dispatch Response Status: ${res.statusCode} - ${body}`);
+      });
+    });
+
+    req.on('error', (e) => {
+      console.error(`❌ Fast2SMS Live Transmission Failed: ${e.message}`);
+    });
+
+    req.write(postData);
+    req.end();
+  }
 };
 
 // --- API ROUTES ---
@@ -201,26 +254,49 @@ app.post('/api/customers', (req, res) => {
   res.status(201).json(newCustomer);
 });
 
-// 9. Payment order creation simulation (Razorpay/Stripe)
-app.post('/api/payments/create-order', (req, res) => {
+// 9. Payment order creation simulation / Live Razorpay Order session
+app.post('/api/payments/create-order', async (req, res) => {
   const { amount, currency } = req.body;
   if (!amount) {
     return res.status(400).json({ error: 'Amount is required' });
   }
   
+  if (razorpay) {
+    try {
+      const order = await razorpay.orders.create({
+        amount: Math.round(amount * 100), // Razorpay in paise
+        currency: currency || 'INR',
+        receipt: `receipt_${Date.now()}`
+      });
+      console.log(`🏦 Live Razorpay Order Registered: ${order.id} for ₹${amount}`);
+      return res.json({
+        gatewayOrderId: order.id,
+        amount: order.amount / 100,
+        currency: order.currency,
+        liveMode: true,
+        keyId: process.env.RAZORPAY_KEY_ID
+      });
+    } catch (err) {
+      console.error('Razorpay SDK error:', err);
+      return res.status(500).json({ error: 'Razorpay order creation failed: ' + err.message });
+    }
+  }
+
+  // Simulated fallback transaction
   const gatewayOrder = {
     gatewayOrderId: `rzp_order_${Math.random().toString(36).substring(2, 11).toUpperCase()}`,
     amount: amount,
     currency: currency || 'INR',
     status: 'created',
-    createdAt: Date.now()
+    createdAt: Date.now(),
+    liveMode: false
   };
   
-  console.log(`🏦 Payment Gateway Order Initialized: ${gatewayOrder.gatewayOrderId} for ₹${amount}`);
+  console.log(`🏦 Payment Gateway Order Initialized (Demo Mode): ${gatewayOrder.gatewayOrderId} for ₹${amount}`);
   res.json(gatewayOrder);
 });
 
-// 10. Simulated OTP dispatcher API
+// 10. Simulated / Real OTP dispatcher API
 app.post('/api/auth/send-otp', (req, res) => {
   const { phone } = req.body;
   if (!phone) return res.status(400).json({ error: 'Phone number is required' });
