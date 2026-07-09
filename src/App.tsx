@@ -157,10 +157,20 @@ export default function App() {
       alert('Please enter a valid 10-digit mobile number');
       return;
     }
-    const pin = Math.floor(1000 + Math.random() * 9000).toString();
-    setSentOTP(pin);
-    setAuthStep('otp');
-    triggerNotification(`💬 WhatsApp OTP Sent to +91 ${authPhone}: Your code is ${pin}`);
+    fetch(`${API_URL}/auth/send-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: authPhone })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.otp) {
+          setSentOTP(data.otp);
+          setAuthStep('otp');
+          triggerNotification(`💬 WhatsApp OTP Sent to +91 ${authPhone}! Check backend terminal log for PIN.`);
+        }
+      })
+      .catch(err => alert('Failed to send verification code: ' + err.message));
   };
 
   const handleVerifyOTP = () => {

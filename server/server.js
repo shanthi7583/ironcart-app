@@ -76,6 +76,17 @@ const writeDB = (data) => {
   fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
 };
 
+// --- SIMULATED SMS / WHATSAPP GATEWAY DISPATCHER ---
+const sendNotification = (type, phone, message) => {
+  const timestamp = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  console.log(`\n======================================================`);
+  console.log(`🔔 [NOTIFICATION SERVICE] - ${timestamp}`);
+  console.log(`📱 Channel: ${type.toUpperCase()}`);
+  console.log(`📞 Target Phone: +91 ${phone}`);
+  console.log(`💬 Message: "${message}"`);
+  console.log(`======================================================\n`);
+};
+
 // --- API ROUTES ---
 
 // 1. Get prices
@@ -112,7 +123,11 @@ app.post('/api/orders', (req, res) => {
   const db = readDB();
   db.orders.unshift(newOrder); // Add to beginning
   writeDB(db);
-  console.log(`🔔 New Order Created: ${newOrder.id} - ${newOrder.customerName}`);
+  
+  // Dispatch alerts
+  sendNotification('whatsapp', newOrder.customerPhone, `Hi ${newOrder.customerName}, your IronEase order ${newOrder.id} of ₹${newOrder.total} was placed! Pickup scheduled for ${newOrder.pickupDate} (${newOrder.pickupTime}).`);
+  sendNotification('sms', '9791019505', `Owner Alert: New order ${newOrder.id} received from ${newOrder.customerName} (${newOrder.apartmentNo}).`);
+  
   res.status(201).json(newOrder);
 });
 
@@ -130,7 +145,10 @@ app.patch('/api/orders/:id/status', (req, res) => {
   
   db.orders[index].status = status;
   writeDB(db);
-  console.log(`📱 Order Status Changed: ${id} is now [${status}]`);
+  
+  const order = db.orders[index];
+  sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your IronEase order ${order.id} status is now: [${status}].`);
+  
   res.json(db.orders[index]);
 });
 
@@ -148,7 +166,10 @@ app.patch('/api/orders/:id/payment', (req, res) => {
   
   db.orders[index].paymentStatus = paymentStatus;
   writeDB(db);
-  console.log(`💳 Order Payment Updated: ${id} payment status is [${paymentStatus}]`);
+  
+  const order = db.orders[index];
+  sendNotification('sms', order.customerPhone, `IronEase: Payment of ₹${order.total} for order ${order.id} is confirmed [Paid].`);
+  
   res.json(db.orders[index]);
 });
 
@@ -169,15 +190,17 @@ app.post('/api/customers', (req, res) => {
   const existingIdx = db.customers.findIndex(c => c.phone === newCustomer.phone);
   
   if (existingIdx !== -1) {
-    // Already exists, just return profile (login)
     return res.json(db.customers[existingIdx]);
   }
   
   db.customers.push(newCustomer);
   writeDB(db);
-  console.log(`👋 New Customer Registered: ${newCustomer.name} (${newCustomer.phone})`);
+  
+  sendNotification('sms', newCustomer.phone, `Welcome to IronEase, ${newCustomer.name}! Your pickup profile has been created successfully.`);
+  
   res.status(201).json(newCustomer);
 });
+
 // 9. Payment order creation simulation (Razorpay/Stripe)
 app.post('/api/payments/create-order', (req, res) => {
   const { amount, currency } = req.body;
@@ -185,7 +208,6 @@ app.post('/api/payments/create-order', (req, res) => {
     return res.status(400).json({ error: 'Amount is required' });
   }
   
-  // Simulated gateway transaction payload
   const gatewayOrder = {
     gatewayOrderId: `rzp_order_${Math.random().toString(36).substring(2, 11).toUpperCase()}`,
     amount: amount,
@@ -196,6 +218,16 @@ app.post('/api/payments/create-order', (req, res) => {
   
   console.log(`🏦 Payment Gateway Order Initialized: ${gatewayOrder.gatewayOrderId} for ₹${amount}`);
   res.json(gatewayOrder);
+});
+
+// 10. Simulated OTP dispatcher API
+app.post('/api/auth/send-otp', (req, res) => {
+  const { phone } = req.body;
+  if (!phone) return res.status(400).json({ error: 'Phone number is required' });
+  const otp = Math.floor(1000 + Math.random() * 9000).toString();
+  
+  sendNotification('whatsapp', phone, `Your IronEase verification OTP code is ${otp}. Valid for 5 minutes.`);
+  res.json({ success: true, otp });
 });
 
 app.listen(PORT, () => {
