@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { 
   Plus, Minus, Calendar, Clock, Check, MapPin,
   TrendingUp, Users, Smartphone, 
-  ChevronRight, User, ShoppingBag, 
+  ChevronRight, ShoppingBag, 
   FileText, CreditCard, ArrowLeft, Settings, 
   Bell, HelpCircle, LogOut, Eye, RefreshCw, Key
 } from 'lucide-react'
@@ -345,7 +345,7 @@ export default function App() {
         setAuthOTP('');
         triggerNotification(`✅ Registration Successful! Please login using your mobile number.`);
       })
-      .catch(err => alert('Registration failed. Is the backend running?'));
+      .catch(() => alert('Registration failed. Is the backend running?'));
   };
 
   const handleLogout = () => {
