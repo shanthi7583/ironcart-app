@@ -694,13 +694,13 @@ export default function App() {
                     {authStep === 'otp' && (
                       <div className="flex flex-col gap-4">
                         <div className="flex flex-col gap-1.5 text-left">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase">Enter 4-Digit OTP</label>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase">Enter Verification OTP</label>
                           <input 
                             type="text"
-                            maxLength={4}
+                            maxLength={6}
                             value={authOTP}
                             onChange={e => setAuthOTP(e.target.value.replace(/\D/g, ''))}
-                            placeholder="1234"
+                            placeholder="••••••"
                             className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-center text-lg font-bold tracking-widest text-white outline-none"
                           />
                         </div>
