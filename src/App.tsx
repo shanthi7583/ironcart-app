@@ -302,8 +302,8 @@ export default function App() {
   };
 
   const handleRegister = () => {
-    if (!authName || !authApartment || !authAddress) {
-      alert('Please enter your name, apartment number, and street address');
+    if (!authName.trim() || !authApartment.trim() || authAddress.trim().length < 5) {
+      alert('Please enter a valid name, apartment number, and full street address (at least 5 characters).');
       return;
     }
     const newProfile: CustomerProfile = {
@@ -375,6 +375,12 @@ export default function App() {
   // --- Order Submission ---
   const handlePlaceOrder = () => {
     const { subtotal, total } = calculateTotals();
+
+    if (!orderName.trim() || !orderPhone.trim() || !orderApartment.trim() || orderAddress.trim().length < 5) {
+      alert('Please fill out all pickup details (Name, Phone, Apartment, and Full Address) correctly.');
+      return;
+    }
+
     if (subtotal === 0) {
       alert('Please add at least one garment to your basket');
       return;
