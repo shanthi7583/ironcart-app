@@ -1271,6 +1271,7 @@ export default function App() {
                                   Enter Portal
                                 </button>
                               </div>
+                              <span className="text-[8px] text-slate-500 block mt-2 text-center bg-slate-900 py-1 rounded-md">Admin PIN: <strong>9791</strong></span>
                             </div>
                           </div>
                         </div>
@@ -1284,7 +1285,8 @@ export default function App() {
                         { tab: 'home', label: 'Home', icon: Smartphone },
                         { tab: 'order', label: 'Book', icon: Plus },
                         { tab: 'prices', label: 'Prices', icon: FileText },
-                        { tab: 'history', label: 'Orders', icon: ShoppingBag }
+                        { tab: 'history', label: 'Orders', icon: ShoppingBag },
+                        { tab: 'support', label: 'Support', icon: HelpCircle }
                       ].map(item => {
                         const Icon = item.icon
                         const isActive = customerActiveTab === item.tab
