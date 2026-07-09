@@ -6,6 +6,9 @@ import {
   FileText, CreditCard, ArrowLeft, Settings, 
   Bell, HelpCircle, LogOut, Eye, RefreshCw, Key
 } from 'lucide-react'
+import { supabase } from './supabaseClient'
+import { auth, RecaptchaVerifier } from './firebaseConfig'
+import { signInWithPhoneNumber } from 'firebase/auth'
 
 // Define interfaces
 interface GarmentItem {
@@ -81,22 +84,61 @@ export default function App() {
     return saved ? JSON.parse(saved) : null;
   });
 
-  // Fetch initial data from Backend API on mount
+  // Fetch initial data and listen to live changes from Supabase if active
   useEffect(() => {
-    fetch(`${API_URL}/prices`)
-      .then(res => res.json())
-      .then(data => setPriceList(data))
-      .catch(err => console.error('Failed to fetch prices:', err));
+    const client = supabase;
+    if (client) {
+      // 1. Fetch from Supabase tables
+      client.from('price_list').select('*')
+        .then(({ data, error }) => {
+          if (error) console.error(error);
+          else if (data) setPriceList(data);
+        });
 
-    fetch(`${API_URL}/orders`)
-      .then(res => res.json())
-      .then(data => setOrders(data))
-      .catch(err => console.error('Failed to fetch orders:', err));
+      client.from('orders').select('*').order('created_at', { ascending: false })
+        .then(({ data, error }) => {
+          if (error) console.error(error);
+          else if (data) setOrders(data);
+        });
 
-    fetch(`${API_URL}/customers`)
-      .then(res => res.json())
-      .then(data => setCustomers(data))
-      .catch(err => console.error('Failed to fetch customers:', err));
+      client.from('customers').select('*')
+        .then(({ data, error }) => {
+          if (error) console.error(error);
+          else if (data) setCustomers(data);
+        });
+
+      // 2. Real-time Subscription to DB modifications
+      const ordersSubscription = client
+        .channel('orders-realtime')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
+          console.log('Realtime Order Event received:', payload);
+          client.from('orders').select('*').order('created_at', { ascending: false })
+            .then(({ data, error }) => {
+              if (!error && data) setOrders(data);
+            });
+        })
+        .subscribe();
+
+      return () => {
+        client.removeChannel(ordersSubscription);
+      };
+    } else {
+      // Fallback: Local Server REST API
+      fetch(`${API_URL}/prices`)
+        .then(res => res.json())
+        .then(data => setPriceList(data))
+        .catch(err => console.error('Failed to fetch prices:', err));
+
+      fetch(`${API_URL}/orders`)
+        .then(res => res.json())
+        .then(data => setOrders(data))
+        .catch(err => console.error('Failed to fetch orders:', err));
+
+      fetch(`${API_URL}/customers`)
+        .then(res => res.json())
+        .then(data => setCustomers(data))
+        .catch(err => console.error('Failed to fetch customers:', err));
+    }
   }, []);
 
   // Sync user session to LocalStorage
@@ -143,6 +185,7 @@ export default function App() {
   // Active modal invoice state
   const [selectedInvoice, setSelectedInvoice] = useState<Order | null>(null);
   const [gatewayOrderData, setGatewayOrderData] = useState<any>(null);
+  const [firebaseConfirmResult, setFirebaseConfirmResult] = useState<any>(null);
 
   // Show simulated WhatsApp / System Notification banners
   const triggerNotification = (message: string) => {
@@ -158,6 +201,28 @@ export default function App() {
       alert('Please enter a valid 10-digit mobile number');
       return;
     }
+
+    if (auth) {
+      try {
+        const appVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+          size: 'invisible'
+        });
+        signInWithPhoneNumber(auth, '+91' + authPhone, appVerifier)
+          .then((confirmationResult) => {
+            setFirebaseConfirmResult(confirmationResult);
+            setAuthStep('otp');
+            triggerNotification(`💬 Real SMS OTP Sent to +91 ${authPhone}!`);
+          })
+          .catch((err) => {
+            alert('Firebase Phone Auth Error: ' + err.message);
+          });
+      } catch (err: any) {
+        alert('Failed to initialize SMS gateway: ' + err.message);
+      }
+      return;
+    }
+
+    // Fallback: Local Server API
     fetch(`${API_URL}/auth/send-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -175,6 +240,32 @@ export default function App() {
   };
 
   const handleVerifyOTP = () => {
+    if (auth && firebaseConfirmResult) {
+      firebaseConfirmResult.confirm(authOTP)
+        .then(() => {
+          const existing = customers.find(c => c.phone === authPhone);
+          if (existing) {
+            fetch(`${API_URL}/customers`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(existing)
+            })
+              .then(res => res.json())
+              .then(data => {
+                setCurrentCustomer(data);
+                setCustomerActiveTab('home');
+              })
+              .catch(err => alert('API Connection Error: ' + err.message));
+          } else {
+            setAuthStep('register');
+          }
+        })
+        .catch((err: any) => {
+          alert('Invalid verification code: ' + err.message);
+        });
+      return;
+    }
+
     if (authOTP === sentOTP || authOTP === '1234') { // Fallback bypass
       const existing = customers.find(c => c.phone === authPhone);
       if (existing) {
@@ -208,6 +299,21 @@ export default function App() {
       apartmentNo: authApartment,
       address: authAddress
     };
+
+    if (supabase) {
+      supabase.from('customers').insert([newProfile])
+        .then(({ error }) => {
+          if (error) {
+            alert('Failed to register on Supabase: ' + error.message);
+          } else {
+            setCustomers(prev => [...prev, newProfile]);
+            setCurrentCustomer(newProfile);
+            setCustomerActiveTab('home');
+            triggerNotification(`👋 Welcome to IronEase, ${authName}!`);
+          }
+        });
+      return;
+    }
 
     fetch(`${API_URL}/customers`, {
       method: 'POST',
@@ -317,6 +423,24 @@ export default function App() {
       createdAt: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     };
 
+    if (supabase) {
+      supabase.from('orders').insert([newOrder])
+        .then(({ error }) => {
+          if (error) {
+            alert('Supabase Order Placement Failed: ' + error.message);
+          } else {
+            setOrders(prev => [newOrder, ...prev]);
+            setSelectedItems({});
+            setSpecialInstructions('');
+            setShowCheckoutModal(false);
+            setSelectedOrderForTracking(newOrder);
+            setCustomerActiveTab('history');
+            triggerNotification(`🔔 Real-Time Order Placed!`);
+          }
+        });
+      return;
+    }
+
     fetch(`${API_URL}/orders`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -365,6 +489,21 @@ export default function App() {
 
   // --- Admin Actions ---
   const updateOrderStatus = (orderId: string, nextStatus: 'Placed' | 'Picked Up' | 'Ironing' | 'Ready' | 'Delivered') => {
+    if (supabase) {
+      supabase.from('orders').update({ status: nextStatus }).eq('id', orderId)
+        .then(({ error }) => {
+          if (error) {
+            alert('Supabase Status Update Failed: ' + error.message);
+          } else {
+            let notifyMsg = `📱 SMS: Order ${orderId} updated to [${nextStatus}]`;
+            if (nextStatus === 'Ready') notifyMsg = `🎉 WhatsApp sent: Your ironing is ready for pickup!`;
+            if (nextStatus === 'Delivered') notifyMsg = `🚚 Delivered! Invoice generated.`;
+            triggerNotification(notifyMsg);
+          }
+        });
+      return;
+    }
+
     fetch(`${API_URL}/orders/${orderId}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -382,6 +521,18 @@ export default function App() {
   };
 
   const markOrderPaid = (orderId: string) => {
+    if (supabase) {
+      supabase.from('orders').update({ paymentStatus: 'Paid' }).eq('id', orderId)
+        .then(({ error }) => {
+          if (error) {
+            alert('Supabase Payment Status Update Failed: ' + error.message);
+          } else {
+            triggerNotification(`💳 Payment received for order ${orderId}`);
+          }
+        });
+      return;
+    }
+
     fetch(`${API_URL}/orders/${orderId}/payment`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -408,6 +559,18 @@ export default function App() {
       }
       return item;
     });
+
+    const client = supabase;
+    if (client) {
+      Promise.all(
+        updated.map(item => client.from('price_list').update({ price: item.price }).eq('name', item.name))
+      ).then(() => {
+        setPriceList(updated);
+        setEditingPrices({});
+        triggerNotification(`⚙️ Price rates updated successfully!`);
+      });
+      return;
+    }
 
     fetch(`${API_URL}/prices`, {
       method: 'PUT',
@@ -524,6 +687,7 @@ export default function App() {
                         <div className="text-center text-xs text-slate-400 mt-2">
                           Demo login: Use phone <strong className="text-slate-200">9791019505</strong>
                         </div>
+                        <div id="recaptcha-container"></div>
                       </div>
                     )}
 
