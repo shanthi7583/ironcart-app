@@ -1238,8 +1238,7 @@ export default function App() {
                         { tab: 'home', label: 'Home', icon: Smartphone },
                         { tab: 'order', label: 'Book', icon: Plus },
                         { tab: 'prices', label: 'Prices', icon: FileText },
-                        { tab: 'history', label: 'Orders', icon: ShoppingBag },
-                        { tab: 'support', label: 'Help', icon: HelpCircle }
+                        { tab: 'history', label: 'Orders', icon: ShoppingBag }
                       ].map(item => {
                         const Icon = item.icon
                         const isActive = customerActiveTab === item.tab
