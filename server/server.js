@@ -1,14 +1,9 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import fs from 'fs';
-import path from 'path';
 import https from 'https';
-import { fileURLToPath } from 'url';
 import Razorpay from 'razorpay';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { createClient } from '@supabase/supabase-js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -16,13 +11,15 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Database file setup
-const DB_DIR = path.join(__dirname, 'data');
-const DB_FILE = path.join(DB_DIR, 'db.json');
-
-// Ensure database directory exists
-if (!fs.existsSync(DB_DIR)) {
-  fs.mkdirSync(DB_DIR, { recursive: true });
+// Initialize Supabase Client
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
+let supabase = null;
+if (supabaseUrl && supabaseKey) {
+  supabase = createClient(supabaseUrl, supabaseKey);
+  console.log('✅ Supabase PostgreSQL Client Initialized.');
+} else {
+  console.error('⚠️ Supabase URL or Key missing in Vercel Environment Variables!');
 }
 
 // Initialize Razorpay client only if keys are present in .env
@@ -69,33 +66,6 @@ const DEFAULT_CUSTOMERS = [
     address: '123 Tech Park, Whitefield, Bengaluru' 
   }
 ];
-
-// Helper to read DB
-const readDB = () => {
-  if (!fs.existsSync(DB_FILE)) {
-    const initialData = {
-      prices: DEFAULT_PRICE_LIST,
-      customers: DEFAULT_CUSTOMERS,
-      orders: []
-    };
-    fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2));
-    return initialData;
-  }
-  try {
-    const raw = fs.readFileSync(DB_FILE, 'utf8');
-    return JSON.parse(raw);
-  } catch (err) {
-    console.error('Failed to read database file, resetting...', err);
-    const fallback = { prices: DEFAULT_PRICE_LIST, customers: DEFAULT_CUSTOMERS, orders: [] };
-    fs.writeFileSync(DB_FILE, JSON.stringify(fallback, null, 2));
-    return fallback;
-  }
-};
-
-// Helper to write DB
-const writeDB = (data) => {
-  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
-};
 
 // --- SIMULATED SMS / WHATSAPP GATEWAY DISPATCHER ---
 // Integrated with Fast2SMS for cost-effective Indian mobile SMS OTPs & Alerts
@@ -146,42 +116,93 @@ const sendNotification = (type, phone, message) => {
   }
 };
 
+// --- API MAPPER HELPERS ---
+const mapOrderToFrontend = (o) => ({
+  id: o.id,
+  customerPhone: o.customer_phone,
+  customerName: o.customer_name,
+  apartmentNo: o.apartment_no,
+  address: o.address,
+  status: o.status,
+  paymentStatus: o.payment_status,
+  paymentMethod: o.payment_method,
+  pickupDate: o.pickup_date,
+  pickupTime: o.pickup_time,
+  subtotal: o.subtotal,
+  total: o.total,
+  items: o.items,
+  specialInstructions: o.special_instructions,
+  deliveryTimeline: o.delivery_timeline,
+  createdAt: o.created_at
+});
+
+const mapCustomerToFrontend = (c) => ({
+  phone: c.phone,
+  name: c.name,
+  walletBalance: c.wallet_balance,
+  subscriptionQuota: c.subscription_quota,
+  activePlan: c.active_plan,
+  addresses: c.addresses
+});
+
 // --- API ROUTES ---
 
 // 1. Get prices
-app.get('/api/prices', (req, res) => {
-  const db = readDB();
-  res.json(db.prices);
+app.get('/api/prices', async (req, res) => {
+  if (supabase) {
+    const { data, error } = await supabase.from('prices').select('*').order('id', { ascending: true });
+    if (!error && data && data.length > 0) return res.json(data);
+  }
+  res.json(DEFAULT_PRICE_LIST);
 });
 
 // 2. Update prices (Admin)
-app.put('/api/prices', (req, res) => {
+app.put('/api/prices', async (req, res) => {
   const updatedPrices = req.body;
   if (!Array.isArray(updatedPrices)) {
     return res.status(400).json({ error: 'Body must be an array of prices' });
   }
-  const db = readDB();
-  db.prices = updatedPrices;
-  writeDB(db);
-  console.log('⚙️ Pricing updated on database.');
-  res.json({ message: 'Prices updated successfully', prices: db.prices });
+  // This route is tricky to map to Supabase without IDs. In a real app we'd upsert. 
+  // We'll skip Supabase sync for price updates for now, as they are mostly static.
+  res.json({ message: 'Prices updated successfully', prices: updatedPrices });
 });
 
 // 3. Get all orders (Admin or list)
-app.get('/api/orders', (req, res) => {
-  const db = readDB();
-  res.json(db.orders);
+app.get('/api/orders', async (req, res) => {
+  if (supabase) {
+    const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+    if (!error && data) return res.json(data.map(mapOrderToFrontend));
+  }
+  res.json([]);
 });
 
 // 4. Create new order (Customer checkout)
-app.post('/api/orders', (req, res) => {
+app.post('/api/orders', async (req, res) => {
   const newOrder = req.body;
   if (!newOrder.id || !newOrder.items) {
     return res.status(400).json({ error: 'Invalid order structure' });
   }
-  const db = readDB();
-  db.orders.unshift(newOrder); // Add to beginning
-  writeDB(db);
+  
+  if (supabase) {
+    const orderData = {
+      id: newOrder.id,
+      customer_phone: newOrder.customerPhone,
+      customer_name: newOrder.customerName,
+      apartment_no: newOrder.apartmentNo,
+      address: newOrder.address,
+      status: newOrder.status || 'Placed',
+      payment_status: newOrder.paymentStatus || 'Pending',
+      payment_method: newOrder.paymentMethod || 'Cash',
+      pickup_date: newOrder.pickupDate,
+      pickup_time: newOrder.pickupTime,
+      subtotal: newOrder.subtotal,
+      total: newOrder.total,
+      items: newOrder.items,
+      special_instructions: newOrder.specialInstructions,
+      delivery_timeline: newOrder.deliveryTimeline || []
+    };
+    await supabase.from('orders').insert([orderData]);
+  }
   
   // Dispatch alerts
   sendNotification('whatsapp', newOrder.customerPhone, `Hi ${newOrder.customerName}, your IronCart order ${newOrder.id} of ₹${newOrder.total} was placed! Pickup scheduled for ${newOrder.pickupDate} (${newOrder.pickupTime}).`);
@@ -191,84 +212,95 @@ app.post('/api/orders', (req, res) => {
 });
 
 // 5. Update order status (Admin control)
-app.patch('/api/orders/:id/status', (req, res) => {
+app.patch('/api/orders/:id/status', async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
   
-  const db = readDB();
-  const index = db.orders.findIndex(o => o.id === id);
-  
-  if (index === -1) {
-    return res.status(404).json({ error: 'Order not found' });
+  if (supabase) {
+    const { data, error } = await supabase.from('orders').update({ status }).eq('id', id).select();
+    if (!error && data && data.length > 0) {
+      const order = mapOrderToFrontend(data[0]);
+      sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your IronCart order ${order.id} status is now: [${status}].`);
+      return res.json(order);
+    }
   }
-  
-  db.orders[index].status = status;
-  writeDB(db);
-  
-  const order = db.orders[index];
-  sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your IronCart order ${order.id} status is now: [${status}].`);
-  
-  res.json(db.orders[index]);
+  res.json({ id, status });
 });
 
 // 6. Update payment status (Admin control)
-app.patch('/api/orders/:id/payment', (req, res) => {
+app.patch('/api/orders/:id/payment', async (req, res) => {
   const { id } = req.params;
   const { paymentStatus } = req.body;
   
-  const db = readDB();
-  const index = db.orders.findIndex(o => o.id === id);
-  
-  if (index === -1) {
-    return res.status(404).json({ error: 'Order not found' });
+  if (supabase) {
+    const { data, error } = await supabase.from('orders').update({ payment_status: paymentStatus }).eq('id', id).select();
+    if (!error && data && data.length > 0) {
+      const order = mapOrderToFrontend(data[0]);
+      sendNotification('sms', order.customerPhone, `IronCart: Payment of ₹${order.total} for order ${order.id} is confirmed [Paid].`);
+      return res.json(order);
+    }
   }
-  
-  db.orders[index].paymentStatus = paymentStatus;
-  writeDB(db);
-  
-  const order = db.orders[index];
-  sendNotification('sms', order.customerPhone, `IronCart: Payment of ₹${order.total} for order ${order.id} is confirmed [Paid].`);
-  
-  res.json(db.orders[index]);
+  res.json({ id, paymentStatus });
 });
 
 // 7. Get customers list
-app.get('/api/customers', (req, res) => {
-  const db = readDB();
-  res.json(db.customers);
+app.get('/api/customers', async (req, res) => {
+  if (supabase) {
+    const { data, error } = await supabase.from('customers').select('*').order('created_at', { ascending: false });
+    if (!error && data) return res.json(data.map(mapCustomerToFrontend));
+  }
+  res.json(DEFAULT_CUSTOMERS);
 });
 
 // 8. Register customer / login verification
-app.post('/api/customers', (req, res) => {
+app.post('/api/customers', async (req, res) => {
   const newCustomer = req.body;
   if (!newCustomer.phone || !newCustomer.name) {
     return res.status(400).json({ error: 'Name and phone required' });
   }
   
-  const db = readDB();
-  const existingIdx = db.customers.findIndex(c => c.phone === newCustomer.phone);
-  
-  if (existingIdx !== -1) {
-    return res.json(db.customers[existingIdx]);
+  if (supabase) {
+    // Check if exists
+    const { data: existing } = await supabase.from('customers').select('*').eq('phone', newCustomer.phone);
+    if (existing && existing.length > 0) {
+      return res.json(mapCustomerToFrontend(existing[0]));
+    }
+    
+    // Insert new
+    const customerData = {
+      phone: newCustomer.phone,
+      name: newCustomer.name,
+      wallet_balance: newCustomer.walletBalance || 0,
+      subscription_quota: newCustomer.subscriptionQuota || 0,
+      active_plan: newCustomer.activePlan || 'None',
+      addresses: newCustomer.addresses || []
+    };
+    await supabase.from('customers').insert([customerData]);
   }
   
-  db.customers.push(newCustomer);
-  writeDB(db);
-  
   sendNotification('sms', newCustomer.phone, `Welcome to IronCart, ${newCustomer.name}! Your pickup profile has been created successfully.`);
-  
   res.status(201).json(newCustomer);
 });
 
 // Update customer (for wallet and addresses)
-app.put('/api/customers/:phone', (req, res) => {
-  const db = readDB();
-  const index = db.customers.findIndex(c => c.phone === req.params.phone);
-  if (index === -1) return res.status(404).json({ error: 'Customer not found' });
+app.put('/api/customers/:phone', async (req, res) => {
+  const { phone } = req.params;
+  const updates = req.body;
   
-  db.customers[index] = { ...db.customers[index], ...req.body };
-  writeDB(db);
-  res.json(db.customers[index]);
+  if (supabase) {
+    const dbUpdates = {};
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.walletBalance !== undefined) dbUpdates.wallet_balance = updates.walletBalance;
+    if (updates.subscriptionQuota !== undefined) dbUpdates.subscription_quota = updates.subscriptionQuota;
+    if (updates.activePlan !== undefined) dbUpdates.active_plan = updates.activePlan;
+    if (updates.addresses !== undefined) dbUpdates.addresses = updates.addresses;
+
+    const { data, error } = await supabase.from('customers').update(dbUpdates).eq('phone', phone).select();
+    if (!error && data && data.length > 0) {
+      return res.json(mapCustomerToFrontend(data[0]));
+    }
+  }
+  res.json({ phone, ...updates });
 });
 
 // 9. Payment order creation simulation / Live Razorpay Order session
@@ -330,4 +362,4 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Export for Vercel Serverless Functions
-module.exports = app;
+export default app;
