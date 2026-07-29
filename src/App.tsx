@@ -575,7 +575,7 @@ export default function App() {
         setShowCheckoutModal(false);
         setSelectedOrderForTracking(data);
         setCustomerActiveTab('history');
-        triggerNotification(`🔔 New Order Alert to Owner: received order ${data.id} from ${data.customerName} (${data.apartmentNo})`);
+        triggerNotification(`🎉 Order Placed Successfully! We care for your clothes as much as you do! ❤️`);
       })
       .catch(err => alert('API Connection Error: ' + err.message));
   };
@@ -1020,7 +1020,7 @@ export default function App() {
                         <ShoppingBag className="size-8" />
                       </div>
                       <h2 className="text-xl font-bold text-white">IronCart Delivery</h2>
-                      <p className="text-xs text-slate-400">Professional Ironing & Pressing Service</p>
+                      <p className="text-xs text-slate-400">Bringing Crispness to Your Doorstep</p>
                     </div>
 
                     {authStep === 'login' && (
