@@ -343,21 +343,8 @@ export default function App() {
       address: authAddress
     };
 
-    if (supabase) {
-      supabase.from('customers').insert([newProfile])
-        .then(({ error }) => {
-          if (error) {
-            alert('Failed to register: ' + error.message);
-          } else {
-            setCustomers(prev => [...prev, newProfile]);
-            setAuthStep('login');
-            setAuthPhone('');
-            setAuthOTP('');
-            triggerNotification(`✅ Registration Successful! Please login using your mobile number.`);
-          }
-        });
-      return;
-    }
+    // Direct Supabase call removed to enforce routing through Express API (/api/customers)
+    // where backend safely maps camelCase keys to snake_case SQL columns.
 
     fetch(`${API_URL}/customers`, {
       method: 'POST',

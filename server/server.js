@@ -139,9 +139,11 @@ const mapOrderToFrontend = (o) => ({
 const mapCustomerToFrontend = (c) => ({
   phone: c.phone,
   name: c.name,
-  walletBalance: c.wallet_balance,
-  subscriptionQuota: c.subscription_quota,
-  activePlan: c.active_plan,
+  walletBalance: c.wallet_balance || 0,
+  subscriptionQuota: c.subscription_quota || 0,
+  activePlan: c.active_plan || 'None',
+  apartmentNo: c.apartment_no || '',
+  address: c.address || '',
   addresses: c.addresses
 });
 
@@ -273,6 +275,8 @@ app.post('/api/customers', async (req, res) => {
       wallet_balance: newCustomer.walletBalance || 0,
       subscription_quota: newCustomer.subscriptionQuota || 0,
       active_plan: newCustomer.activePlan || 'None',
+      apartment_no: newCustomer.apartmentNo || '',
+      address: newCustomer.address || '',
       addresses: newCustomer.addresses || []
     };
     await supabase.from('customers').insert([customerData]);
@@ -293,6 +297,8 @@ app.put('/api/customers/:phone', async (req, res) => {
     if (updates.walletBalance !== undefined) dbUpdates.wallet_balance = updates.walletBalance;
     if (updates.subscriptionQuota !== undefined) dbUpdates.subscription_quota = updates.subscriptionQuota;
     if (updates.activePlan !== undefined) dbUpdates.active_plan = updates.activePlan;
+    if (updates.apartmentNo !== undefined) dbUpdates.apartment_no = updates.apartmentNo;
+    if (updates.address !== undefined) dbUpdates.address = updates.address;
     if (updates.addresses !== undefined) dbUpdates.addresses = updates.addresses;
 
     const { data, error } = await supabase.from('customers').update(dbUpdates).eq('phone', phone).select();
