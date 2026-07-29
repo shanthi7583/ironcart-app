@@ -512,23 +512,8 @@ export default function App() {
       createdAt: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     };
 
-    if (supabase) {
-      supabase.from('orders').insert([newOrder])
-        .then(({ error }) => {
-          if (error) {
-            alert('Supabase Order Placement Failed: ' + error.message);
-          } else {
-            setOrders(prev => [newOrder, ...prev]);
-            setSelectedItems({});
-            setSpecialInstructions('');
-            setShowCheckoutModal(false);
-            setSelectedOrderForTracking(newOrder);
-            setCustomerActiveTab('history');
-            triggerNotification(`🔔 Real-Time Order Placed!`);
-          }
-        });
-      return;
-    }
+    // Direct Supabase call removed. We MUST route through Express API (/api/orders)
+    // so the backend can map camelCase to snake_case and trigger notifications.
 
     fetch(`${API_URL}/orders`, {
       method: 'POST',
@@ -1025,15 +1010,6 @@ export default function App() {
                     {authStep === 'register' && (
                       <div className="flex flex-col gap-3 max-h-[380px] overflow-y-auto pr-1">
                         <h3 className="text-sm font-bold text-white text-left">Setup New Account</h3>
-                        <div className="flex flex-col gap-1 text-left">
-                          <label className="text-[9px] font-semibold text-slate-400 uppercase">Mobile Number</label>
-                          <input 
-                            type="text"
-                            value={authPhone}
-                            disabled
-                            className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-500 outline-none cursor-not-allowed"
-                          />
-                        </div>
                         <div className="flex flex-col gap-1 text-left mt-1">
                           <label className="text-[9px] font-semibold text-slate-400 uppercase">Full Name</label>
                           <input 
