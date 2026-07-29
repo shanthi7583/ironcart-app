@@ -207,6 +207,33 @@ export default function App() {
   const [pickupDate, setPickupDate] = useState('');
   const [pickupTime, setPickupTime] = useState('09:00 - 12:00');
   
+  const generateDates = () => {
+    const dates = [];
+    const today = new Date();
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      const isToday = i === 0;
+      const isTomorrow = i === 1;
+      let label = d.toLocaleDateString('en-US', { weekday: 'short' });
+      if (isToday) label = 'Today';
+      if (isTomorrow) label = 'Tmrw';
+      dates.push({
+        value: d.toISOString().split('T')[0],
+        label: label,
+        dateNum: d.getDate()
+      });
+    }
+    return dates;
+  };
+  const availableDates = generateDates();
+  
+  useEffect(() => {
+    if (!pickupDate && availableDates.length > 0) {
+      setPickupDate(availableDates[0].value);
+    }
+  }, [pickupDate]);
+
   const [orderName, setOrderName] = useState('');
   const [orderPhone, setOrderPhone] = useState('');
   const [orderAddress, setOrderAddress] = useState('');
@@ -752,16 +779,32 @@ export default function App() {
       )}
 
       {/* Main Top Header */}
-      <header className="border-b border-slate-800 bg-slate-950 px-6 py-4 flex items-center justify-between shadow-md">
-        <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-tr from-rose-500 to-amber-500 shadow-md">
-            <span className="font-extrabold text-white text-lg tracking-wider">IC</span>
+      <header className={`border-b border-slate-800 bg-slate-950 px-6 py-4 flex items-center justify-between shadow-md ${viewMode === 'customer' && currentCustomer ? 'pb-3' : ''}`}>
+        {viewMode === 'customer' && currentCustomer ? (
+          <div className="flex items-start gap-2 max-w-[85%]">
+            <div className="mt-1 bg-rose-500/20 p-1.5 rounded-full">
+              <MapPin className="size-4 text-rose-500" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1">
+                Home <ChevronRight className="size-3 text-slate-500" />
+              </span>
+              <span className="text-[11px] text-slate-400 truncate mt-0.5">
+                {currentCustomer.apartmentNo}, {currentCustomer.address}
+              </span>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-white m-0 p-0 text-left">IronCart Portal</h1>
-            <p className="text-xs text-slate-400 text-left">Professional Ironing & Pickup Service</p>
+        ) : (
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-tr from-rose-500 to-amber-500 shadow-md">
+              <span className="font-extrabold text-white text-lg tracking-wider">IC</span>
+            </div>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-white m-0 p-0 text-left">IronCart</h1>
+              <p className="text-xs text-slate-400 text-left">Professional Ironing & Pickup Service</p>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* View toggles visible only when in Dual/Admin Mode to return to Customer mode */}
         {viewMode !== 'customer' && (
@@ -1282,35 +1325,44 @@ export default function App() {
                             </div>
                           </div>
 
-                          {/* Pickup schedule */}
-                          <div className="grid grid-cols-2 gap-2">
-                            <div className="flex flex-col gap-1">
-                              <label className="text-[9px] font-bold text-slate-400 uppercase">Pickup Date</label>
-                              <div className="flex items-center bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-white">
-                                <Calendar className="size-3.5 text-rose-500 mr-2" />
-                                <input 
-                                  type="date"
-                                  value={pickupDate}
-                                  onChange={e => setPickupDate(e.target.value)}
-                                  className="bg-transparent outline-none w-full text-xs text-white"
-                                />
-                              </div>
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <label className="text-[9px] font-bold text-slate-400 uppercase">Pickup Slot</label>
-                              <div className="flex items-center bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-white">
-                                <Clock className="size-3.5 text-rose-500 mr-2" />
-                                <select 
-                                  value={pickupTime}
-                                  onChange={e => setPickupTime(e.target.value)}
-                                  className="bg-transparent outline-none w-full text-xs text-white"
+                          {/* Iztri-Style Pickup schedule */}
+                          <div className="flex flex-col gap-3 mt-4">
+                            <label className="text-[11px] font-bold text-white tracking-wide">Select Pickup Date</label>
+                            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1">
+                              {availableDates.map(d => (
+                                <button
+                                  key={d.value}
+                                  onClick={() => setPickupDate(d.value)}
+                                  className={`flex flex-col items-center justify-center min-w-[65px] py-2 rounded-2xl border transition-all ${
+                                    pickupDate === d.value 
+                                    ? 'bg-gradient-to-br from-rose-500 to-rose-600 border-rose-500 shadow-[0_4px_12px_rgba(225,29,72,0.3)]' 
+                                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-white'
+                                  }`}
                                 >
-                                  <option value="09:00 - 12:00">09 AM - 12 PM</option>
-                                  <option value="12:00 - 15:00">12 PM - 03 PM</option>
-                                  <option value="15:00 - 18:00">03 PM - 06 PM</option>
-                                  <option value="18:00 - 21:00">06 PM - 09 PM</option>
-                                </select>
-                              </div>
+                                  <span className={`text-[10px] font-medium ${pickupDate === d.value ? 'text-rose-100' : ''}`}>{d.label}</span>
+                                  <span className={`text-lg font-bold mt-0.5 ${pickupDate === d.value ? 'text-white' : ''}`}>{d.dateNum}</span>
+                                </button>
+                              ))}
+                            </div>
+                            
+                            <label className="text-[11px] font-bold text-white tracking-wide mt-2">Select Pickup Slot</label>
+                            <div className="grid grid-cols-2 gap-2">
+                              {['09:00 - 12:00', '12:00 - 15:00', '15:00 - 18:00', '18:00 - 21:00'].map(slot => (
+                                <button
+                                  key={slot}
+                                  onClick={() => setPickupTime(slot)}
+                                  className={`flex items-center justify-center py-2.5 rounded-xl border text-xs font-medium transition-all ${
+                                    pickupTime === slot
+                                    ? 'bg-rose-500/20 border-rose-500 text-rose-400'
+                                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                                  }`}
+                                >
+                                  <Clock className={`size-3.5 mr-2 ${pickupTime === slot ? 'text-rose-400' : 'text-slate-500'}`} />
+                                  {slot === '09:00 - 12:00' ? '09 AM - 12 PM' :
+                                   slot === '12:00 - 15:00' ? '12 PM - 03 PM' :
+                                   slot === '15:00 - 18:00' ? '03 PM - 06 PM' : '06 PM - 09 PM'}
+                                </button>
+                              ))}
                             </div>
                           </div>
 
@@ -1575,7 +1627,7 @@ export default function App() {
                               <p className="text-[10px] text-slate-400 leading-relaxed">For immediate support regarding delivery schedules, reach us:</p>
                               <div className="flex flex-col gap-1.5 mt-2.5 text-[10px]">
                                 <a href="tel:+919791019505" className="text-rose-500 font-bold hover:underline">Phone: +91 9791019505</a>
-                                <a href="mailto:support@ironease.com" className="text-rose-500 font-bold hover:underline">Email: support@ironease.com</a>
+                                <a href="mailto:support@ironcart.com" className="text-rose-500 font-bold hover:underline">Email: support@ironcart.com</a>
                               </div>
                             </div>
                             
@@ -1671,8 +1723,8 @@ export default function App() {
 
                     </div>
 
-                    {/* Customer Bottom Navigation Bar */}
-                    <div className="border-t border-slate-850 pt-2 flex justify-between bg-slate-900 text-slate-500 -mx-4 px-4 mt-4">
+                    {/* Premium Iztri-Style Bottom Navigation Bar */}
+                    <div className="border-t border-slate-800/60 pt-3 pb-1 flex justify-around bg-slate-950/90 backdrop-blur-md text-slate-500 -mx-4 px-2 mt-4 sticky bottom-0 z-10 shadow-[0_-4px_20px_rgba(0,0,0,0.2)]">
                       {[
                         { tab: 'home', label: 'Home', icon: Smartphone },
                         { tab: 'order', label: 'Book', icon: Plus },
@@ -1689,10 +1741,20 @@ export default function App() {
                               setCustomerActiveTab(item.tab as any);
                               setSelectedOrderForTracking(null);
                             }}
-                            className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-all ${isActive ? 'text-rose-500' : 'text-slate-500 hover:text-slate-300'}`}
+                            className="relative flex flex-col items-center gap-1.5 py-1 px-3 rounded-xl transition-all w-14"
                           >
-                            <Icon className="size-4" />
-                            <span className="text-[8px] font-bold">{item.label}</span>
+                            <div className={`relative flex items-center justify-center transition-all ${isActive ? 'text-rose-500' : 'text-slate-400 group-hover:text-slate-300'}`}>
+                              <Icon className={`size-[18px] ${isActive ? 'fill-rose-500/10' : ''}`} strokeWidth={isActive ? 2.5 : 2} />
+                              {isActive && (
+                                <div className="absolute -inset-1.5 bg-rose-500/10 rounded-full blur-sm" />
+                              )}
+                            </div>
+                            <span className={`text-[9px] font-bold tracking-wide transition-all ${isActive ? 'text-rose-500' : 'text-slate-400'}`}>
+                              {item.label}
+                            </span>
+                            {isActive && (
+                              <div className="absolute top-0 inset-x-0 mx-auto w-1 h-1 rounded-full bg-rose-500" />
+                            )}
                           </button>
                         );
                       })}
@@ -2307,7 +2369,7 @@ export default function App() {
 
       {/* Simulation Dashboard Footer */}
       <footer className="border-t border-slate-850 bg-slate-950 px-6 py-4 text-center text-xs text-slate-500">
-        <p>© 2026 IronEase Ironing Service Inc. All systems simulated. Workflows are fully responsive and digital ready.</p>
+        <p>© 2026 IronCart Ironing Service Inc. All systems simulated. Workflows are fully responsive and digital ready.</p>
       </footer>
 
     </div>
