@@ -66,28 +66,57 @@ interface CustomerProfile {
   addresses?: Address[];
 }
 
-const DEFAULT_PRICE_LIST: GarmentItem[] = [
-  { name: 'Shirt', price: 15, category: 'Apparel', serviceType: 'Ironing' },
-  { name: 'T-Shirt', price: 12, category: 'Apparel', serviceType: 'Ironing' },
-  { name: 'Pant', price: 15, category: 'Apparel', serviceType: 'Ironing' },
-  { name: 'Jeans', price: 18, category: 'Apparel', serviceType: 'Ironing' },
-  { name: 'Saree', price: 50, category: 'Apparel', serviceType: 'Ironing' },
-  { name: 'Kurta', price: 20, category: 'Apparel', serviceType: 'Ironing' },
-  { name: 'Salwar', price: 20, category: 'Apparel', serviceType: 'Ironing' },
-  { name: 'Blazer', price: 80, category: 'Outerwear', serviceType: 'Ironing' },
-  { name: 'Coat', price: 90, category: 'Outerwear', serviceType: 'Ironing' },
-  { name: 'Suit', price: 120, category: 'Outerwear', serviceType: 'Ironing' },
-  { name: 'School Uniform', price: 25, category: 'Apparel', serviceType: 'Ironing' },
-  { name: 'Bedsheet', price: 30, category: 'Bedding', serviceType: 'Ironing' },
-  { name: 'Pillow Cover', price: 10, category: 'Bedding', serviceType: 'Ironing' },
-  { name: 'Curtain', price: 60, category: 'Bedding', serviceType: 'Ironing' },
-  { name: 'Shirt', price: 50, category: 'Apparel', serviceType: 'Dry Cleaning' },
-  { name: 'Pant', price: 50, category: 'Apparel', serviceType: 'Dry Cleaning' },
-  { name: 'Suit', price: 250, category: 'Outerwear', serviceType: 'Dry Cleaning' },
-  { name: 'Shirt', price: 30, category: 'Apparel', serviceType: 'Laundry' },
-  { name: 'Pant', price: 30, category: 'Apparel', serviceType: 'Laundry' },
-  { name: 'Bedsheet', price: 60, category: 'Bedding', serviceType: 'Laundry' },
+const BASE_GARMENTS = [
+  // --- Light Weight ---
+  { name: 'Baby Clothes', price: 10, category: 'Light Weight' },
+  { name: 'Kids Wear', price: 15, category: 'Light Weight' },
+  { name: 'Uniform', price: 20, category: 'Light Weight' },
+  { name: 'Legging', price: 15, category: 'Light Weight' },
+  { name: 'Pajama', price: 15, category: 'Light Weight' },
+  { name: 'Salwar', price: 20, category: 'Light Weight' },
+  { name: 'Kurta', price: 20, category: 'Light Weight' },
+  { name: 'T-Shirt', price: 15, category: 'Light Weight' },
+  { name: 'Trouser/Pant', price: 18, category: 'Light Weight' },
+
+  // --- Medium/Heavy ---
+  { name: 'Jacket', price: 50, category: 'Medium/Heavy' },
+  { name: 'Blazer', price: 80, category: 'Medium/Heavy' },
+  { name: 'Skirt', price: 25, category: 'Medium/Heavy' },
+  { name: 'Dhoti', price: 30, category: 'Medium/Heavy' },
+  { name: 'Party Top', price: 35, category: 'Medium/Heavy' },
+  { name: 'Silk Kurta', price: 40, category: 'Medium/Heavy' },
+  { name: 'Sweater', price: 60, category: 'Medium/Heavy' },
+
+  // --- Premium ---
+  { name: 'Bridal Set', price: 250, category: 'Premium' },
+  { name: 'Designer Blouse', price: 60, category: 'Premium' },
+  { name: 'Designer Saree', price: 100, category: 'Premium' },
+  { name: 'Formal Suit', price: 120, category: 'Premium' },
+  { name: 'Lehenga', price: 200, category: 'Premium' },
+  { name: 'Sherwani', price: 250, category: 'Premium' },
+  { name: 'Silk Saree', price: 150, category: 'Premium' },
+  { name: 'Winter Coat', price: 150, category: 'Premium' },
+
+  // --- Household ---
+  { name: 'Cushion Cover', price: 15, category: 'Household' },
+  { name: 'Face Towel', price: 10, category: 'Household' },
+  { name: 'Handkerchief', price: 5, category: 'Household' },
+  { name: 'Kitchen Towel', price: 10, category: 'Household' },
+  { name: 'Pillow Cover', price: 15, category: 'Household' },
+  { name: 'Table Mat', price: 20, category: 'Household' },
+  { name: 'Bed Sheet', price: 40, category: 'Household' },
+  { name: 'Blanket', price: 100, category: 'Household' },
+  { name: 'Comforter', price: 120, category: 'Household' },
+  { name: 'Curtain', price: 80, category: 'Household' },
+  { name: 'Sofa Cover', price: 90, category: 'Household' },
 ];
+
+const DEFAULT_PRICE_LIST: GarmentItem[] = [];
+BASE_GARMENTS.forEach(item => {
+  DEFAULT_PRICE_LIST.push({ ...item, serviceType: 'Ironing' });
+  DEFAULT_PRICE_LIST.push({ ...item, price: Math.round(item.price * 2.5), serviceType: 'Dry Cleaning' });
+  DEFAULT_PRICE_LIST.push({ ...item, price: Math.round(item.price * 1.5), serviceType: 'Laundry' });
+});
 
 export default function App() {
   // --- Persistent State using Backend API & LocalStorage ---
@@ -207,6 +236,7 @@ export default function App() {
   const [pickupDate, setPickupDate] = useState('');
   const [pickupTime, setPickupTime] = useState('09:00 - 12:00');
   const [showNotifications, setShowNotifications] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<string>('Light Weight');
   
   const generateDates = () => {
     const dates = [];
@@ -1388,37 +1418,50 @@ export default function App() {
                             </div>
                           </div>
 
-                          {/* Garment Selection Basket */}
-                          <div className="flex flex-col gap-1.5">
-                            <label className="text-[9px] font-bold text-slate-400 uppercase">Select Garments</label>
-                            <div className="max-h-[140px] overflow-y-auto flex flex-col gap-2 pr-1">
-                              {priceList.filter(item => item.serviceType === selectedService).map(item => {
-                                const key = `${item.serviceType}-${item.name}`;
-                                const qty = selectedItems[key] || 0;
-                                return (
-                                  <div key={key} className="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-850">
-                                    <div>
-                                      <div className="text-xs font-bold text-white">{item.name}</div>
-                                      <div className="text-[9px] text-slate-400">₹{item.price}/pc</div>
+                          {/* Garment Categorized Selection */}
+                          <div className="flex flex-col gap-2 mt-2">
+                            <div className="flex overflow-x-auto scrollbar-hide pb-2 -mx-2 px-2 gap-2 border-b border-slate-800">
+                              {['Light Weight', 'Medium/Heavy', 'Premium', 'Household'].map(cat => (
+                                <button
+                                  key={cat}
+                                  onClick={() => setActiveCategory(cat)}
+                                  className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-bold transition-all ${activeCategory === cat ? 'bg-rose-500 text-white shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-white'}`}
+                                >
+                                  {cat}
+                                </button>
+                              ))}
+                            </div>
+                            
+                            <div className="max-h-[200px] overflow-y-auto flex flex-col gap-2 pr-1 mt-1">
+                              {priceList
+                                .filter(item => item.serviceType === selectedService && item.category === activeCategory)
+                                .map(item => {
+                                  const key = `${item.serviceType}-${item.name}`;
+                                  const qty = selectedItems[key] || 0;
+                                  return (
+                                    <div key={key} className={`flex justify-between items-center bg-slate-950 p-3 rounded-xl border transition-all ${qty > 0 ? 'border-rose-500/50 shadow-[0_2px_8px_rgba(225,29,72,0.15)]' : 'border-slate-800'}`}>
+                                      <div>
+                                        <div className="text-xs font-bold text-white">{item.name}</div>
+                                        <div className="text-[10px] text-rose-400 mt-0.5 font-semibold">₹{item.price} / pc</div>
+                                      </div>
+                                      <div className="flex items-center gap-3 bg-slate-900 rounded-full p-1 border border-slate-800 shadow-inner">
+                                        <button 
+                                          onClick={() => setSelectedItems(prev => ({ ...prev, [key]: Math.max(0, qty - 1) }))}
+                                          className={`size-6 rounded-full flex items-center justify-center transition-all ${qty > 0 ? 'bg-slate-800 text-white hover:bg-slate-700' : 'text-slate-600 pointer-events-none'}`}
+                                        >
+                                          <Minus className="size-3" />
+                                        </button>
+                                        <span className="text-xs font-extrabold text-white min-w-[12px] text-center">{qty}</span>
+                                        <button 
+                                          onClick={() => setSelectedItems(prev => ({ ...prev, [key]: qty + 1 }))}
+                                          className="size-6 bg-rose-500 rounded-full flex items-center justify-center text-white shadow-sm hover:scale-105 transition-all"
+                                        >
+                                          <Plus className="size-3" />
+                                        </button>
+                                      </div>
                                     </div>
-                                    <div className="flex items-center gap-3">
-                                      <button 
-                                        onClick={() => setSelectedItems(prev => ({ ...prev, [key]: Math.max(0, qty - 1) }))}
-                                        className="size-6 bg-slate-900 border border-slate-800 rounded-full flex items-center justify-center text-slate-400 hover:text-white"
-                                      >
-                                        <Minus className="size-3" />
-                                      </button>
-                                      <span className="text-xs font-bold text-white min-w-[12px] text-center">{qty}</span>
-                                      <button 
-                                        onClick={() => setSelectedItems(prev => ({ ...prev, [key]: qty + 1 }))}
-                                        className="size-6 bg-rose-500 rounded-full flex items-center justify-center text-white"
-                                      >
-                                        <Plus className="size-3" />
-                                      </button>
-                                    </div>
-                                  </div>
-                                );
-                              })}
+                                  );
+                                })}
                             </div>
                           </div>
 
