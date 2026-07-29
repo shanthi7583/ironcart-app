@@ -357,10 +357,11 @@ export default function App() {
       })
       .then(data => {
         setCustomers(prev => [...prev, data]);
-        setAuthStep('login');
+        setCurrentCustomer(data);
+        localStorage.setItem('iron_current_user', JSON.stringify(data));
         setAuthPhone('');
         setAuthOTP('');
-        triggerNotification(`✅ Registration Successful! Please login using your mobile number.`);
+        triggerNotification(`🎉 Welcome to IronCart, ${data.name}!`);
       })
       .catch(() => alert('Registration failed. Is the backend running?'));
   };

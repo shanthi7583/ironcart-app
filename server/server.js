@@ -254,6 +254,21 @@ app.get('/api/customers', async (req, res) => {
   res.json(DEFAULT_CUSTOMERS);
 });
 
+// 7.5 Get individual customer by phone
+app.get('/api/customers/:phone', async (req, res) => {
+  const { phone } = req.params;
+  if (supabase) {
+    const { data, error } = await supabase.from('customers').select('*').eq('phone', phone);
+    if (!error && data && data.length > 0) {
+      return res.json(mapCustomerToFrontend(data[0]));
+    }
+    return res.status(404).json({ error: 'Customer not found' });
+  }
+  const existing = DEFAULT_CUSTOMERS.find(c => c.phone === phone);
+  if (existing) return res.json(existing);
+  res.status(404).json({ error: 'Customer not found' });
+});
+
 // 8. Register customer / login verification
 app.post('/api/customers', async (req, res) => {
   const newCustomer = req.body;
