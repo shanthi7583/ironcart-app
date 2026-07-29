@@ -145,7 +145,9 @@ const mapCustomerToFrontend = (c) => ({
   activePlan: c.active_plan || 'None',
   apartmentNo: c.apartment_no || '',
   address: c.address || '',
-  addresses: c.addresses
+  addresses: c.addresses,
+  referralCode: c.referral_code,
+  referredBy: c.referred_by
 });
 
 // --- API ROUTES ---
@@ -231,6 +233,30 @@ app.patch('/api/orders/:id/status', async (req, res) => {
         sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your IronCart order ${order.id} has been Cancelled. Reason: ${cancelReason}`);
       } else {
         sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your IronCart order ${order.id} status is now: [${status}].`);
+
+        // Referral Reward Logic
+        if (status === 'Delivered') {
+          try {
+            const { count, error: countError } = await supabase.from('orders').select('*', { count: 'exact', head: true }).eq('customer_phone', order.customerPhone).eq('status', 'Delivered');
+            if (!countError && count === 1) {
+              const { data: cData } = await supabase.from('customers').select('referred_by, wallet_balance').eq('phone', order.customerPhone).single();
+              if (cData && cData.referred_by) {
+                // Reward new customer
+                await supabase.from('customers').update({ wallet_balance: (cData.wallet_balance || 0) + 50 }).eq('phone', order.customerPhone);
+                sendNotification('whatsapp', order.customerPhone, `🎉 Congratulations! ₹50 has been added to your IronCart wallet for completing your first referred order!`);
+                
+                // Reward referrer
+                const { data: refData } = await supabase.from('customers').select('wallet_balance, phone').eq('referral_code', cData.referred_by).single();
+                if (refData) {
+                  await supabase.from('customers').update({ wallet_balance: (refData.wallet_balance || 0) + 50 }).eq('phone', refData.phone);
+                  sendNotification('whatsapp', refData.phone, `🎉 Great news! Your friend ${order.customerName} completed their first order. ₹50 has been added to your wallet!`);
+                }
+              }
+            }
+          } catch (err) {
+            console.error("Referral logic error", err);
+          }
+        }
       }
       return res.json(order);
     }
@@ -308,6 +334,8 @@ app.post('/api/customers', async (req, res) => {
       return res.json(mapCustomerToFrontend(existing[0]));
     }
     
+    const referralCode = `IRON-${Math.random().toString(36).substring(2,6).toUpperCase()}`;
+
     // Insert new
     const customerData = {
       phone: newCustomer.phone,
@@ -317,7 +345,9 @@ app.post('/api/customers', async (req, res) => {
       active_plan: newCustomer.activePlan || 'None',
       apartment_no: newCustomer.apartmentNo || '',
       address: newCustomer.address || '',
-      addresses: newCustomer.addresses || []
+      addresses: newCustomer.addresses || [],
+      referral_code: referralCode,
+      referred_by: newCustomer.referredBy || null
     };
     await supabase.from('customers').insert([customerData]);
   }

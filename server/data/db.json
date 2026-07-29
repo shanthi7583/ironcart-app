@@ -139,7 +139,7 @@
       "markup": 0,
       "tax": 1.35,
       "total": 28.35,
-      "status": "Placed",
+      "status": "Picked Up",
       "paymentStatus": "Paid",
       "paymentMethod": "Card",
       "specialInstructions": "",

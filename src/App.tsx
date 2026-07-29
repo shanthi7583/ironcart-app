@@ -4,7 +4,7 @@ import {
   TrendingUp, Users, Smartphone, 
   ChevronRight, ShoppingBag, 
   FileText, CreditCard, ArrowLeft, Settings, 
-  Bell, HelpCircle, LogOut, Eye, RefreshCw, Key, Star, Navigation, Wallet, X, Phone
+  Bell, HelpCircle, LogOut, Eye, RefreshCw, Key, Star, Navigation, Wallet, X, Phone, Gift
 } from 'lucide-react'
 import { supabase } from './supabaseClient'
 import { auth, RecaptchaVerifier } from './firebaseConfig'
@@ -22,6 +22,27 @@ interface OrderItem {
   name: string;
   qty: number;
   price: number;
+}
+
+interface AddressInfo {
+  id: string;
+  label: string;
+  fullAddress: string;
+}
+
+interface CustomerProfile {
+  phone: string;
+  name: string;
+  email?: string;
+  password?: string;
+  walletBalance?: number;
+  subscriptionQuota?: number;
+  activePlan?: string;
+  apartmentNo: string;
+  address: string;
+  addresses?: AddressInfo[];
+  referralCode?: string;
+  referredBy?: string;
 }
 
 interface Order {
@@ -50,22 +71,7 @@ interface Order {
   createdAt: string;
 }
 
-interface Address {
-  id: string;
-  label: string; // 'Home' | 'Work' | 'Other'
-  fullAddress: string;
-}
 
-interface CustomerProfile {
-  name: string;
-  phone: string;
-  email?: string;
-  password?: string;
-  apartmentNo: string;
-  address: string;
-  walletBalance?: number;
-  addresses?: Address[];
-}
 
 const BASE_GARMENTS = [
   // --- Light Weight ---
@@ -201,7 +207,7 @@ export default function App() {
   // --- Layout and Navigation State ---
   // Default to 'customer' view ONLY, so the customer app is used alone!
   const [viewMode, setViewMode] = useState<'customer' | 'admin' | 'dual' | 'rider'>('customer');
-  const [customerActiveTab, setCustomerActiveTab] = useState<'home' | 'order' | 'prices' | 'history' | 'support' | 'subscriptions'>('home');
+  const [customerActiveTab, setCustomerActiveTab] = useState<'home' | 'order' | 'prices' | 'history' | 'support' | 'subscriptions' | 'rewards'>('home');
   const [userSubscription, setUserSubscription] = useState<'None' | 'Bronze' | 'Silver' | 'Gold'>('None');
   const [userSubscriptionQuota, setUserSubscriptionQuota] = useState(0);
   const [adminActiveTab, setAdminActiveTab] = useState<'overview' | 'orders' | 'prices' | 'customers' | 'settings'>('overview');
@@ -221,6 +227,7 @@ export default function App() {
   const [authName, setAuthName] = useState('');
   const [authApartment, setAuthApartment] = useState('');
   const [authAddress, setAuthAddress] = useState('');
+  const [authReferredBy, setAuthReferredBy] = useState('');
   const [authOTP, setAuthOTP] = useState('');
   const [sentOTP, setSentOTP] = useState('');
   const [notification, setNotification] = useState<string | null>(null);
@@ -394,7 +401,8 @@ export default function App() {
       name: authName,
       phone: authPhone,
       apartmentNo: authApartment,
-      address: authAddress
+      address: authAddress,
+      referredBy: authReferredBy.trim() ? authReferredBy.trim().toUpperCase() : undefined
     };
 
     // Direct Supabase call removed to enforce routing through Express API (/api/customers)
@@ -807,7 +815,7 @@ export default function App() {
 
   const handleAddAddress = () => {
     if (!currentCustomer || !newAddressText.trim()) return;
-    const newAddr: Address = { id: Date.now().toString(), label: newAddressLabel, fullAddress: newAddressText };
+    const newAddr: AddressInfo = { id: Date.now().toString(), label: newAddressLabel, fullAddress: newAddressText };
     const addresses = currentCustomer.addresses ? [...currentCustomer.addresses, newAddr] : [newAddr];
     const updated = { ...currentCustomer, addresses };
     setCurrentCustomer(updated);
@@ -1122,6 +1130,17 @@ export default function App() {
                             className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none resize-none"
                           />
                         </div>
+                        <div className="flex flex-col gap-1 text-left">
+                          <label className="text-[9px] font-semibold text-slate-400 uppercase">Referral Code (Optional)</label>
+                          <input 
+                            type="text"
+                            value={authReferredBy}
+                            onChange={e => setAuthReferredBy(e.target.value)}
+                            autoComplete="off"
+                            placeholder="e.g. IRON-XXXX"
+                            className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-rose-500 uppercase placeholder:normal-case"
+                          />
+                        </div>
                         <button 
                           onClick={handleRegister}
                           className="w-full bg-rose-500 hover:bg-rose-600 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md mt-2"
@@ -1254,6 +1273,20 @@ export default function App() {
                             </button>
                           </div>
 
+                          {/* Refer & Earn Banner */}
+                          <div 
+                            onClick={() => setCustomerActiveTab('rewards')}
+                            className="bg-gradient-to-r from-rose-500 to-amber-500 rounded-xl p-4 cursor-pointer text-left relative overflow-hidden shadow-lg mt-1"
+                          >
+                            <div className="relative z-10">
+                              <h3 className="text-white font-black text-sm tracking-wide">REFER & EARN ₹50</h3>
+                              <p className="text-white/80 text-[10px] mt-0.5">Invite friends and you both get ₹50 off!</p>
+                            </div>
+                            <div className="absolute right-[-10px] bottom-[-10px] opacity-20">
+                              <Gift className="size-20" />
+                            </div>
+                          </div>
+
                           {/* Quick Tracker shortcut */}
                           {orders.filter(o => o.customerPhone === currentCustomer.phone).length > 0 && (
                             <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 text-left">
@@ -1284,6 +1317,138 @@ export default function App() {
                               </div>
                             </div>
                           )}
+
+                        </div>
+                      )}
+
+                      {/* REWARDS TAB */}
+                      {customerActiveTab === 'rewards' && (
+                        <div className="flex flex-col gap-4 text-left max-h-[500px] overflow-y-auto pb-6 pr-1">
+                          
+                          <div className="flex items-center gap-2 mb-1">
+                            <button onClick={() => setCustomerActiveTab('home')} className="p-1 hover:bg-slate-800 rounded-lg">
+                              <ArrowLeft className="size-4 text-slate-400" />
+                            </button>
+                            <h3 className="text-sm font-bold text-white">Refer & Earn</h3>
+                          </div>
+                          
+                          {/* Header Graphic */}
+                          <div className="bg-gradient-to-tr from-slate-900 to-slate-800 rounded-[24px] p-6 border border-slate-700/50 shadow-xl flex flex-col items-center justify-center text-center mt-1 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 rounded-full blur-3xl"></div>
+                            <div className="absolute bottom-0 left-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl"></div>
+                            
+                            <div className="size-16 bg-gradient-to-tr from-rose-500 to-amber-500 rounded-full flex items-center justify-center shadow-lg shadow-rose-500/20 mb-3 relative z-10">
+                              <Gift className="size-8 text-white" />
+                            </div>
+                            <h2 className="text-xl font-black text-white relative z-10 tracking-tight">Refer & Earn ₹50</h2>
+                            <p className="text-xs text-slate-400 mt-2 relative z-10 max-w-[250px] leading-relaxed">
+                              Invite your friends to IronCart. When they complete their first order, you <strong className="text-rose-400">both get ₹50</strong> added to your wallets!
+                            </p>
+                          </div>
+
+                          {/* Code Display */}
+                          <div className="bg-slate-950 border border-slate-800 rounded-2xl p-5 mt-2 flex flex-col items-center shadow-sm">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Your Unique Code</span>
+                            <div className="bg-slate-900 border-2 border-dashed border-rose-500/30 text-rose-500 font-mono text-2xl font-black px-6 py-3 rounded-xl tracking-[0.2em] w-full text-center select-all">
+                              {currentCustomer.referralCode || 'IRON-NEW'}
+                            </div>
+                            
+                            <button 
+                              onClick={() => {
+                                const text = `Hey! Use my code ${currentCustomer.referralCode || 'IRON-NEW'} to get ₹50 off your first IronCart ironing & laundry order! 🧺✨\nDownload the app and sign up now!`;
+                                const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+                                window.open(whatsappUrl, '_blank');
+                              }}
+                              className="w-full bg-[#25D366] hover:bg-[#1ebd5a] text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 mt-4 shadow-md transition-all"
+                            >
+                              Share via WhatsApp
+                            </button>
+                          </div>
+                          
+                          {/* How it works */}
+                          <div className="mt-2">
+                            <h3 className="text-xs font-bold text-slate-300 mb-3 ml-1">How it works</h3>
+                            <div className="flex flex-col gap-3">
+                              <div className="flex items-center gap-3 bg-slate-900/50 p-3 rounded-xl border border-slate-800/50">
+                                <div className="size-8 rounded-full bg-slate-800 flex items-center justify-center font-black text-xs text-slate-400">1</div>
+                                <p className="text-[11px] text-slate-400 leading-snug flex-1">Share your unique code with friends.</p>
+                              </div>
+                              <div className="flex items-center gap-3 bg-slate-900/50 p-3 rounded-xl border border-slate-800/50">
+                                <div className="size-8 rounded-full bg-slate-800 flex items-center justify-center font-black text-xs text-slate-400">2</div>
+                                <p className="text-[11px] text-slate-400 leading-snug flex-1">They sign up and enter your code during registration.</p>
+                              </div>
+                              <div className="flex items-center gap-3 bg-slate-900/50 p-3 rounded-xl border border-slate-800/50">
+                                <div className="size-8 rounded-full bg-emerald-500/10 flex items-center justify-center font-black text-xs text-emerald-500">3</div>
+                                <p className="text-[11px] text-slate-300 leading-snug flex-1">You <strong className="text-emerald-400">both get ₹50</strong> in your wallet when their first order is delivered!</p>
+                              </div>
+                            </div>
+                          </div>
+
+                        </div>
+                      )}
+
+                      {/* REWARDS TAB */}
+                      {customerActiveTab === 'rewards' && (
+                        <div className="flex flex-col gap-4 text-left max-h-[500px] overflow-y-auto pb-6 pr-1">
+                          
+                          <div className="flex items-center gap-2 mb-1">
+                            <button onClick={() => setCustomerActiveTab('home')} className="p-1 hover:bg-slate-800 rounded-lg">
+                              <ArrowLeft className="size-4 text-slate-400" />
+                            </button>
+                            <h3 className="text-sm font-bold text-white">Refer & Earn</h3>
+                          </div>
+                          
+                          {/* Header Graphic */}
+                          <div className="bg-gradient-to-tr from-slate-900 to-slate-800 rounded-[24px] p-6 border border-slate-700/50 shadow-xl flex flex-col items-center justify-center text-center mt-1 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 rounded-full blur-3xl"></div>
+                            <div className="absolute bottom-0 left-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl"></div>
+                            
+                            <div className="size-16 bg-gradient-to-tr from-rose-500 to-amber-500 rounded-full flex items-center justify-center shadow-lg shadow-rose-500/20 mb-3 relative z-10">
+                              <Gift className="size-8 text-white" />
+                            </div>
+                            <h2 className="text-xl font-black text-white relative z-10 tracking-tight">Refer & Earn ₹50</h2>
+                            <p className="text-xs text-slate-400 mt-2 relative z-10 max-w-[250px] leading-relaxed">
+                              Invite your friends to IronCart. When they complete their first order, you <strong className="text-rose-400">both get ₹50</strong> added to your wallets!
+                            </p>
+                          </div>
+
+                          {/* Code Display */}
+                          <div className="bg-slate-950 border border-slate-800 rounded-2xl p-5 mt-2 flex flex-col items-center shadow-sm">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Your Unique Code</span>
+                            <div className="bg-slate-900 border-2 border-dashed border-rose-500/30 text-rose-500 font-mono text-2xl font-black px-6 py-3 rounded-xl tracking-[0.2em] w-full text-center select-all">
+                              {currentCustomer.referralCode || 'IRON-NEW'}
+                            </div>
+                            
+                            <button 
+                              onClick={() => {
+                                const text = `Hey! Use my code ${currentCustomer.referralCode || 'IRON-NEW'} to get ₹50 off your first IronCart ironing & laundry order! 🧺✨\nDownload the app and sign up now!`;
+                                const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+                                window.open(whatsappUrl, '_blank');
+                              }}
+                              className="w-full bg-[#25D366] hover:bg-[#1ebd5a] text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 mt-4 shadow-md transition-all"
+                            >
+                              Share via WhatsApp
+                            </button>
+                          </div>
+                          
+                          {/* How it works */}
+                          <div className="mt-2">
+                            <h3 className="text-xs font-bold text-slate-300 mb-3 ml-1">How it works</h3>
+                            <div className="flex flex-col gap-3">
+                              <div className="flex items-center gap-3 bg-slate-900/50 p-3 rounded-xl border border-slate-800/50">
+                                <div className="size-8 rounded-full bg-slate-800 flex items-center justify-center font-black text-xs text-slate-400">1</div>
+                                <p className="text-[11px] text-slate-400 leading-snug flex-1">Share your unique code with friends.</p>
+                              </div>
+                              <div className="flex items-center gap-3 bg-slate-900/50 p-3 rounded-xl border border-slate-800/50">
+                                <div className="size-8 rounded-full bg-slate-800 flex items-center justify-center font-black text-xs text-slate-400">2</div>
+                                <p className="text-[11px] text-slate-400 leading-snug flex-1">They sign up and enter your code during registration.</p>
+                              </div>
+                              <div className="flex items-center gap-3 bg-slate-900/50 p-3 rounded-xl border border-slate-800/50">
+                                <div className="size-8 rounded-full bg-emerald-500/10 flex items-center justify-center font-black text-xs text-emerald-500">3</div>
+                                <p className="text-[11px] text-slate-300 leading-snug flex-1">You <strong className="text-emerald-400">both get ₹50</strong> in your wallet when their first order is delivered!</p>
+                              </div>
+                            </div>
+                          </div>
 
                         </div>
                       )}
