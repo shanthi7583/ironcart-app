@@ -170,7 +170,7 @@ export default function App() {
 
   // --- Layout and Navigation State ---
   // Default to 'customer' view ONLY, so the customer app is used alone!
-  const [viewMode, setViewMode] = useState<'customer' | 'admin' | 'dual'>('customer');
+  const [viewMode, setViewMode] = useState<'customer' | 'admin' | 'dual' | 'rider'>('customer');
   const [customerActiveTab, setCustomerActiveTab] = useState<'home' | 'order' | 'prices' | 'history' | 'support' | 'subscriptions'>('home');
   const [userSubscription, setUserSubscription] = useState<'None' | 'Bronze' | 'Silver' | 'Gold'>('None');
   const [userSubscriptionQuota, setUserSubscriptionQuota] = useState(0);
@@ -692,8 +692,12 @@ export default function App() {
       setViewMode('dual');
       setAdminPin('');
       triggerNotification('🔓 Admin mode activated successfully!');
+    } else if (adminPin === '8888') {
+      setViewMode('rider');
+      setAdminPin('');
+      triggerNotification('🏍️ Rider mode activated successfully!');
     } else {
-      alert('Invalid PIN. Use default PIN 9791 to switch views.');
+      alert('Invalid PIN. Use default PIN 9791 (Admin) or 8888 (Rider).');
     }
   };
 
@@ -785,8 +789,8 @@ export default function App() {
       {/* Main Workspace Layout */}
       <main className="flex-1 flex p-6 gap-6 justify-center max-w-7xl mx-auto w-full">
         
-        {/* --- 1. CUSTOMER MOBILE APP VIEW --- */}
-        {(viewMode === 'customer' || viewMode === 'dual') && (
+        {/* --- 1. CUSTOMER & RIDER MOBILE APP VIEW --- */}
+        {['customer', 'dual', 'rider'].includes(viewMode) && (
           <div className="flex-1 max-w-[400px] flex flex-col items-center">
             
             {/* Phone shell container */}
@@ -798,8 +802,86 @@ export default function App() {
               {/* Inside Mobile App Viewport */}
               <div className="flex-1 flex flex-col bg-slate-900 overflow-y-auto px-4 pt-8 pb-4">
                 
-                {/* Auth Screen Flow */}
-                {!currentCustomer ? (
+                {/* Rider Portal View */}
+                {viewMode === 'rider' ? (
+                  <div className="flex-1 flex flex-col gap-4 text-white">
+                    <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                      <div>
+                        <h2 className="text-xl font-bold">Rider Portal</h2>
+                        <p className="text-xs text-amber-400">Delivery Dashboard</p>
+                      </div>
+                      <button 
+                        onClick={() => setViewMode('customer')}
+                        className="bg-slate-800 p-2 rounded-full hover:bg-slate-700"
+                      >
+                        <X className="size-4" />
+                      </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto space-y-4 pb-10">
+                      {orders.filter(o => !['Delivered', 'Cancelled'].includes(o.status)).length === 0 ? (
+                        <div className="text-center text-slate-500 py-10 text-sm">No active tasks today. Relax!</div>
+                      ) : (
+                        orders.filter(o => !['Delivered', 'Cancelled'].includes(o.status)).map(order => (
+                          <div key={order.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 shadow-sm flex flex-col gap-3">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <span className="text-[10px] bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full font-bold">{order.id}</span>
+                                <h4 className="font-semibold text-sm mt-1">{order.customerName}</h4>
+                                <div className="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                                  <Phone className="size-3" /> {order.customerPhone}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-bold">{order.status}</span>
+                                <div className="text-xs font-bold mt-1 text-emerald-400">₹{order.total}</div>
+                              </div>
+                            </div>
+
+                            <div className="bg-slate-900 p-2.5 rounded-xl flex items-center gap-2">
+                              <MapPin className="size-4 text-rose-500 shrink-0" />
+                              <div className="text-xs text-slate-300 truncate">{order.apartmentNo}, {order.address}</div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 mt-1">
+                              <a 
+                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.apartmentNo + ', ' + order.address)}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 rounded-xl flex items-center justify-center gap-1"
+                              >
+                                <Navigation className="size-3.5" /> Navigate
+                              </a>
+                              <a 
+                                href={`tel:${order.customerPhone}`}
+                                className="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold py-2 rounded-xl flex items-center justify-center gap-1"
+                              >
+                                <Phone className="size-3.5" /> Call
+                              </a>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 mt-1 border-t border-slate-800 pt-3">
+                              <button 
+                                onClick={() => updateOrderStatus(order.id, 'Picked Up')}
+                                disabled={['Picked Up', 'In Progress', 'Out for Delivery'].includes(order.status)}
+                                className="bg-amber-600 hover:bg-amber-700 disabled:opacity-30 disabled:pointer-events-none text-white text-[10px] font-bold py-2 rounded-xl uppercase tracking-wide"
+                              >
+                                Mark Picked
+                              </button>
+                              <button 
+                                onClick={() => updateOrderStatus(order.id, 'Delivered')}
+                                disabled={order.status === 'Delivered'}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold py-2 rounded-xl uppercase tracking-wide"
+                              >
+                                Mark Delivered
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                ) : !currentCustomer ? (
                   <div className="flex-1 flex flex-col justify-center gap-6">
                     <div className="text-center flex flex-col items-center gap-2">
                       <div className="size-16 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 shadow-md">
@@ -836,7 +918,7 @@ export default function App() {
                         <div className="mt-8 border-t border-slate-800 pt-5 text-left">
                           <h4 className="text-[10px] font-bold text-slate-400 flex items-center gap-1.5">
                             <Key className="size-3 text-amber-500" />
-                            Owner Admin Gateway
+                            System Portal (Admin/Rider)
                           </h4>
                           <div className="flex gap-2 mt-2">
                             <input 
