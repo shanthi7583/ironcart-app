@@ -1254,13 +1254,20 @@ export default function App() {
                           <div className="flex flex-col gap-1.5">
                             <label className="text-[9px] font-bold text-slate-400 uppercase">Select Service</label>
                             <div className="grid grid-cols-3 gap-2">
-                              {['Ironing', 'Dry Cleaning', 'Laundry'].map(svc => (
+                              {[
+                                {name: 'Ironing', img: '/ironing_icon.png'},
+                                {name: 'Dry Cleaning', img: 'https://images.unsplash.com/photo-1616423640778-28d1b53229bd?w=200&h=200&fit=crop'},
+                                {name: 'Laundry', img: 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=200&h=200&fit=crop'}
+                              ].map(svc => (
                                 <button 
-                                  key={svc}
-                                  onClick={() => setSelectedService(svc as any)}
-                                  className={`py-2 rounded-xl text-xs font-semibold border transition-all text-center ${selectedService === svc ? 'bg-amber-500/10 border-amber-500 text-amber-500' : 'bg-slate-950 border-slate-800 text-slate-400'}`}
+                                  key={svc.name}
+                                  onClick={() => setSelectedService(svc.name as any)}
+                                  className={`rounded-xl border transition-all text-center flex flex-col overflow-hidden ${selectedService === svc.name ? 'bg-amber-500/10 border-amber-500 text-amber-500 ring-1 ring-amber-500' : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'}`}
                                 >
-                                  {svc}
+                                  <div className="h-12 w-full bg-slate-900 relative">
+                                    <img src={svc.img} alt={svc.name} className="w-full h-full object-cover opacity-80 mix-blend-lighten" />
+                                  </div>
+                                  <span className="py-2 text-[10px] font-bold block">{svc.name}</span>
                                 </button>
                               ))}
                             </div>
