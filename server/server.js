@@ -38,20 +38,26 @@ if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
 }
 
 const DEFAULT_PRICE_LIST = [
-  { name: 'Shirt', price: 15, category: 'Apparel' },
-  { name: 'T-Shirt', price: 12, category: 'Apparel' },
-  { name: 'Pant', price: 15, category: 'Apparel' },
-  { name: 'Jeans', price: 18, category: 'Apparel' },
-  { name: 'Saree', price: 50, category: 'Apparel' },
-  { name: 'Kurta', price: 20, category: 'Apparel' },
-  { name: 'Salwar', price: 20, category: 'Apparel' },
-  { name: 'Blazer', price: 80, category: 'Outerwear' },
-  { name: 'Coat', price: 90, category: 'Outerwear' },
-  { name: 'Suit', price: 120, category: 'Outerwear' },
-  { name: 'School Uniform', price: 25, category: 'Apparel' },
-  { name: 'Bedsheet', price: 30, category: 'Bedding' },
-  { name: 'Pillow Cover', price: 10, category: 'Bedding' },
-  { name: 'Curtain', price: 60, category: 'Bedding' },
+  { name: 'Shirt', price: 15, category: 'Apparel', serviceType: 'Ironing' },
+  { name: 'T-Shirt', price: 12, category: 'Apparel', serviceType: 'Ironing' },
+  { name: 'Pant', price: 15, category: 'Apparel', serviceType: 'Ironing' },
+  { name: 'Jeans', price: 18, category: 'Apparel', serviceType: 'Ironing' },
+  { name: 'Saree', price: 50, category: 'Apparel', serviceType: 'Ironing' },
+  { name: 'Kurta', price: 20, category: 'Apparel', serviceType: 'Ironing' },
+  { name: 'Salwar', price: 20, category: 'Apparel', serviceType: 'Ironing' },
+  { name: 'Blazer', price: 80, category: 'Outerwear', serviceType: 'Ironing' },
+  { name: 'Coat', price: 90, category: 'Outerwear', serviceType: 'Ironing' },
+  { name: 'Suit', price: 120, category: 'Outerwear', serviceType: 'Ironing' },
+  { name: 'School Uniform', price: 25, category: 'Apparel', serviceType: 'Ironing' },
+  { name: 'Bedsheet', price: 30, category: 'Bedding', serviceType: 'Ironing' },
+  { name: 'Pillow Cover', price: 10, category: 'Bedding', serviceType: 'Ironing' },
+  { name: 'Curtain', price: 60, category: 'Bedding', serviceType: 'Ironing' },
+  { name: 'Shirt', price: 50, category: 'Apparel', serviceType: 'Dry Cleaning' },
+  { name: 'Pant', price: 50, category: 'Apparel', serviceType: 'Dry Cleaning' },
+  { name: 'Suit', price: 250, category: 'Outerwear', serviceType: 'Dry Cleaning' },
+  { name: 'Shirt', price: 30, category: 'Apparel', serviceType: 'Laundry' },
+  { name: 'Pant', price: 30, category: 'Apparel', serviceType: 'Laundry' },
+  { name: 'Bedsheet', price: 60, category: 'Bedding', serviceType: 'Laundry' },
 ];
 
 const DEFAULT_CUSTOMERS = [
@@ -178,7 +184,7 @@ app.post('/api/orders', (req, res) => {
   writeDB(db);
   
   // Dispatch alerts
-  sendNotification('whatsapp', newOrder.customerPhone, `Hi ${newOrder.customerName}, your IronEase order ${newOrder.id} of ₹${newOrder.total} was placed! Pickup scheduled for ${newOrder.pickupDate} (${newOrder.pickupTime}).`);
+  sendNotification('whatsapp', newOrder.customerPhone, `Hi ${newOrder.customerName}, your IronCart order ${newOrder.id} of ₹${newOrder.total} was placed! Pickup scheduled for ${newOrder.pickupDate} (${newOrder.pickupTime}).`);
   sendNotification('sms', '9791019505', `Owner Alert: New order ${newOrder.id} received from ${newOrder.customerName} (${newOrder.apartmentNo}).`);
   
   res.status(201).json(newOrder);
@@ -200,7 +206,7 @@ app.patch('/api/orders/:id/status', (req, res) => {
   writeDB(db);
   
   const order = db.orders[index];
-  sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your IronEase order ${order.id} status is now: [${status}].`);
+  sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your IronCart order ${order.id} status is now: [${status}].`);
   
   res.json(db.orders[index]);
 });
@@ -221,7 +227,7 @@ app.patch('/api/orders/:id/payment', (req, res) => {
   writeDB(db);
   
   const order = db.orders[index];
-  sendNotification('sms', order.customerPhone, `IronEase: Payment of ₹${order.total} for order ${order.id} is confirmed [Paid].`);
+  sendNotification('sms', order.customerPhone, `IronCart: Payment of ₹${order.total} for order ${order.id} is confirmed [Paid].`);
   
   res.json(db.orders[index]);
 });
@@ -249,9 +255,20 @@ app.post('/api/customers', (req, res) => {
   db.customers.push(newCustomer);
   writeDB(db);
   
-  sendNotification('sms', newCustomer.phone, `Welcome to IronEase, ${newCustomer.name}! Your pickup profile has been created successfully.`);
+  sendNotification('sms', newCustomer.phone, `Welcome to IronCart, ${newCustomer.name}! Your pickup profile has been created successfully.`);
   
   res.status(201).json(newCustomer);
+});
+
+// Update customer (for wallet and addresses)
+app.put('/api/customers/:phone', (req, res) => {
+  const db = readDB();
+  const index = db.customers.findIndex(c => c.phone === req.params.phone);
+  if (index === -1) return res.status(404).json({ error: 'Customer not found' });
+  
+  db.customers[index] = { ...db.customers[index], ...req.body };
+  writeDB(db);
+  res.json(db.customers[index]);
 });
 
 // 9. Payment order creation simulation / Live Razorpay Order session
@@ -302,10 +319,15 @@ app.post('/api/auth/send-otp', (req, res) => {
   if (!phone) return res.status(400).json({ error: 'Phone number is required' });
   const otp = Math.floor(1000 + Math.random() * 9000).toString();
   
-  sendNotification('whatsapp', phone, `Your IronEase verification OTP code is ${otp}. Valid for 5 minutes.`);
+  sendNotification('whatsapp', phone, `Your IronCart verification OTP code is ${otp}. Valid for 5 minutes.`);
   res.json({ success: true, otp });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 IronEase Backend API Server is running on http://localhost:${PORT}`);
-});
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`🚀 IronCart Backend API Server is running on http://localhost:${PORT}`);
+  });
+}
+
+// Export for Vercel Serverless Functions
+module.exports = app;

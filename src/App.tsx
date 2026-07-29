@@ -4,7 +4,7 @@ import {
   TrendingUp, Users, Smartphone, 
   ChevronRight, ShoppingBag, 
   FileText, CreditCard, ArrowLeft, Settings, 
-  Bell, HelpCircle, LogOut, Eye, RefreshCw, Key
+  Bell, HelpCircle, LogOut, Eye, RefreshCw, Key, Star, Navigation, Wallet
 } from 'lucide-react'
 import { supabase } from './supabaseClient'
 import { auth, RecaptchaVerifier } from './firebaseConfig'
@@ -15,6 +15,7 @@ interface GarmentItem {
   name: string;
   price: number;
   category: string;
+  serviceType?: string;
 }
 
 interface OrderItem {
@@ -33,16 +34,25 @@ interface Order {
   pickupDate: string;
   pickupTime: string;
   speed: 'Normal' | 'Express' | 'Urgent';
+  service: string;
   items: OrderItem[];
   subtotal: number;
+  discount: number;
   markup: number;
   tax: number;
   total: number;
+  couponApplied: string;
   status: 'Placed' | 'Picked Up' | 'Ironing' | 'Ready' | 'Delivered';
   paymentStatus: 'Pending' | 'Paid';
   paymentMethod: string;
   specialInstructions: string;
   createdAt: string;
+}
+
+interface Address {
+  id: string;
+  label: string; // 'Home' | 'Work' | 'Other'
+  fullAddress: string;
 }
 
 interface CustomerProfile {
@@ -52,28 +62,36 @@ interface CustomerProfile {
   password?: string;
   apartmentNo: string;
   address: string;
+  walletBalance?: number;
+  addresses?: Address[];
 }
 
 const DEFAULT_PRICE_LIST: GarmentItem[] = [
-  { name: 'Shirt', price: 15, category: 'Apparel' },
-  { name: 'T-Shirt', price: 12, category: 'Apparel' },
-  { name: 'Pant', price: 15, category: 'Apparel' },
-  { name: 'Jeans', price: 18, category: 'Apparel' },
-  { name: 'Saree', price: 50, category: 'Apparel' },
-  { name: 'Kurta', price: 20, category: 'Apparel' },
-  { name: 'Salwar', price: 20, category: 'Apparel' },
-  { name: 'Blazer', price: 80, category: 'Outerwear' },
-  { name: 'Coat', price: 90, category: 'Outerwear' },
-  { name: 'Suit', price: 120, category: 'Outerwear' },
-  { name: 'School Uniform', price: 25, category: 'Apparel' },
-  { name: 'Bedsheet', price: 30, category: 'Bedding' },
-  { name: 'Pillow Cover', price: 10, category: 'Bedding' },
-  { name: 'Curtain', price: 60, category: 'Bedding' },
+  { name: 'Shirt', price: 15, category: 'Apparel', serviceType: 'Ironing' },
+  { name: 'T-Shirt', price: 12, category: 'Apparel', serviceType: 'Ironing' },
+  { name: 'Pant', price: 15, category: 'Apparel', serviceType: 'Ironing' },
+  { name: 'Jeans', price: 18, category: 'Apparel', serviceType: 'Ironing' },
+  { name: 'Saree', price: 50, category: 'Apparel', serviceType: 'Ironing' },
+  { name: 'Kurta', price: 20, category: 'Apparel', serviceType: 'Ironing' },
+  { name: 'Salwar', price: 20, category: 'Apparel', serviceType: 'Ironing' },
+  { name: 'Blazer', price: 80, category: 'Outerwear', serviceType: 'Ironing' },
+  { name: 'Coat', price: 90, category: 'Outerwear', serviceType: 'Ironing' },
+  { name: 'Suit', price: 120, category: 'Outerwear', serviceType: 'Ironing' },
+  { name: 'School Uniform', price: 25, category: 'Apparel', serviceType: 'Ironing' },
+  { name: 'Bedsheet', price: 30, category: 'Bedding', serviceType: 'Ironing' },
+  { name: 'Pillow Cover', price: 10, category: 'Bedding', serviceType: 'Ironing' },
+  { name: 'Curtain', price: 60, category: 'Bedding', serviceType: 'Ironing' },
+  { name: 'Shirt', price: 50, category: 'Apparel', serviceType: 'Dry Cleaning' },
+  { name: 'Pant', price: 50, category: 'Apparel', serviceType: 'Dry Cleaning' },
+  { name: 'Suit', price: 250, category: 'Outerwear', serviceType: 'Dry Cleaning' },
+  { name: 'Shirt', price: 30, category: 'Apparel', serviceType: 'Laundry' },
+  { name: 'Pant', price: 30, category: 'Apparel', serviceType: 'Laundry' },
+  { name: 'Bedsheet', price: 60, category: 'Bedding', serviceType: 'Laundry' },
 ];
 
 export default function App() {
   // --- Persistent State using Backend API & LocalStorage ---
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const API_URL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL || 'http://localhost:5000/api');
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [priceList, setPriceList] = useState<GarmentItem[]>(DEFAULT_PRICE_LIST);
@@ -153,7 +171,9 @@ export default function App() {
   // --- Layout and Navigation State ---
   // Default to 'customer' view ONLY, so the customer app is used alone!
   const [viewMode, setViewMode] = useState<'customer' | 'admin' | 'dual'>('customer');
-  const [customerActiveTab, setCustomerActiveTab] = useState<'home' | 'order' | 'prices' | 'history' | 'support'>('home');
+  const [customerActiveTab, setCustomerActiveTab] = useState<'home' | 'order' | 'prices' | 'history' | 'support' | 'subscriptions'>('home');
+  const [userSubscription, setUserSubscription] = useState<'None' | 'Bronze' | 'Silver' | 'Gold'>('None');
+  const [userSubscriptionQuota, setUserSubscriptionQuota] = useState(0);
   const [adminActiveTab, setAdminActiveTab] = useState<'overview' | 'orders' | 'prices' | 'customers' | 'settings'>('overview');
   const [upiDetails, setUpiDetails] = useState<{ phone: string, id: string }>(() => {
     const saved = localStorage.getItem('iron_upi_details');
@@ -179,16 +199,20 @@ export default function App() {
   const [adminPin, setAdminPin] = useState('');
 
   // Customer Placing Order State
+  const [selectedService, setSelectedService] = useState<'Ironing' | 'Dry Cleaning' | 'Laundry'>('Ironing');
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState('');
+
   const [orderSpeed, setOrderSpeed] = useState<'Normal' | 'Express' | 'Urgent'>('Normal');
   const [pickupDate, setPickupDate] = useState('');
   const [pickupTime, setPickupTime] = useState('09:00 - 12:00');
+  
   const [orderName, setOrderName] = useState('');
   const [orderPhone, setOrderPhone] = useState('');
-  const [orderApartment, setOrderApartment] = useState('');
   const [orderAddress, setOrderAddress] = useState('');
   const [selectedItems, setSelectedItems] = useState<{ [key: string]: number }>({});
   const [specialInstructions, setSpecialInstructions] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'Card' | 'COD'>('UPI');
+  const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'Card' | 'COD' | 'Wallet'>('UPI');
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [selectedOrderForTracking, setSelectedOrderForTracking] = useState<Order | null>(null);
 
@@ -215,6 +239,23 @@ export default function App() {
       return;
     }
 
+    const sendLocalOTP = () => {
+      fetch(`${API_URL}/auth/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: authPhone })
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.otp) {
+            setSentOTP(data.otp);
+            setAuthStep('otp');
+            triggerNotification(`💬 WhatsApp OTP Sent to +91 ${authPhone}! Check backend terminal log for PIN.`);
+          }
+        })
+        .catch(err => alert('Failed to send verification code: ' + err.message));
+    };
+
     if (auth) {
       try {
         const appVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
@@ -227,29 +268,18 @@ export default function App() {
             triggerNotification(`💬 Real SMS OTP Sent to +91 ${authPhone}!`);
           })
           .catch((err) => {
-            alert('Firebase Phone Auth Error: ' + err.message);
+            console.warn('Firebase Phone Auth Error, falling back to local:', err.message);
+            sendLocalOTP();
           });
       } catch (err: any) {
-        alert('Failed to initialize SMS gateway: ' + err.message);
+        console.warn('Failed to initialize SMS gateway, falling back to local:', err.message);
+        sendLocalOTP();
       }
       return;
     }
 
-    // Fallback: Local Server API
-    fetch(`${API_URL}/auth/send-otp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: authPhone })
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.otp) {
-          setSentOTP(data.otp);
-          setAuthStep('otp');
-          triggerNotification(`💬 WhatsApp OTP Sent to +91 ${authPhone}! Check backend terminal log for PIN.`);
-        }
-      })
-      .catch(err => alert('Failed to send verification code: ' + err.message));
+    // Fallback if no auth object
+    sendLocalOTP();
   };
 
   const handleVerifyOTP = () => {
@@ -361,9 +391,11 @@ export default function App() {
   // --- Calculation Helpers ---
   const calculateTotals = () => {
     let subtotal = 0;
-    Object.entries(selectedItems).forEach(([name, qty]) => {
-      const item = priceList.find(p => p.name === name);
+    let totalItems = 0;
+    Object.entries(selectedItems).forEach(([key, qty]) => {
+      const item = priceList.find(p => `${p.serviceType}-${p.name}` === key);
       if (item && qty > 0) {
+        totalItems += qty;
         subtotal += item.price * qty;
       }
     });
@@ -373,18 +405,40 @@ export default function App() {
     if (orderSpeed === 'Urgent') markupMultiplier = 1.0; // +100%
 
     const markup = parseFloat((subtotal * markupMultiplier).toFixed(2));
-    const tax = parseFloat(((subtotal + markup) * 0.05).toFixed(2)); // 5% GST
-    const total = parseFloat((subtotal + markup + tax).toFixed(2));
+    
+    // Apply discount to subtotal
+    let discount = 0;
+    
+    if (userSubscription !== 'None' && userSubscriptionQuota > 0) {
+      if (totalItems <= userSubscriptionQuota) {
+        discount = subtotal; // Fully covered by subscription
+      } else {
+        // Approximate discount for covered items
+        const avgPrice = subtotal / totalItems;
+        discount = avgPrice * userSubscriptionQuota;
+      }
+    } else {
+      if (appliedCoupon === 'WELCOME50') discount = 50;
+      else if (appliedCoupon === 'FIRST10') discount = subtotal * 0.10;
+    }
+    
+    // Ensure discount doesn't exceed subtotal
+    if (discount > subtotal) discount = subtotal;
+    discount = parseFloat(discount.toFixed(2));
 
-    return { subtotal, markup, tax, total };
+    const taxableAmount = Math.max(0, subtotal - discount + markup);
+    const tax = parseFloat((taxableAmount * 0.05).toFixed(2)); // 5% GST
+    const total = parseFloat((taxableAmount + tax).toFixed(2));
+
+    return { subtotal, discount, markup, tax, total };
   };
 
   // --- Order Submission ---
   const handlePlaceOrder = () => {
     const { subtotal, total } = calculateTotals();
 
-    if (!orderName.trim() || !orderPhone.trim() || !orderApartment.trim() || orderAddress.trim().length < 5) {
-      alert('Please fill out all pickup details (Name, Phone, Apartment, and Full Address) correctly.');
+    if (!orderName.trim() || !orderPhone.trim() || orderAddress.trim().length < 5) {
+      alert('Please fill out all pickup details (Name, Phone, and Full Address) correctly.');
       return;
     }
 
@@ -415,13 +469,13 @@ export default function App() {
   };
 
   const confirmOrderPayment = (transactionId: string = 'Simulated') => {
-    const { subtotal, markup, tax, total } = calculateTotals();
+    const { subtotal, discount, markup, tax, total } = calculateTotals();
     const orderItems: OrderItem[] = Object.entries(selectedItems)
       .filter(([_, qty]) => qty > 0)
-      .map(([name, qty]) => {
-        const pItem = priceList.find(p => p.name === name);
+      .map(([key, qty]) => {
+        const pItem = priceList.find(p => `${p.serviceType}-${p.name}` === key);
         return {
-          name,
+          name: pItem ? `${pItem.serviceType} - ${pItem.name}` : key,
           qty,
           price: pItem ? pItem.price : 0
         };
@@ -429,19 +483,22 @@ export default function App() {
 
     const newOrder: Order = {
       id: `ORD-${Math.floor(100000 + Math.random() * 900000)}`,
-      invoiceNo: `IE-${Math.floor(1000 + Math.random() * 9000)}`,
+      invoiceNo: `IC-${Math.floor(1000 + Math.random() * 9000)}`,
       customerName: orderName || 'Walk-in Customer',
       customerPhone: orderPhone || '',
-      apartmentNo: orderApartment || '',
+      apartmentNo: '',
       address: orderAddress || '',
       pickupDate,
       pickupTime,
       speed: orderSpeed,
+      service: selectedService,
       items: orderItems,
       subtotal,
+      discount,
       markup,
       tax,
       total,
+      couponApplied: appliedCoupon,
       status: 'Placed',
       paymentStatus: paymentMethod === 'COD' ? 'Pending' : 'Paid',
       paymentMethod: transactionId !== 'Simulated' ? `${paymentMethod} (Txn: ${transactionId})` : paymentMethod,
@@ -486,13 +543,31 @@ export default function App() {
   };
 
   const handleCheckoutSubmit = () => {
+    if (paymentMethod === 'Wallet') {
+      const { total } = calculateTotals();
+      if (!currentCustomer || (currentCustomer.walletBalance || 0) < total) {
+        alert('Insufficient wallet balance! Please add funds or choose another payment method.');
+        return;
+      }
+      const newBalance = currentCustomer.walletBalance! - total;
+      const updated = { ...currentCustomer, walletBalance: newBalance };
+      setCurrentCustomer(updated);
+      fetch(`${API_URL}/customers/${currentCustomer.phone}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated)
+      });
+      confirmOrderPayment();
+      return;
+    }
+
     if ((paymentMethod === 'UPI' || paymentMethod === 'Card') && gatewayOrderData?.liveMode) {
       // Trigger Live Razorpay Checkout
       const options = {
         key: gatewayOrderData.keyId,
         amount: gatewayOrderData.amount * 100, // paise
         currency: gatewayOrderData.currency,
-        name: "IronEase Service",
+        name: "IronCart Service",
         description: "Ironing Booking Service Payment",
         order_id: gatewayOrderData.gatewayOrderId,
         handler: function (response: any) {
@@ -626,6 +701,51 @@ export default function App() {
   const completedOrders = orders.filter(o => o.status === 'Delivered');
   const totalRevenue = orders.filter(o => o.paymentStatus === 'Paid').reduce((acc, o) => acc + o.total, 0);
 
+  const [showAddMoney, setShowAddMoney] = useState(false);
+  const [addMoneyAmount, setAddMoneyAmount] = useState('');
+  
+  const [newAddressLabel, setNewAddressLabel] = useState('Home');
+  const [newAddressText, setNewAddressText] = useState('');
+  const [showAddAddress, setShowAddAddress] = useState(false);
+
+
+  const handleAddFunds = () => {
+    if (!currentCustomer) return;
+    const amount = parseInt(addMoneyAmount);
+    if (!amount || amount <= 0) return;
+
+    const newBalance = (currentCustomer.walletBalance || 0) + amount;
+    const updated = { ...currentCustomer, walletBalance: newBalance };
+    setCurrentCustomer(updated);
+    
+    fetch(`${API_URL}/customers/${currentCustomer.phone}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated)
+    });
+    alert(`₹${amount} added to wallet!`);
+    setShowAddMoney(false);
+    setAddMoneyAmount('');
+  };
+
+  const handleAddAddress = () => {
+    if (!currentCustomer || !newAddressText.trim()) return;
+    const newAddr: Address = { id: Date.now().toString(), label: newAddressLabel, fullAddress: newAddressText };
+    const addresses = currentCustomer.addresses ? [...currentCustomer.addresses, newAddr] : [newAddr];
+    const updated = { ...currentCustomer, addresses };
+    setCurrentCustomer(updated);
+    
+    fetch(`${API_URL}/customers/${currentCustomer.phone}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated)
+    });
+    setNewAddressLabel('Home');
+    setNewAddressText('');
+    setShowAddAddress(false);
+    setOrderAddress(newAddressText);
+  };
+
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans">
       
@@ -643,10 +763,10 @@ export default function App() {
       <header className="border-b border-slate-800 bg-slate-950 px-6 py-4 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-3">
           <div className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-tr from-rose-500 to-amber-500 shadow-md">
-            <span className="font-extrabold text-white text-lg tracking-wider">IE</span>
+            <span className="font-extrabold text-white text-lg tracking-wider">IC</span>
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-white m-0 p-0 text-left">IronEase Portal</h1>
+            <h1 className="text-xl font-bold tracking-tight text-white m-0 p-0 text-left">IronCart Portal</h1>
             <p className="text-xs text-slate-400 text-left">Professional Ironing & Pickup Service</p>
           </div>
         </div>
@@ -685,7 +805,7 @@ export default function App() {
                       <div className="size-16 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 shadow-md">
                         <ShoppingBag className="size-8" />
                       </div>
-                      <h2 className="text-xl font-bold text-white">IronEase Delivery</h2>
+                      <h2 className="text-xl font-bold text-white">IronCart Delivery</h2>
                       <p className="text-xs text-slate-400">Professional Ironing & Pressing Service</p>
                     </div>
 
@@ -850,11 +970,42 @@ export default function App() {
                         <div className="flex flex-col gap-4">
                           
                           {/* Promotional Slide Banner */}
-                          <div className="bg-gradient-to-r from-rose-600 to-amber-500 rounded-2xl p-4 text-left shadow-lg relative overflow-hidden">
-                            <div className="absolute right-0 bottom-0 opacity-15 text-[80px] font-black tracking-tighter">50%</div>
-                            <h4 className="font-extrabold text-sm text-white">First Order Discount!</h4>
-                            <p className="text-[10px] text-white/90 mt-1 max-w-[200px]">Get 50% off on your first order. Standard normal delivery starts at just ₹12/item.</p>
-                            <span className="inline-block bg-white text-rose-600 text-[9px] font-bold px-2 py-0.5 rounded-full mt-2.5">Code: FIRST50</span>
+                          <div className="bg-gradient-to-r from-rose-600 to-amber-500 rounded-2xl p-0 text-left shadow-lg relative overflow-hidden h-32 flex items-center justify-center">
+                            <img src="/ironing_hero_banner_1785298412643.png" alt="Hero Banner" className="w-full h-full object-cover opacity-90 mix-blend-overlay absolute inset-0" />
+                            <div className="relative z-10 px-4 w-full">
+                              <h4 className="font-extrabold text-sm text-white drop-shadow-md">Premium Garment Care</h4>
+                              <p className="text-[10px] text-white/90 mt-1 max-w-[200px] drop-shadow-md">Get 50% off on your first order. Standard delivery starts at just ₹12/item.</p>
+                              <span className="inline-block bg-white text-rose-600 text-[9px] font-bold px-2 py-0.5 rounded-full mt-2.5 shadow-sm">Code: WELCOME50</span>
+                            </div>
+                          </div>
+
+                          {/* Wallet Section */}
+                          <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col gap-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="text-lg">💳</span>
+                                <span className="text-sm font-bold text-white">IronCart Wallet</span>
+                              </div>
+                              <span className="text-lg font-black text-emerald-400">₹{currentCustomer?.walletBalance || 0}</span>
+                            </div>
+                            
+                            {showAddMoney ? (
+                              <div className="flex gap-2">
+                                <input 
+                                  type="number"
+                                  value={addMoneyAmount}
+                                  onChange={e => setAddMoneyAmount(e.target.value)}
+                                  placeholder="Amount (₹)"
+                                  className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none"
+                                />
+                                <button onClick={handleAddFunds} className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-2 rounded-lg text-xs font-bold transition-colors">Add</button>
+                                <button onClick={() => setShowAddMoney(false)} className="bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-lg text-xs font-bold transition-colors">Cancel</button>
+                              </div>
+                            ) : (
+                              <button onClick={() => setShowAddMoney(true)} className="w-full bg-slate-900 hover:bg-slate-800 border border-slate-800 text-emerald-400 text-xs font-bold py-2 rounded-lg transition-colors">
+                                + Add Money to Wallet
+                              </button>
+                            )}
                           </div>
 
                           {/* Quick Actions Grid */}
@@ -968,26 +1119,68 @@ export default function App() {
                                   className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-rose-500"
                                 />
                               </div>
-                              <div className="flex gap-2">
-                                <div className="flex flex-col gap-1 w-1/3">
-                                  <label className="text-[9px] font-bold text-slate-400 uppercase">Apt No.</label>
-                                  <input 
-                                    type="text" 
-                                    value={orderApartment} 
-                                    onChange={e => setOrderApartment(e.target.value)}
-                                    className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-rose-500"
-                                  />
-                                </div>
-                                <div className="flex flex-col gap-1 flex-1">
-                                  <label className="text-[9px] font-bold text-slate-400 uppercase">Full Address</label>
-                                  <input 
-                                    type="text" 
-                                    value={orderAddress} 
-                                    onChange={e => setOrderAddress(e.target.value)}
-                                    className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-rose-500"
-                                  />
-                                </div>
+                              <div className="flex flex-col gap-2">
+                                <label className="text-[9px] font-bold text-slate-400 uppercase">Select Address</label>
+                                
+                                {currentCustomer?.addresses?.map(addr => (
+                                  <div 
+                                    key={addr.id}
+                                    onClick={() => setOrderAddress(addr.fullAddress)}
+                                    className={`p-2 border rounded-lg cursor-pointer flex justify-between items-center ${orderAddress === addr.fullAddress ? 'border-rose-500 bg-rose-500/10' : 'border-slate-800 bg-slate-900'}`}
+                                  >
+                                    <div>
+                                      <div className="text-xs font-bold text-white">{addr.label}</div>
+                                      <div className="text-[10px] text-slate-400 truncate w-48">{addr.fullAddress}</div>
+                                    </div>
+                                    {orderAddress === addr.fullAddress && <div className="size-2 rounded-full bg-rose-500" />}
+                                  </div>
+                                ))}
+
+                                {showAddAddress ? (
+                                  <div className="bg-slate-900 border border-slate-800 rounded-lg p-2 mt-2">
+                                    <input 
+                                      type="text"
+                                      value={newAddressLabel}
+                                      onChange={e => setNewAddressLabel(e.target.value)}
+                                      placeholder="e.g. Home, Office"
+                                      className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 mb-2 text-xs text-white outline-none focus:border-rose-500"
+                                    />
+                                    <textarea 
+                                      value={newAddressText}
+                                      onChange={e => setNewAddressText(e.target.value)}
+                                      placeholder="Full Address Details..."
+                                      className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 mb-2 text-xs text-white outline-none focus:border-rose-500 resize-none h-16"
+                                    />
+                                    <div className="flex gap-2">
+                                      <button onClick={handleAddAddress} className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-bold py-1.5 rounded transition-colors">Save Address</button>
+                                      <button onClick={() => setShowAddAddress(false)} className="flex-1 bg-slate-800 hover:bg-slate-700 text-white text-[10px] font-bold py-1.5 rounded transition-colors">Cancel</button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <button 
+                                    onClick={() => setShowAddAddress(true)}
+                                    className="border border-dashed border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-slate-400 text-xs py-2 rounded-lg transition-colors mt-1"
+                                  >
+                                    + Add New Address
+                                  </button>
+                                )}
                               </div>
+                            </div>
+                          </div>
+
+                          {/* Service Selection */}
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[9px] font-bold text-slate-400 uppercase">Select Service</label>
+                            <div className="grid grid-cols-3 gap-2">
+                              {['Ironing', 'Dry Cleaning', 'Laundry'].map(svc => (
+                                <button 
+                                  key={svc}
+                                  onClick={() => setSelectedService(svc as any)}
+                                  className={`py-2 rounded-xl text-xs font-semibold border transition-all text-center ${selectedService === svc ? 'bg-amber-500/10 border-amber-500 text-amber-500' : 'bg-slate-950 border-slate-800 text-slate-400'}`}
+                                >
+                                  {svc}
+                                </button>
+                              ))}
                             </div>
                           </div>
 
@@ -1048,24 +1241,25 @@ export default function App() {
                           <div className="flex flex-col gap-1.5">
                             <label className="text-[9px] font-bold text-slate-400 uppercase">Select Garments</label>
                             <div className="max-h-[140px] overflow-y-auto flex flex-col gap-2 pr-1">
-                              {priceList.map(item => {
-                                const qty = selectedItems[item.name] || 0;
+                              {priceList.filter(item => item.serviceType === selectedService).map(item => {
+                                const key = `${item.serviceType}-${item.name}`;
+                                const qty = selectedItems[key] || 0;
                                 return (
-                                  <div key={item.name} className="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-850">
+                                  <div key={key} className="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-850">
                                     <div>
                                       <div className="text-xs font-bold text-white">{item.name}</div>
                                       <div className="text-[9px] text-slate-400">₹{item.price}/pc</div>
                                     </div>
                                     <div className="flex items-center gap-3">
                                       <button 
-                                        onClick={() => setSelectedItems(prev => ({ ...prev, [item.name]: Math.max(0, qty - 1) }))}
+                                        onClick={() => setSelectedItems(prev => ({ ...prev, [key]: Math.max(0, qty - 1) }))}
                                         className="size-6 bg-slate-900 border border-slate-800 rounded-full flex items-center justify-center text-slate-400 hover:text-white"
                                       >
                                         <Minus className="size-3" />
                                       </button>
                                       <span className="text-xs font-bold text-white min-w-[12px] text-center">{qty}</span>
                                       <button 
-                                        onClick={() => setSelectedItems(prev => ({ ...prev, [item.name]: qty + 1 }))}
+                                        onClick={() => setSelectedItems(prev => ({ ...prev, [key]: qty + 1 }))}
                                         className="size-6 bg-rose-500 rounded-full flex items-center justify-center text-white"
                                       >
                                         <Plus className="size-3" />
@@ -1089,12 +1283,42 @@ export default function App() {
                             />
                           </div>
 
+                          {/* Coupon Code */}
+                          <div className="flex gap-2">
+                            <input 
+                              type="text"
+                              value={couponCode}
+                              onChange={e => setCouponCode(e.target.value.toUpperCase())}
+                              placeholder="Enter Promo Code"
+                              className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none flex-1 uppercase"
+                            />
+                            <button 
+                              onClick={() => {
+                                if (couponCode === 'WELCOME50' || couponCode === 'FIRST10') {
+                                  setAppliedCoupon(couponCode);
+                                  alert('Coupon Applied!');
+                                } else {
+                                  alert('Invalid or Expired Coupon');
+                                }
+                              }}
+                              className="bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-xl text-xs font-semibold"
+                            >
+                              Apply
+                            </button>
+                          </div>
+
                           {/* Price calculation summary */}
                           <div className="bg-slate-950 border border-slate-850 p-3 rounded-xl flex flex-col gap-1 text-[10px] text-slate-400">
                             <div className="flex justify-between">
                               <span>Subtotal</span>
                               <span className="font-bold text-white">₹{calculateTotals().subtotal}</span>
                             </div>
+                            {calculateTotals().discount > 0 && (
+                              <div className="flex justify-between text-emerald-400">
+                                <span>Discount ({appliedCoupon})</span>
+                                <span className="font-bold">-₹{calculateTotals().discount}</span>
+                              </div>
+                            )}
                             <div className="flex justify-between">
                               <span>{orderSpeed} Speed Markup</span>
                               <span className="font-bold text-white">₹{calculateTotals().markup}</span>
@@ -1180,6 +1404,32 @@ export default function App() {
                                   );
                                 })}
                               </div>
+
+                              {/* GPS Tracking UI (Simulated) */}
+                              {(selectedOrderForTracking.status === 'Picked Up' || selectedOrderForTracking.status === 'Delivered' || selectedOrderForTracking.status === 'Ready') && (
+                                <div className="bg-slate-900 overflow-hidden rounded-xl border border-slate-800 relative h-32 flex flex-col items-center justify-center">
+                                  {/* Simulated Map Background */}
+                                  <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at center, #334155 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
+                                  
+                                  {/* Animated Path & Marker */}
+                                  <div className="relative z-10 w-full px-8 flex items-center justify-between">
+                                    <div className="size-6 bg-slate-800 rounded-full border-2 border-slate-700 flex items-center justify-center z-10"><MapPin className="size-3 text-slate-400" /></div>
+                                    <div className="flex-1 h-0.5 bg-slate-800 relative overflow-hidden">
+                                      <div className={`absolute top-0 left-0 h-full bg-rose-500 transition-all duration-[3000ms] ${selectedOrderForTracking.status === 'Delivered' ? 'w-full' : 'w-1/2 animate-pulse'}`}></div>
+                                    </div>
+                                    <div className="size-6 bg-emerald-900 rounded-full border-2 border-emerald-500 flex items-center justify-center z-10 shadow-[0_0_10px_rgba(16,185,129,0.5)]"><Check className="size-3 text-emerald-400" /></div>
+                                    
+                                    {/* Moving Courier Icon */}
+                                    <div className={`absolute top-1/2 -translate-y-1/2 bg-white rounded-full p-1 shadow-lg border border-slate-200 z-20 transition-all duration-[3000ms] ${selectedOrderForTracking.status === 'Delivered' ? 'left-[calc(100%-2.5rem)]' : 'left-1/2 -translate-x-1/2'}`}>
+                                      <Navigation className="size-3 text-rose-500" />
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="relative z-10 mt-4 text-[10px] font-bold text-slate-300">
+                                    {selectedOrderForTracking.status === 'Delivered' ? 'Driver reached destination' : 'Driver is on the way...'}
+                                  </div>
+                                </div>
+                              )}
 
                               <div className="bg-slate-900/60 p-3 rounded-xl text-[10px] text-slate-400 flex flex-col gap-1 border border-slate-850">
                                 <div className="flex justify-between">
@@ -1292,6 +1542,56 @@ export default function App() {
                         </div>
                       )}
 
+                      {customerActiveTab === 'subscriptions' && (
+                        <div className="flex flex-col gap-4 text-left">
+                          <div className="flex items-center gap-2 mb-1">
+                            <button onClick={() => setCustomerActiveTab('home')} className="p-1 hover:bg-slate-800 rounded-lg">
+                              <ArrowLeft className="size-4 text-slate-400" />
+                            </button>
+                            <h3 className="text-sm font-bold text-white">IronCart Prime Plans</h3>
+                          </div>
+                          
+                          <div className="w-full h-32 rounded-2xl overflow-hidden relative shadow-lg">
+                            <img src="/subscription_banner_1785298423353.png" alt="Prime Subscription" className="w-full h-full object-cover opacity-80 mix-blend-screen" />
+                            <div className="absolute inset-0 flex flex-col justify-end p-4 bg-gradient-to-t from-slate-950 to-transparent">
+                              <h4 className="font-extrabold text-white text-lg drop-shadow-md">Subscribe & Save</h4>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col gap-3 pb-2">
+                            {[
+                              { name: 'Bronze', items: 20, price: 499, color: 'text-orange-300', bg: 'bg-orange-300/10', border: 'border-orange-300' },
+                              { name: 'Silver', items: 50, price: 999, color: 'text-slate-300', bg: 'bg-slate-300/10', border: 'border-slate-300' },
+                              { name: 'Gold', items: 100, price: 1799, color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400' }
+                            ].map(plan => (
+                              <div key={plan.name} className={`border ${userSubscription === plan.name ? plan.border : 'border-slate-800'} bg-slate-950 rounded-xl p-4 relative overflow-hidden transition-all`}>
+                                {userSubscription === plan.name && <div className="absolute top-0 right-0 bg-emerald-500 text-white text-[8px] font-bold px-2 py-1 rounded-bl-lg">ACTIVE</div>}
+                                <div className="flex justify-between items-center mb-2">
+                                  <h4 className={`font-bold ${plan.color} text-sm flex items-center gap-1.5`}>
+                                    <Star className="size-4" fill="currentColor" /> {plan.name} Plan
+                                  </h4>
+                                  <span className="text-white font-extrabold">₹{plan.price}<span className="text-[9px] text-slate-500 font-normal">/mo</span></span>
+                                </div>
+                                <p className="text-[10px] text-slate-400">Includes {plan.items} garments (Ironing or Laundry). Express delivery extra.</p>
+                                <button 
+                                  onClick={() => {
+                                    if(confirm(`Subscribe to ${plan.name} for ₹${plan.price}?`)) {
+                                      setUserSubscription(plan.name as any);
+                                      setUserSubscriptionQuota(plan.items);
+                                      alert('Subscription Activated!');
+                                    }
+                                  }}
+                                  disabled={userSubscription === plan.name}
+                                  className={`w-full mt-3 py-2 rounded-lg text-xs font-bold ${userSubscription === plan.name ? 'bg-slate-800 text-slate-500' : 'bg-slate-800 hover:bg-slate-700 text-white shadow-sm'}`}
+                                >
+                                  {userSubscription === plan.name ? `Quota Left: ${userSubscriptionQuota} Items` : 'Subscribe Now'}
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                     </div>
 
                     {/* Customer Bottom Navigation Bar */}
@@ -1299,7 +1599,7 @@ export default function App() {
                       {[
                         { tab: 'home', label: 'Home', icon: Smartphone },
                         { tab: 'order', label: 'Book', icon: Plus },
-                        { tab: 'prices', label: 'Prices', icon: FileText },
+                        { tab: 'subscriptions', label: 'Prime', icon: Star },
                         { tab: 'history', label: 'Orders', icon: ShoppingBag },
                         { tab: 'support', label: 'Support', icon: HelpCircle }
                       ].map(item => {
@@ -1335,7 +1635,7 @@ export default function App() {
                   {/* Checkout Header */}
                   <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                     <div>
-                      <h4 className="text-xs font-bold text-slate-400">IronEase Checkout</h4>
+                      <h4 className="text-xs font-bold text-slate-400">IronCart Checkout</h4>
                       <h3 className="text-sm font-extrabold text-white mt-0.5">Pay ₹{calculateTotals().total}</h3>
                     </div>
                     <button onClick={() => setShowCheckoutModal(false)} className="text-xs text-slate-500 hover:text-white">Cancel</button>
@@ -1357,13 +1657,13 @@ export default function App() {
                     </button>
 
                     <button 
-                      onClick={() => setPaymentMethod('Card')}
-                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${paymentMethod === 'Card' ? 'bg-rose-500/10 border-rose-500 text-rose-500' : 'bg-slate-950 border-slate-800 text-slate-300'}`}
+                      onClick={() => setPaymentMethod('Wallet')}
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${paymentMethod === 'Wallet' ? 'bg-rose-500/10 border-rose-500 text-rose-500' : 'bg-slate-950 border-slate-800 text-slate-300'}`}
                     >
-                      <CreditCard className="size-4 text-blue-500" />
+                      <Wallet className="size-4 text-emerald-400" />
                       <div className="text-xs font-semibold text-left">
-                        <span>Credit / Debit Card</span>
-                        <div className="text-[8px] opacity-75">Visa, MasterCard, RuPay</div>
+                        <span>IronCart Wallet</span>
+                        <div className="text-[8px] opacity-75">Pay using your prepaid balance</div>
                       </div>
                     </button>
 
@@ -1389,7 +1689,7 @@ export default function App() {
                         {upiDetails.id && (
                           <div className="bg-white p-1 rounded shrink-0">
                             <img 
-                              src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=upi://pay?pa=${upiDetails.id}&pn=IronEase&cu=INR`} 
+                              src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=upi://pay?pa=${upiDetails.id}&pn=IronCart&cu=INR`} 
                               alt="UPI QR Code" 
                               className="w-16 h-16 object-contain"
                             />
@@ -1407,9 +1707,31 @@ export default function App() {
                         </div>
                       </div>
 
-                      <p className="text-[8px] text-slate-500 leading-relaxed italic bg-slate-900/50 p-1.5 rounded">
-                        *Scan QR or use details to pay, then click "Confirm & Submit Order".
+                      <a 
+                        href={`upi://pay?pa=${upiDetails.id}&pn=IronCart&cu=INR`} 
+                        className="w-full bg-slate-900 hover:bg-slate-800 text-center text-white py-2 rounded-lg font-bold border border-slate-800 transition-colors mt-2"
+                      >
+                        Click to Open UPI App
+                      </a>
+
+                      <p className="text-[8px] text-slate-500 leading-relaxed italic bg-slate-900/50 p-1.5 rounded mt-1">
+                        *Scan QR or click link to pay, then click "Confirm & Submit Order".
                       </p>
+                    </div>
+                  )}
+
+                  {paymentMethod === 'Wallet' && (
+                    <div className="bg-slate-950 border border-slate-850 p-3 rounded-xl flex flex-col gap-2 mt-1 text-left text-xs animate-fade-in">
+                      <div className="font-bold text-white flex items-center justify-between">
+                        <span>💳 IronCart Wallet</span>
+                        <span className="text-emerald-400">₹{currentCustomer?.walletBalance || 0}</span>
+                      </div>
+                      
+                      {(currentCustomer?.walletBalance || 0) < calculateTotals().total ? (
+                        <p className="text-rose-500 text-[10px] mt-1">Insufficient Wallet Balance. Please add money to your wallet from the home screen.</p>
+                      ) : (
+                        <p className="text-emerald-500 text-[10px] mt-1">Balance is sufficient for this order.</p>
+                      )}
                     </div>
                   )}
 
@@ -1789,7 +2111,7 @@ export default function App() {
                       <div className="mt-2 flex gap-4 items-start">
                         <div className="bg-white p-2 rounded-lg">
                           <img 
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=upi://pay?pa=${upiDetails.id}&pn=IronEase&cu=INR`} 
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=upi://pay?pa=${upiDetails.id}&pn=IronCart&cu=INR`} 
                             alt="Live QR Preview" 
                             className="w-[100px] h-[100px]"
                           />
@@ -1826,7 +2148,7 @@ export default function App() {
             {/* Invoice Header */}
             <div className="flex justify-between items-start border-b border-slate-200 pb-4">
               <div>
-                <h3 className="text-lg font-black tracking-tight text-slate-900">IronEase Invoice</h3>
+                <h3 className="text-lg font-black tracking-tight text-slate-900">IronCart Invoice</h3>
                 <span className="text-[10px] text-slate-500 font-mono">No. {selectedInvoice.invoiceNo}</span>
               </div>
               <button 
