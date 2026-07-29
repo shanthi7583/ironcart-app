@@ -1000,12 +1000,21 @@ export default function App() {
                       <div className="flex flex-col gap-3 max-h-[380px] overflow-y-auto pr-1">
                         <h3 className="text-sm font-bold text-white text-left">Setup New Account</h3>
                         <div className="flex flex-col gap-1 text-left">
+                          <label className="text-[9px] font-semibold text-slate-400 uppercase">Mobile Number</label>
+                          <input 
+                            type="text"
+                            value={authPhone}
+                            disabled
+                            className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-500 outline-none cursor-not-allowed"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1 text-left mt-1">
                           <label className="text-[9px] font-semibold text-slate-400 uppercase">Full Name</label>
                           <input 
                             type="text"
                             value={authName}
                             onChange={e => setAuthName(e.target.value)}
-                            placeholder="Your Full Name"
+                            placeholder="Enter your full name"
                             className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none"
                           />
                         </div>
@@ -1015,7 +1024,7 @@ export default function App() {
                             type="text"
                             value={authApartment}
                             onChange={e => setAuthApartment(e.target.value)}
-                            placeholder="Apt 402, Block C"
+                            placeholder="e.g. Apt 402, Block C"
                             className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none"
                           />
                         </div>
@@ -1024,7 +1033,7 @@ export default function App() {
                           <textarea 
                             value={authAddress}
                             onChange={e => setAuthAddress(e.target.value)}
-                            placeholder="123 Tech Park, Whitefield, Bengaluru"
+                            placeholder="Enter your full street address"
                             rows={3}
                             className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none resize-none"
                           />
