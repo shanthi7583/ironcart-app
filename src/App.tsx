@@ -636,6 +636,7 @@ export default function App() {
           if (error) {
             alert('Supabase Status Update Failed: ' + error.message);
           } else {
+            setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: nextStatus } : o));
             let notifyMsg = `📱 SMS: Order ${orderId} updated to [${nextStatus}]`;
             if (nextStatus === 'Ready') notifyMsg = `🎉 WhatsApp sent: Your ironing is ready for pickup!`;
             if (nextStatus === 'Delivered') notifyMsg = `🚚 Delivered! Invoice generated.`;
@@ -668,6 +669,7 @@ export default function App() {
           if (error) {
             alert('Supabase Payment Status Update Failed: ' + error.message);
           } else {
+            setOrders(prev => prev.map(o => o.id === orderId ? { ...o, paymentStatus: 'Paid' } : o));
             triggerNotification(`💳 Payment received for order ${orderId}`);
           }
         });
@@ -754,6 +756,19 @@ export default function App() {
       alert("Please select a new date and time slot.");
       return;
     }
+
+    if (supabase) {
+      supabase.from('orders').update({ pickup_date: rescheduleDate, pickup_time: rescheduleTime }).eq('id', selectedOrderForTracking.id)
+        .then(({ error }) => {
+          if (!error) {
+            setOrders(prev => prev.map(o => o.id === selectedOrderForTracking.id ? { ...o, pickupDate: rescheduleDate, pickupTime: rescheduleTime } : o));
+            setSelectedOrderForTracking(prev => prev ? { ...prev, pickupDate: rescheduleDate, pickupTime: rescheduleTime } : null);
+            setShowRescheduleModal(false);
+            triggerNotification(`🔔 Order ${selectedOrderForTracking.id} rescheduled to ${rescheduleDate}`);
+          }
+        });
+      return;
+    }
     fetch(`${API_URL}/orders/${selectedOrderForTracking.id}/reschedule`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -773,6 +788,20 @@ export default function App() {
     if (!selectedOrderForTracking) return;
     if (!cancelReasonInput.trim()) {
       alert("Please provide a reason for cancellation.");
+      return;
+    }
+
+    if (supabase) {
+      supabase.from('orders').update({ status: 'Cancelled', cancel_reason: cancelReasonInput }).eq('id', selectedOrderForTracking.id)
+        .then(({ error }) => {
+          if (!error) {
+            setOrders(prev => prev.map(o => o.id === selectedOrderForTracking.id ? { ...o, status: 'Cancelled', cancelReason: cancelReasonInput } : o));
+            setSelectedOrderForTracking(prev => prev ? { ...prev, status: 'Cancelled', cancelReason: cancelReasonInput } : null);
+            setShowCancelModal(false);
+            setCancelReasonInput('');
+            triggerNotification(`🔔 Order ${selectedOrderForTracking.id} has been Cancelled.`);
+          }
+        });
       return;
     }
     fetch(`${API_URL}/orders/${selectedOrderForTracking.id}/status`, {
