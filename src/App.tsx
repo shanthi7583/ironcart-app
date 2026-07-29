@@ -1241,43 +1241,67 @@ export default function App() {
                             )}
                           </div>
 
-                          {/* Quick Actions Grid */}
-                          <div className="grid grid-cols-2 gap-3">
+                          {/* Services Grid */}
+                          <div className="grid grid-cols-3 gap-3">
                             <button 
                               onClick={() => setCustomerActiveTab('order')}
-                              className="flex flex-col items-center justify-center gap-2 p-4 bg-slate-950 border border-slate-800 rounded-xl hover:border-rose-500 transition-all text-center"
+                              className="flex flex-col items-center justify-center gap-2 p-3 bg-slate-950 border border-slate-800 rounded-xl hover:border-rose-500 transition-all text-center relative overflow-hidden"
                             >
-                              <div className="size-10 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500">
-                                <Plus className="size-5" />
+                              <div className="size-8 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500">
+                                <Plus className="size-4" />
                               </div>
-                              <span className="text-xs font-semibold text-white">Place Order</span>
+                              <span className="text-[10px] font-semibold text-white">Ironing</span>
                             </button>
                             <button 
-                              onClick={() => setCustomerActiveTab('history')}
-                              className="flex flex-col items-center justify-center gap-2 p-4 bg-slate-950 border border-slate-800 rounded-xl hover:border-rose-500 transition-all text-center"
+                              onClick={() => triggerNotification('✨ Dry Cleaning service is launching very soon! Stay tuned!')}
+                              className="flex flex-col items-center justify-center gap-2 p-3 bg-slate-950 border border-slate-800 rounded-xl opacity-70 hover:opacity-100 transition-all text-center relative"
                             >
-                              <div className="size-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500">
-                                <ShoppingBag className="size-5" />
+                              <span className="absolute top-1 right-1 text-[7px] bg-amber-500 text-black font-bold px-1 rounded-sm">SOON</span>
+                              <div className="size-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400">
+                                <Star className="size-4" />
                               </div>
-                              <span className="text-xs font-semibold text-white">My Orders</span>
+                              <span className="text-[10px] font-semibold text-slate-300">Dry Clean</span>
+                            </button>
+                            <button 
+                              onClick={() => triggerNotification('💧 Laundry service is launching very soon! Stay tuned!')}
+                              className="flex flex-col items-center justify-center gap-2 p-3 bg-slate-950 border border-slate-800 rounded-xl opacity-70 hover:opacity-100 transition-all text-center relative"
+                            >
+                              <span className="absolute top-1 right-1 text-[7px] bg-amber-500 text-black font-bold px-1 rounded-sm">SOON</span>
+                              <div className="size-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400">
+                                <RefreshCw className="size-4" />
+                              </div>
+                              <span className="text-[10px] font-semibold text-slate-300">Laundry</span>
+                            </button>
+                          </div>
+
+                          {/* Quick Actions Grid */}
+                          <div className="grid grid-cols-3 gap-3">
+                            <button 
+                              onClick={() => setCustomerActiveTab('history')}
+                              className="flex flex-col items-center justify-center gap-2 p-3 bg-slate-950 border border-slate-800 rounded-xl hover:border-amber-500 transition-all text-center"
+                            >
+                              <div className="size-8 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500">
+                                <ShoppingBag className="size-4" />
+                              </div>
+                              <span className="text-[10px] font-semibold text-white">My Orders</span>
                             </button>
                             <button 
                               onClick={() => setCustomerActiveTab('prices')}
-                              className="flex flex-col items-center justify-center gap-2 p-4 bg-slate-950 border border-slate-800 rounded-xl hover:border-rose-500 transition-all text-center"
+                              className="flex flex-col items-center justify-center gap-2 p-3 bg-slate-950 border border-slate-800 rounded-xl hover:border-blue-500 transition-all text-center"
                             >
-                              <div className="size-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
-                                <FileText className="size-5" />
+                              <div className="size-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
+                                <FileText className="size-4" />
                               </div>
-                              <span className="text-xs font-semibold text-white">Price List</span>
+                              <span className="text-[10px] font-semibold text-white">Price List</span>
                             </button>
                             <button 
                               onClick={() => setCustomerActiveTab('support')}
-                              className="flex flex-col items-center justify-center gap-2 p-4 bg-slate-950 border border-slate-800 rounded-xl hover:border-rose-500 transition-all text-center"
+                              className="flex flex-col items-center justify-center gap-2 p-3 bg-slate-950 border border-slate-800 rounded-xl hover:border-emerald-500 transition-all text-center"
                             >
-                              <div className="size-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-                                <HelpCircle className="size-5" />
+                              <div className="size-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                                <HelpCircle className="size-4" />
                               </div>
-                              <span className="text-xs font-semibold text-white">Support</span>
+                              <span className="text-[10px] font-semibold text-white">Support</span>
                             </button>
                           </div>
 
