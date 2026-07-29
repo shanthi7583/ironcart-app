@@ -771,23 +771,66 @@ export default function App() {
   const [showAddAddress, setShowAddAddress] = useState(false);
 
 
-  const handleAddFunds = () => {
+  const handleAddFunds = async () => {
     if (!currentCustomer) return;
     const amount = parseInt(addMoneyAmount);
     if (!amount || amount <= 0) return;
 
-    const newBalance = (currentCustomer.walletBalance || 0) + amount;
-    const updated = { ...currentCustomer, walletBalance: newBalance };
-    setCurrentCustomer(updated);
-    
-    fetch(`${API_URL}/customers/${currentCustomer.phone}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updated)
-    });
-    alert(`₹${amount} added to wallet!`);
-    setShowAddMoney(false);
-    setAddMoneyAmount('');
+    try {
+      const res = await fetch(`${API_URL}/payments/create-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, currency: 'INR' })
+      });
+      const gatewayOrderData = await res.json();
+      
+      if (gatewayOrderData.liveMode) {
+        const options = {
+          key: gatewayOrderData.keyId,
+          amount: gatewayOrderData.amount * 100, // paise
+          currency: gatewayOrderData.currency,
+          name: "IronCart Wallet",
+          description: "Wallet Top-up",
+          order_id: gatewayOrderData.gatewayOrderId,
+          handler: function (response: any) {
+            console.log("Razorpay Success Transaction ID:", response.razorpay_payment_id);
+            const newBalance = (currentCustomer.walletBalance || 0) + amount;
+            const updated = { ...currentCustomer, walletBalance: newBalance };
+            setCurrentCustomer(updated);
+            fetch(`${API_URL}/customers/${currentCustomer.phone}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(updated)
+            });
+            alert(`₹${amount} added to wallet successfully!`);
+            setShowAddMoney(false);
+            setAddMoneyAmount('');
+          },
+          prefill: {
+            name: currentCustomer.name || '',
+            contact: currentCustomer.phone || ''
+          },
+          theme: { color: "#F43F5E" }
+        };
+        const rzp = new (window as any).Razorpay(options);
+        rzp.open();
+      } else {
+        const newBalance = (currentCustomer.walletBalance || 0) + amount;
+        const updated = { ...currentCustomer, walletBalance: newBalance };
+        setCurrentCustomer(updated);
+        fetch(`${API_URL}/customers/${currentCustomer.phone}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updated)
+        });
+        alert(`Demo Mode: ₹${amount} added to wallet!`);
+        setShowAddMoney(false);
+        setAddMoneyAmount('');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Failed to initialize payment gateway.');
+    }
   };
 
   const handleAddAddress = () => {
