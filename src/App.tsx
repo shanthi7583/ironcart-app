@@ -387,6 +387,9 @@ export default function App() {
     setAuthStep('login');
     setAuthPhone('');
     setAuthOTP('');
+    setAuthName('');
+    setAuthApartment('');
+    setAuthAddress('');
     setSelectedItems({});
     window.location.reload();
   };
@@ -955,7 +958,7 @@ export default function App() {
                               type="tel"
                               value={authPhone}
                               onChange={e => setAuthPhone(e.target.value.replace(/\D/g, '').slice(0,10))}
-                              placeholder="Enter 10 digit number"
+                              autoComplete="off"
                               className="bg-transparent text-sm text-white w-full outline-none"
                             />
                           </div>
@@ -978,9 +981,9 @@ export default function App() {
                             <input 
                               type="password"
                               maxLength={4}
-                              placeholder="PIN"
                               value={adminPin}
                               onChange={e => setAdminPin(e.target.value.replace(/\D/g, ''))}
+                              autoComplete="new-password"
                               className="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white w-20 text-center outline-none"
                             />
                             <button 
@@ -1003,7 +1006,7 @@ export default function App() {
                             maxLength={6}
                             value={authOTP}
                             onChange={e => setAuthOTP(e.target.value.replace(/\D/g, ''))}
-                            placeholder="••••••"
+                            autoComplete="one-time-code"
                             className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-center text-lg font-bold tracking-widest text-white outline-none"
                           />
                         </div>
@@ -1037,7 +1040,7 @@ export default function App() {
                             type="text"
                             value={authName}
                             onChange={e => setAuthName(e.target.value)}
-                            placeholder="Enter your full name"
+                            autoComplete="off"
                             className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none"
                           />
                         </div>
@@ -1047,7 +1050,7 @@ export default function App() {
                             type="text"
                             value={authApartment}
                             onChange={e => setAuthApartment(e.target.value)}
-                            placeholder="e.g. Apt 402, Block C"
+                            autoComplete="off"
                             className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none"
                           />
                         </div>
@@ -1056,7 +1059,7 @@ export default function App() {
                           <textarea 
                             value={authAddress}
                             onChange={e => setAuthAddress(e.target.value)}
-                            placeholder="Enter your full street address"
+                            autoComplete="off"
                             rows={3}
                             className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none resize-none"
                           />
