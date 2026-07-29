@@ -976,7 +976,7 @@ export default function App() {
                         <div className="flex flex-col gap-1.5 text-left">
                           <label className="text-[10px] font-bold text-slate-400 uppercase">Enter Verification OTP</label>
                           <input 
-                            type="text"
+                            type="password"
                             maxLength={6}
                             value={authOTP}
                             onChange={e => setAuthOTP(e.target.value.replace(/\D/g, ''))}
