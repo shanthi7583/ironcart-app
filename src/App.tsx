@@ -1137,8 +1137,7 @@ export default function App() {
                             value={authReferredBy}
                             onChange={e => setAuthReferredBy(e.target.value)}
                             autoComplete="off"
-                            placeholder="e.g. IRON-XXXX"
-                            className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-rose-500 uppercase placeholder:normal-case"
+                            className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-rose-500 uppercase"
                           />
                         </div>
                         <button 
@@ -1486,7 +1485,6 @@ export default function App() {
                                   type="text" 
                                   value={orderPhone} 
                                   onChange={e => setOrderPhone(e.target.value)}
-                                  placeholder="e.g. 9876543210"
                                   className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-rose-500"
                                 />
                               </div>

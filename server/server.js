@@ -350,6 +350,22 @@ app.post('/api/customers', async (req, res) => {
       referred_by: newCustomer.referredBy || null
     };
     await supabase.from('customers').insert([customerData]);
+  } else {
+    const existingIndex = DEFAULT_CUSTOMERS.findIndex(c => c.phone === newCustomer.phone);
+    if (existingIndex === -1) {
+      DEFAULT_CUSTOMERS.push({
+        phone: newCustomer.phone,
+        name: newCustomer.name,
+        walletBalance: newCustomer.walletBalance || 0,
+        subscriptionQuota: newCustomer.subscriptionQuota || 0,
+        activePlan: newCustomer.activePlan || 'None',
+        apartmentNo: newCustomer.apartmentNo || '',
+        address: newCustomer.address || '',
+        addresses: newCustomer.addresses || [],
+        referralCode: `IRON-${Math.random().toString(36).substring(2,6).toUpperCase()}`,
+        referredBy: newCustomer.referredBy || null
+      });
+    }
   }
   
   sendNotification('sms', newCustomer.phone, `Welcome to IronCart, ${newCustomer.name}! Your pickup profile has been created successfully.`);
@@ -374,6 +390,12 @@ app.put('/api/customers/:phone', async (req, res) => {
     const { data, error } = await supabase.from('customers').update(dbUpdates).eq('phone', phone).select();
     if (!error && data && data.length > 0) {
       return res.json(mapCustomerToFrontend(data[0]));
+    }
+  } else {
+    const existingIndex = DEFAULT_CUSTOMERS.findIndex(c => c.phone === phone);
+    if (existingIndex !== -1) {
+      DEFAULT_CUSTOMERS[existingIndex] = { ...DEFAULT_CUSTOMERS[existingIndex], ...updates };
+      return res.json(DEFAULT_CUSTOMERS[existingIndex]);
     }
   }
   res.json({ phone, ...updates });
