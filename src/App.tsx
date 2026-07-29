@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { 
-  Plus, Minus, Calendar, Clock, Check, MapPin,
+  Plus, Minus, Clock, Check, MapPin,
   TrendingUp, Users, Smartphone, 
   ChevronRight, ShoppingBag, 
   FileText, CreditCard, ArrowLeft, Settings, 
