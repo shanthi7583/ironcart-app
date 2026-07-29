@@ -342,10 +342,12 @@ export default function App() {
             triggerNotification(`💬 Real SMS OTP Sent to +91 ${authPhone}!`);
           })
           .catch((err) => {
+            alert('Firebase Phone Auth Error: ' + err.message);
             console.warn('Firebase Phone Auth Error, falling back to local:', err.message);
             sendLocalOTP();
           });
       } catch (err: any) {
+        alert('Failed to initialize SMS gateway: ' + err.message);
         console.warn('Failed to initialize SMS gateway, falling back to local:', err.message);
         sendLocalOTP();
       }
@@ -650,7 +652,7 @@ export default function App() {
     })
       .then(res => res.json())
       .then(data => {
-        setOrders(prev => prev.map(o => o.id === orderId ? data : o));
+        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...data } : o));
         let notifyMsg = `📱 SMS: Order ${orderId} updated to [${nextStatus}]`;
         if (nextStatus === 'Ready') notifyMsg = `🎉 WhatsApp sent: Your ironing is ready for pickup!`;
         if (nextStatus === 'Delivered') notifyMsg = `🚚 Delivered! Invoice generated.`;
@@ -679,7 +681,7 @@ export default function App() {
     })
       .then(res => res.json())
       .then(data => {
-        setOrders(prev => prev.map(o => o.id === orderId ? data : o));
+        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...data } : o));
         triggerNotification(`💳 Payment received for order ${orderId}`);
       })
       .catch(err => alert('API Connection Error: ' + err.message));
@@ -759,8 +761,8 @@ export default function App() {
     })
       .then(res => res.json())
       .then(updated => {
-        setOrders(prev => prev.map(o => o.id === updated.id ? updated : o));
-        setSelectedOrderForTracking(updated);
+        setOrders(prev => prev.map(o => o.id === updated.id ? { ...o, ...updated } : o));
+        setSelectedOrderForTracking(prev => prev ? { ...prev, ...updated } : null);
         setShowRescheduleModal(false);
         triggerNotification(`🔔 Order ${updated.id} rescheduled to ${updated.pickupDate}`);
       })
@@ -780,8 +782,8 @@ export default function App() {
     })
       .then(res => res.json())
       .then(updated => {
-        setOrders(prev => prev.map(o => o.id === updated.id ? updated : o));
-        setSelectedOrderForTracking(updated);
+        setOrders(prev => prev.map(o => o.id === updated.id ? { ...o, ...updated } : o));
+        setSelectedOrderForTracking(prev => prev ? { ...prev, ...updated } : null);
         setShowCancelModal(false);
         setCancelReasonInput('');
         triggerNotification(`🔔 Order ${updated.id} has been Cancelled.`);
