@@ -1725,8 +1725,8 @@ export default function App() {
 
                             <div className="flex overflow-x-auto scrollbar-hide pb-3 -mx-2 px-2 gap-3 border-b border-gray-200">
                               {[
-                                { name: 'Light Weight', img: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=200&h=150&fit=crop' },
-                                { name: 'Medium/Heavy', img: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=200&h=150&fit=crop' },
+                                { name: 'Light Weight', img: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=200&h=150&fit=crop' },
+                                { name: 'Medium/Heavy', img: 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=200&h=150&fit=crop' },
                                 { name: 'Premium', img: 'https://images.unsplash.com/photo-1610030469983-98e550d61dc0?w=200&h=150&fit=crop' },
                                 { name: 'Household', img: 'https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?w=200&h=150&fit=crop' }
                               ].map(cat => (
