@@ -311,25 +311,27 @@ export default function App() {
   };
 
   const handleVerifyOTP = () => {
+    const processLogin = () => {
+      fetch(`${API_URL}/customers/${authPhone}`)
+        .then(res => {
+          if (res.ok) {
+            return res.json().then(data => {
+              setCurrentCustomer(data);
+              setCustomerActiveTab('home');
+            });
+          } else if (res.status === 404) {
+            setAuthStep('register');
+          } else {
+            throw new Error('Unexpected API error');
+          }
+        })
+        .catch(err => alert('API Connection Error: ' + err.message));
+    };
+
     if (auth && firebaseConfirmResult) {
       firebaseConfirmResult.confirm(authOTP)
         .then(() => {
-          const existing = customers.find(c => c.phone === authPhone);
-          if (existing) {
-            fetch(`${API_URL}/customers`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(existing)
-            })
-              .then(res => res.json())
-              .then(data => {
-                setCurrentCustomer(data);
-                setCustomerActiveTab('home');
-              })
-              .catch(err => alert('API Connection Error: ' + err.message));
-          } else {
-            setAuthStep('register');
-          }
+          processLogin();
         })
         .catch((err: any) => {
           alert('Invalid verification code: ' + err.message);
@@ -338,22 +340,7 @@ export default function App() {
     }
 
     if (authOTP === sentOTP || authOTP === '1234') { // Fallback bypass
-      const existing = customers.find(c => c.phone === authPhone);
-      if (existing) {
-        fetch(`${API_URL}/customers`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(existing)
-        })
-          .then(res => res.json())
-          .then(data => {
-            setCurrentCustomer(data);
-            setCustomerActiveTab('home');
-          })
-          .catch(err => alert('API Connection Error: ' + err.message));
-      } else {
-        setAuthStep('register');
-      }
+      processLogin();
     } else {
       alert('Invalid OTP. Please try again or use 1234');
     }
