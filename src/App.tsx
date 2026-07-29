@@ -630,22 +630,6 @@ export default function App() {
 
   // --- Admin Actions ---
   const updateOrderStatus = (orderId: string, nextStatus: 'Placed' | 'Picked Up' | 'Ironing' | 'Ready' | 'Delivered') => {
-    if (supabase) {
-      supabase.from('orders').update({ status: nextStatus }).eq('id', orderId)
-        .then(({ error }) => {
-          if (error) {
-            alert('Supabase Status Update Failed: ' + error.message);
-          } else {
-            setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: nextStatus } : o));
-            let notifyMsg = `📱 SMS: Order ${orderId} updated to [${nextStatus}]`;
-            if (nextStatus === 'Ready') notifyMsg = `🎉 WhatsApp sent: Your ironing is ready for pickup!`;
-            if (nextStatus === 'Delivered') notifyMsg = `🚚 Delivered! Invoice generated.`;
-            triggerNotification(notifyMsg);
-          }
-        });
-      return;
-    }
-
     fetch(`${API_URL}/orders/${orderId}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -663,19 +647,6 @@ export default function App() {
   };
 
   const markOrderPaid = (orderId: string) => {
-    if (supabase) {
-      supabase.from('orders').update({ paymentStatus: 'Paid' }).eq('id', orderId)
-        .then(({ error }) => {
-          if (error) {
-            alert('Supabase Payment Status Update Failed: ' + error.message);
-          } else {
-            setOrders(prev => prev.map(o => o.id === orderId ? { ...o, paymentStatus: 'Paid' } : o));
-            triggerNotification(`💳 Payment received for order ${orderId}`);
-          }
-        });
-      return;
-    }
-
     fetch(`${API_URL}/orders/${orderId}/payment`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -757,18 +728,6 @@ export default function App() {
       return;
     }
 
-    if (supabase) {
-      supabase.from('orders').update({ pickup_date: rescheduleDate, pickup_time: rescheduleTime }).eq('id', selectedOrderForTracking.id)
-        .then(({ error }) => {
-          if (!error) {
-            setOrders(prev => prev.map(o => o.id === selectedOrderForTracking.id ? { ...o, pickupDate: rescheduleDate, pickupTime: rescheduleTime } : o));
-            setSelectedOrderForTracking(prev => prev ? { ...prev, pickupDate: rescheduleDate, pickupTime: rescheduleTime } : null);
-            setShowRescheduleModal(false);
-            triggerNotification(`🔔 Order ${selectedOrderForTracking.id} rescheduled to ${rescheduleDate}`);
-          }
-        });
-      return;
-    }
     fetch(`${API_URL}/orders/${selectedOrderForTracking.id}/reschedule`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -791,19 +750,6 @@ export default function App() {
       return;
     }
 
-    if (supabase) {
-      supabase.from('orders').update({ status: 'Cancelled', cancel_reason: cancelReasonInput }).eq('id', selectedOrderForTracking.id)
-        .then(({ error }) => {
-          if (!error) {
-            setOrders(prev => prev.map(o => o.id === selectedOrderForTracking.id ? { ...o, status: 'Cancelled', cancelReason: cancelReasonInput } : o));
-            setSelectedOrderForTracking(prev => prev ? { ...prev, status: 'Cancelled', cancelReason: cancelReasonInput } : null);
-            setShowCancelModal(false);
-            setCancelReasonInput('');
-            triggerNotification(`🔔 Order ${selectedOrderForTracking.id} has been Cancelled.`);
-          }
-        });
-      return;
-    }
     fetch(`${API_URL}/orders/${selectedOrderForTracking.id}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
