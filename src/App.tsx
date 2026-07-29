@@ -206,6 +206,7 @@ export default function App() {
   const [orderSpeed, setOrderSpeed] = useState<'Normal' | 'Express' | 'Urgent'>('Normal');
   const [pickupDate, setPickupDate] = useState('');
   const [pickupTime, setPickupTime] = useState('09:00 - 12:00');
+  const [showNotifications, setShowNotifications] = useState(false);
   
   const generateDates = () => {
     const dates = [];
@@ -779,21 +780,56 @@ export default function App() {
       )}
 
       {/* Main Top Header */}
-      <header className={`border-b border-slate-800 bg-slate-950 px-6 py-4 flex items-center justify-between shadow-md ${viewMode === 'customer' && currentCustomer ? 'pb-3' : ''}`}>
+      <header className={`border-b border-slate-800 bg-slate-950 px-6 py-4 flex items-center justify-between shadow-md relative ${viewMode === 'customer' && currentCustomer ? 'pb-3' : ''}`}>
         {viewMode === 'customer' && currentCustomer ? (
-          <div className="flex items-start gap-2 max-w-[85%]">
-            <div className="mt-1 bg-rose-500/20 p-1.5 rounded-full">
-              <MapPin className="size-4 text-rose-500" />
+          <>
+            <div className="flex items-start gap-2 max-w-[80%]">
+              <div className="mt-1 bg-rose-500/20 p-1.5 rounded-full">
+                <MapPin className="size-4 text-rose-500" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1">
+                  Home <ChevronRight className="size-3 text-slate-500" />
+                </span>
+                <span className="text-[11px] text-slate-400 truncate mt-0.5">
+                  {currentCustomer.apartmentNo}, {currentCustomer.address}
+                </span>
+              </div>
             </div>
-            <div className="flex flex-col">
-              <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1">
-                Home <ChevronRight className="size-3 text-slate-500" />
-              </span>
-              <span className="text-[11px] text-slate-400 truncate mt-0.5">
-                {currentCustomer.apartmentNo}, {currentCustomer.address}
-              </span>
+            
+            <div className="relative">
+              <button 
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="bg-slate-900 border border-slate-800 p-2 rounded-full relative"
+              >
+                <Bell className="size-4 text-slate-300" />
+                {orders.some(o => o.customerPhone === currentCustomer.phone && o.status !== 'Placed') && (
+                  <div className="absolute top-0 right-0 size-2.5 bg-rose-500 rounded-full border-2 border-slate-950"></div>
+                )}
+              </button>
+              
+              {showNotifications && (
+                <div className="absolute top-12 right-0 w-64 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden">
+                  <div className="p-3 border-b border-slate-800 flex justify-between items-center bg-slate-950">
+                    <span className="text-xs font-bold text-white uppercase tracking-widest">Notifications</span>
+                    <button onClick={() => setShowNotifications(false)}><X className="size-3 text-slate-500" /></button>
+                  </div>
+                  <div className="max-h-60 overflow-y-auto">
+                    {orders.filter(o => o.customerPhone === currentCustomer.phone).length === 0 ? (
+                      <div className="p-4 text-center text-xs text-slate-500">No notifications yet.</div>
+                    ) : (
+                      orders.filter(o => o.customerPhone === currentCustomer.phone).slice(0, 5).map(o => (
+                        <div key={o.id} className="p-3 border-b border-slate-800/50 hover:bg-slate-850 cursor-default">
+                          <div className="text-[10px] text-slate-400 mb-0.5">Order {o.id.split('-')[0]}</div>
+                          <div className="text-xs font-medium text-white">Status updated to: <span className="text-rose-400">{o.status}</span></div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
+          </>
         ) : (
           <div className="flex items-center gap-3">
             <div className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-tr from-rose-500 to-amber-500 shadow-md">
@@ -1290,24 +1326,35 @@ export default function App() {
                             </div>
                           </div>
 
-                          {/* Service Selection */}
-                          <div className="flex flex-col gap-1.5">
-                            <label className="text-[9px] font-bold text-slate-400 uppercase">Select Service</label>
-                            <div className="grid grid-cols-3 gap-2">
+                          {/* Iztri-Style Service Selection Carousel */}
+                          <div className="flex flex-col gap-2 mt-2">
+                            <div className="flex justify-between items-end">
+                              <label className="text-[11px] font-bold text-white tracking-wide">Select Service</label>
+                            </div>
+                            <div className="flex gap-4 overflow-x-auto pb-4 pt-1 scrollbar-hide -mx-2 px-2 snap-x">
                               {[
-                                {name: 'Ironing', img: '/ironing_icon.png'},
-                                {name: 'Dry Cleaning', img: 'https://images.unsplash.com/photo-1616423640778-28d1b53229bd?w=200&h=200&fit=crop'},
-                                {name: 'Laundry', img: 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=200&h=200&fit=crop'}
+                                {name: 'Ironing', desc: 'Crisp, wrinkle-free pressing', img: '/ironing_icon.png'},
+                                {name: 'Dry Cleaning', desc: 'Deep chemical cleaning for delicate fabrics', img: 'https://images.unsplash.com/photo-1616423640778-28d1b53229bd?w=400&h=300&fit=crop'},
+                                {name: 'Laundry', desc: 'Everyday wash, dry, and fold', img: 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=400&h=300&fit=crop'}
                               ].map(svc => (
                                 <button 
                                   key={svc.name}
                                   onClick={() => setSelectedService(svc.name as any)}
-                                  className={`rounded-xl border transition-all text-center flex flex-col overflow-hidden ${selectedService === svc.name ? 'bg-amber-500/10 border-amber-500 text-amber-500 ring-1 ring-amber-500' : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'}`}
+                                  className={`snap-center shrink-0 w-[220px] rounded-2xl border transition-all text-left flex flex-col overflow-hidden relative ${selectedService === svc.name ? 'bg-slate-900 border-rose-500 ring-2 ring-rose-500 shadow-[0_4px_15px_rgba(225,29,72,0.4)]' : 'bg-slate-950 border-slate-800 hover:border-slate-700'}`}
                                 >
-                                  <div className="h-12 w-full bg-slate-900 relative">
-                                    <img src={svc.img} alt={svc.name} className="w-full h-full object-cover opacity-80 mix-blend-lighten" />
+                                  <div className="h-[120px] w-full bg-slate-900 relative">
+                                    <img src={svc.img} alt={svc.name} className={`w-full h-full object-cover transition-all duration-500 ${selectedService === svc.name ? 'opacity-100 scale-105' : 'opacity-60 grayscale-[30%]'}`} />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent"></div>
                                   </div>
-                                  <span className="py-2 text-[10px] font-bold block">{svc.name}</span>
+                                  <div className="p-3 absolute bottom-0 left-0 right-0">
+                                    <h4 className={`text-sm font-extrabold ${selectedService === svc.name ? 'text-white' : 'text-slate-300'}`}>{svc.name}</h4>
+                                    <p className="text-[9px] text-slate-400 mt-0.5 line-clamp-1">{svc.desc}</p>
+                                  </div>
+                                  {selectedService === svc.name && (
+                                    <div className="absolute top-3 right-3 bg-rose-500 rounded-full p-1 shadow-md">
+                                      <Check className="size-3 text-white" />
+                                    </div>
+                                  )}
                                 </button>
                               ))}
                             </div>
