@@ -132,6 +132,7 @@ const mapOrderToFrontend = (o) => ({
   total: o.total,
   items: o.items,
   specialInstructions: o.special_instructions,
+  cancelReason: o.cancel_reason,
   deliveryTimeline: o.delivery_timeline,
   createdAt: o.created_at
 });
@@ -201,6 +202,7 @@ app.post('/api/orders', async (req, res) => {
       total: newOrder.total,
       items: newOrder.items,
       special_instructions: newOrder.specialInstructions,
+      cancel_reason: newOrder.cancelReason || null,
       delivery_timeline: newOrder.deliveryTimeline || []
     };
     await supabase.from('orders').insert([orderData]);
@@ -216,17 +218,40 @@ app.post('/api/orders', async (req, res) => {
 // 5. Update order status (Admin control)
 app.patch('/api/orders/:id/status', async (req, res) => {
   const { id } = req.params;
-  const { status } = req.body;
+  const { status, cancelReason } = req.body;
   
   if (supabase) {
-    const { data, error } = await supabase.from('orders').update({ status }).eq('id', id).select();
+    const updatePayload = { status };
+    if (cancelReason) updatePayload.cancel_reason = cancelReason;
+
+    const { data, error } = await supabase.from('orders').update(updatePayload).eq('id', id).select();
     if (!error && data && data.length > 0) {
       const order = mapOrderToFrontend(data[0]);
-      sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your IronCart order ${order.id} status is now: [${status}].`);
+      if (status === 'Cancelled') {
+        sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your IronCart order ${order.id} has been Cancelled. Reason: ${cancelReason}`);
+      } else {
+        sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your IronCart order ${order.id} status is now: [${status}].`);
+      }
       return res.json(order);
     }
   }
-  res.json({ id, status });
+  res.json({ id, status, cancelReason });
+});
+
+// 5.5 Update order schedule
+app.patch('/api/orders/:id/reschedule', async (req, res) => {
+  const { id } = req.params;
+  const { pickupDate, pickupTime } = req.body;
+  
+  if (supabase) {
+    const { data, error } = await supabase.from('orders').update({ pickup_date: pickupDate, pickup_time: pickupTime }).eq('id', id).select();
+    if (!error && data && data.length > 0) {
+      const order = mapOrderToFrontend(data[0]);
+      sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your IronCart order ${order.id} has been RESCHEDULED to ${pickupDate} (${pickupTime}).`);
+      return res.json(order);
+    }
+  }
+  res.json({ id, pickupDate, pickupTime });
 });
 
 // 6. Update payment status (Admin control)

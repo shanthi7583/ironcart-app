@@ -42,10 +42,11 @@ interface Order {
   tax: number;
   total: number;
   couponApplied: string;
-  status: 'Placed' | 'Picked Up' | 'Ironing' | 'Ready' | 'Delivered';
+  status: 'Placed' | 'Picked Up' | 'Ironing' | 'Ready' | 'Delivered' | 'Cancelled';
   paymentStatus: 'Pending' | 'Paid';
   paymentMethod: string;
   specialInstructions: string;
+  cancelReason?: string;
   createdAt: string;
 }
 
@@ -237,6 +238,14 @@ export default function App() {
   const [pickupTime, setPickupTime] = useState('09:00 - 12:00');
   const [showNotifications, setShowNotifications] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>('Light Weight');
+
+  // Cancel & Reschedule Modal State
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReasonInput, setCancelReasonInput] = useState('');
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [rescheduleDate, setRescheduleDate] = useState('');
+  const [rescheduleTime, setRescheduleTime] = useState('');
+  
   
   const generateDates = () => {
     const dates = [];
@@ -728,6 +737,49 @@ export default function App() {
 
   const [showAddMoney, setShowAddMoney] = useState(false);
   const [addMoneyAmount, setAddMoneyAmount] = useState('');
+
+  const handleRescheduleOrder = () => {
+    if (!selectedOrderForTracking) return;
+    if (!rescheduleDate || !rescheduleTime) {
+      alert("Please select a new date and time slot.");
+      return;
+    }
+    fetch(`${API_URL}/orders/${selectedOrderForTracking.id}/reschedule`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pickupDate: rescheduleDate, pickupTime: rescheduleTime })
+    })
+      .then(res => res.json())
+      .then(updated => {
+        setOrders(prev => prev.map(o => o.id === updated.id ? updated : o));
+        setSelectedOrderForTracking(updated);
+        setShowRescheduleModal(false);
+        triggerNotification(`🔔 Order ${updated.id} rescheduled to ${updated.pickupDate}`);
+      })
+      .catch(err => alert('Failed to reschedule order: ' + err.message));
+  };
+
+  const handleCancelOrder = () => {
+    if (!selectedOrderForTracking) return;
+    if (!cancelReasonInput.trim()) {
+      alert("Please provide a reason for cancellation.");
+      return;
+    }
+    fetch(`${API_URL}/orders/${selectedOrderForTracking.id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'Cancelled', cancelReason: cancelReasonInput })
+    })
+      .then(res => res.json())
+      .then(updated => {
+        setOrders(prev => prev.map(o => o.id === updated.id ? updated : o));
+        setSelectedOrderForTracking(updated);
+        setShowCancelModal(false);
+        setCancelReasonInput('');
+        triggerNotification(`🔔 Order ${updated.id} has been Cancelled.`);
+      })
+      .catch(err => alert('Failed to cancel order: ' + err.message));
+  };
   
   const [newAddressLabel, setNewAddressLabel] = useState('Home');
   const [newAddressText, setNewAddressText] = useState('');
@@ -1648,6 +1700,27 @@ export default function App() {
                                   <FileText className="size-3.5 text-rose-500" /> View Digital Invoice
                                 </button>
                               )}
+                              
+                              {selectedOrderForTracking.status === 'Placed' && (
+                                <div className="grid grid-cols-2 gap-2 mt-2">
+                                  <button 
+                                    onClick={() => setShowCancelModal(true)}
+                                    className="w-full bg-slate-900 hover:bg-rose-950/50 border border-rose-500/30 text-rose-400 hover:text-rose-300 py-2 rounded-xl text-xs font-semibold transition-all"
+                                  >
+                                    Cancel Order
+                                  </button>
+                                  <button 
+                                    onClick={() => {
+                                      setRescheduleDate(selectedOrderForTracking.pickupDate);
+                                      setRescheduleTime(selectedOrderForTracking.pickupTime);
+                                      setShowRescheduleModal(true);
+                                    }}
+                                    className="w-full bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white py-2 rounded-xl text-xs font-semibold transition-all"
+                                  >
+                                    Reschedule
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           ) : (
                             <div className="flex flex-col gap-3 overflow-y-auto max-h-[380px]">
@@ -2430,7 +2503,104 @@ export default function App() {
         </div>
       )}
 
+      {/* Cancel Order Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-950 border border-slate-800 p-6 rounded-[24px] max-w-sm w-full shadow-2xl animate-in fade-in zoom-in duration-200">
+            <h2 className="text-xl font-bold text-white mb-2">Cancel Order</h2>
+            <p className="text-xs text-slate-400 mb-4">Are you sure you want to cancel this order? This action cannot be undone.</p>
+            
+            <div className="flex flex-col gap-1.5 mb-5 text-left">
+              <label className="text-[10px] font-bold text-slate-400 uppercase">Reason for cancellation</label>
+              <textarea 
+                value={cancelReasonInput}
+                onChange={e => setCancelReasonInput(e.target.value)}
+                placeholder="e.g. Changed my mind, not at home..."
+                rows={3}
+                className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-rose-500 resize-none"
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <button 
+                onClick={() => { setShowCancelModal(false); setCancelReasonInput(''); }}
+                className="bg-slate-800 hover:bg-slate-700 text-white py-2.5 rounded-xl font-bold text-xs"
+              >
+                Keep Order
+              </button>
+              <button 
+                onClick={handleCancelOrder}
+                className="bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-xl font-bold text-xs"
+              >
+                Confirm Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
+      {/* Reschedule Order Modal */}
+      {showRescheduleModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-950 border border-slate-800 p-6 rounded-[24px] max-w-sm w-full shadow-2xl animate-in fade-in zoom-in duration-200 text-left">
+            <h2 className="text-xl font-bold text-white mb-4">Reschedule Order</h2>
+            
+            <div className="flex flex-col gap-2 mb-4">
+              <label className="text-[11px] font-bold text-white tracking-wide">Select New Date</label>
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2 snap-x">
+                {availableDates.map(d => (
+                  <button
+                    key={d.value}
+                    onClick={() => setRescheduleDate(d.value)}
+                    className={`min-w-[50px] flex flex-col items-center justify-center py-2 rounded-2xl border snap-center transition-all ${
+                      rescheduleDate === d.value
+                      ? 'bg-gradient-to-br from-rose-500 to-rose-600 border-rose-500 shadow-[0_4px_12px_rgba(225,29,72,0.3)]' 
+                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-white'
+                    }`}
+                  >
+                    <span className={`text-[10px] font-medium ${rescheduleDate === d.value ? 'text-rose-100' : ''}`}>{d.label}</span>
+                    <span className={`text-lg font-bold mt-0.5 ${rescheduleDate === d.value ? 'text-white' : ''}`}>{d.dateNum}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 mb-6">
+              <label className="text-[11px] font-bold text-white tracking-wide">Select New Time Slot</label>
+              <div className="grid grid-cols-2 gap-2">
+                {['09:00 - 12:00', '12:00 - 15:00', '15:00 - 18:00', '18:00 - 21:00'].map(slot => (
+                  <button
+                    key={slot}
+                    onClick={() => setRescheduleTime(slot)}
+                    className={`flex items-center justify-center py-2.5 rounded-xl border text-[10px] font-medium transition-all ${
+                      rescheduleTime === slot
+                      ? 'bg-rose-500/20 border-rose-500 text-rose-400'
+                      : 'bg-slate-900 border-slate-800 text-slate-400'
+                    }`}
+                  >
+                    {slot}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <button 
+                onClick={() => setShowRescheduleModal(false)}
+                className="bg-slate-800 hover:bg-slate-700 text-white py-2.5 rounded-xl font-bold text-xs"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleRescheduleOrder}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl font-bold text-xs"
+              >
+                Update Slot
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Simulation Dashboard Footer */}
       <footer className="border-t border-slate-850 bg-slate-950 px-6 py-4 text-center text-xs text-slate-500">
