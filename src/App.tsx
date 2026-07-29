@@ -75,47 +75,47 @@ interface Order {
 
 const BASE_GARMENTS = [
   // --- Light Weight ---
-  { name: 'Baby Clothes', price: 10, category: 'Light Weight' },
-  { name: 'Kids Wear', price: 15, category: 'Light Weight' },
-  { name: 'Uniform', price: 20, category: 'Light Weight' },
-  { name: 'Legging', price: 15, category: 'Light Weight' },
-  { name: 'Pajama', price: 15, category: 'Light Weight' },
-  { name: 'Salwar', price: 20, category: 'Light Weight' },
-  { name: 'Kurta', price: 20, category: 'Light Weight' },
-  { name: 'T-Shirt', price: 15, category: 'Light Weight' },
-  { name: 'Trouser/Pant', price: 18, category: 'Light Weight' },
+  { name: 'Baby Clothes', price: 10, category: 'Light Weight', icon: '👶' },
+  { name: 'Kids Wear', price: 15, category: 'Light Weight', icon: '🧒' },
+  { name: 'Uniform', price: 20, category: 'Light Weight', icon: '👔' },
+  { name: 'Legging', price: 15, category: 'Light Weight', icon: '👖' },
+  { name: 'Pajama', price: 15, category: 'Light Weight', icon: '🩳' },
+  { name: 'Salwar', price: 20, category: 'Light Weight', icon: '🥻' },
+  { name: 'Kurta', price: 20, category: 'Light Weight', icon: '👚' },
+  { name: 'T-Shirt', price: 15, category: 'Light Weight', icon: '👕' },
+  { name: 'Trouser/Pant', price: 18, category: 'Light Weight', icon: '👖' },
 
   // --- Medium/Heavy ---
-  { name: 'Jacket', price: 50, category: 'Medium/Heavy' },
-  { name: 'Blazer', price: 80, category: 'Medium/Heavy' },
-  { name: 'Skirt', price: 25, category: 'Medium/Heavy' },
-  { name: 'Dhoti', price: 30, category: 'Medium/Heavy' },
-  { name: 'Party Top', price: 35, category: 'Medium/Heavy' },
-  { name: 'Silk Kurta', price: 40, category: 'Medium/Heavy' },
-  { name: 'Sweater', price: 60, category: 'Medium/Heavy' },
+  { name: 'Jacket', price: 50, category: 'Medium/Heavy', icon: '🧥' },
+  { name: 'Blazer', price: 80, category: 'Medium/Heavy', icon: '🧥' },
+  { name: 'Skirt', price: 25, category: 'Medium/Heavy', icon: '👗' },
+  { name: 'Dhoti', price: 30, category: 'Medium/Heavy', icon: '🥻' },
+  { name: 'Party Top', price: 35, category: 'Medium/Heavy', icon: '👚' },
+  { name: 'Silk Kurta', price: 40, category: 'Medium/Heavy', icon: '👘' },
+  { name: 'Sweater', price: 60, category: 'Medium/Heavy', icon: '🧶' },
 
   // --- Premium ---
-  { name: 'Bridal Set', price: 250, category: 'Premium' },
-  { name: 'Designer Blouse', price: 60, category: 'Premium' },
-  { name: 'Designer Saree', price: 100, category: 'Premium' },
-  { name: 'Formal Suit', price: 120, category: 'Premium' },
-  { name: 'Lehenga', price: 200, category: 'Premium' },
-  { name: 'Sherwani', price: 250, category: 'Premium' },
-  { name: 'Silk Saree', price: 150, category: 'Premium' },
-  { name: 'Winter Coat', price: 150, category: 'Premium' },
+  { name: 'Bridal Set', price: 250, category: 'Premium', icon: '✨' },
+  { name: 'Designer Blouse', price: 60, category: 'Premium', icon: '👚' },
+  { name: 'Designer Saree', price: 100, category: 'Premium', icon: '🥻' },
+  { name: 'Formal Suit', price: 120, category: 'Premium', icon: '🕴️' },
+  { name: 'Lehenga', price: 200, category: 'Premium', icon: '👗' },
+  { name: 'Sherwani', price: 250, category: 'Premium', icon: '🧥' },
+  { name: 'Silk Saree', price: 150, category: 'Premium', icon: '🥻' },
+  { name: 'Winter Coat', price: 150, category: 'Premium', icon: '🧥' },
 
   // --- Household ---
-  { name: 'Cushion Cover', price: 15, category: 'Household' },
-  { name: 'Face Towel', price: 10, category: 'Household' },
-  { name: 'Handkerchief', price: 5, category: 'Household' },
-  { name: 'Kitchen Towel', price: 10, category: 'Household' },
-  { name: 'Pillow Cover', price: 15, category: 'Household' },
-  { name: 'Table Mat', price: 20, category: 'Household' },
-  { name: 'Bed Sheet', price: 40, category: 'Household' },
-  { name: 'Blanket', price: 100, category: 'Household' },
-  { name: 'Comforter', price: 120, category: 'Household' },
-  { name: 'Curtain', price: 80, category: 'Household' },
-  { name: 'Sofa Cover', price: 90, category: 'Household' },
+  { name: 'Cushion Cover', price: 15, category: 'Household', icon: '🛋️' },
+  { name: 'Face Towel', price: 10, category: 'Household', icon: '🧻' },
+  { name: 'Handkerchief', price: 5, category: 'Household', icon: '🧣' },
+  { name: 'Kitchen Towel', price: 10, category: 'Household', icon: '🧺' },
+  { name: 'Pillow Cover', price: 15, category: 'Household', icon: '🛏️' },
+  { name: 'Table Mat', price: 20, category: 'Household', icon: '🍽️' },
+  { name: 'Bed Sheet', price: 40, category: 'Household', icon: '🛏️' },
+  { name: 'Blanket', price: 100, category: 'Household', icon: '🛌' },
+  { name: 'Comforter', price: 120, category: 'Household', icon: '🛌' },
+  { name: 'Curtain', price: 80, category: 'Household', icon: '🪟' },
+  { name: 'Sofa Cover', price: 90, category: 'Household', icon: '🛋️' },
 ];
 
 const DEFAULT_PRICE_LIST: GarmentItem[] = [];
@@ -809,7 +809,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
       
       {/* Simulation Banner Notification */}
       {notification && (
@@ -822,7 +822,7 @@ export default function App() {
       )}
 
       {/* Main Top Header */}
-      <header className={`border-b border-slate-800 bg-slate-950 px-6 py-4 flex items-center justify-between shadow-md relative ${viewMode === 'customer' && currentCustomer ? 'pb-3' : ''}`}>
+      <header className={`border-b border-gray-200 bg-white px-6 py-4 flex items-center justify-between shadow-md relative ${viewMode === 'customer' && currentCustomer ? 'pb-3' : ''}`}>
         {viewMode === 'customer' && currentCustomer ? (
           <>
             <div className="flex items-start gap-2 max-w-[80%]">
@@ -830,10 +830,10 @@ export default function App() {
                 <MapPin className="size-4 text-rose-500" />
               </div>
               <div className="flex flex-col">
-                <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1">
-                  Home <ChevronRight className="size-3 text-slate-500" />
+                <span className="text-xs font-bold text-gray-900 uppercase tracking-wider flex items-center gap-1">
+                  Home <ChevronRight className="size-3 text-gray-400" />
                 </span>
-                <span className="text-[11px] text-slate-400 truncate mt-0.5">
+                <span className="text-[11px] text-gray-500 truncate mt-0.5">
                   {currentCustomer.apartmentNo}, {currentCustomer.address}
                 </span>
               </div>
@@ -842,28 +842,28 @@ export default function App() {
             <div className="relative">
               <button 
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="bg-slate-900 border border-slate-800 p-2 rounded-full relative"
+                className="bg-gray-50 border border-gray-200 p-2 rounded-full relative"
               >
-                <Bell className="size-4 text-slate-300" />
+                <Bell className="size-4 text-gray-700" />
                 {orders.some(o => o.customerPhone === currentCustomer.phone && o.status !== 'Placed') && (
                   <div className="absolute top-0 right-0 size-2.5 bg-rose-500 rounded-full border-2 border-slate-950"></div>
                 )}
               </button>
               
               {showNotifications && (
-                <div className="absolute top-12 right-0 w-64 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden">
-                  <div className="p-3 border-b border-slate-800 flex justify-between items-center bg-slate-950">
-                    <span className="text-xs font-bold text-white uppercase tracking-widest">Notifications</span>
-                    <button onClick={() => setShowNotifications(false)}><X className="size-3 text-slate-500" /></button>
+                <div className="absolute top-12 right-0 w-64 bg-gray-50 border border-gray-200 rounded-2xl shadow-2xl z-50 overflow-hidden">
+                  <div className="p-3 border-b border-gray-200 flex justify-between items-center bg-white">
+                    <span className="text-xs font-bold text-gray-900 uppercase tracking-widest">Notifications</span>
+                    <button onClick={() => setShowNotifications(false)}><X className="size-3 text-gray-400" /></button>
                   </div>
                   <div className="max-h-60 overflow-y-auto">
                     {orders.filter(o => o.customerPhone === currentCustomer.phone).length === 0 ? (
-                      <div className="p-4 text-center text-xs text-slate-500">No notifications yet.</div>
+                      <div className="p-4 text-center text-xs text-gray-400">No notifications yet.</div>
                     ) : (
                       orders.filter(o => o.customerPhone === currentCustomer.phone).slice(0, 5).map(o => (
-                        <div key={o.id} className="p-3 border-b border-slate-800/50 hover:bg-slate-850 cursor-default">
-                          <div className="text-[10px] text-slate-400 mb-0.5">Order {o.id.split('-')[0]}</div>
-                          <div className="text-xs font-medium text-white">Status updated to: <span className="text-rose-400">{o.status}</span></div>
+                        <div key={o.id} className="p-3 border-b border-gray-200/80 hover:bg-gray-100 cursor-default">
+                          <div className="text-[10px] text-gray-500 mb-0.5">Order {o.id.split('-')[0]}</div>
+                          <div className="text-xs font-medium text-gray-900">Status updated to: <span className="text-rose-400">{o.status}</span></div>
                         </div>
                       ))
                     )}
@@ -875,11 +875,11 @@ export default function App() {
         ) : (
           <div className="flex items-center gap-3">
             <div className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-tr from-rose-500 to-amber-500 shadow-md">
-              <span className="font-extrabold text-white text-lg tracking-wider">IC</span>
+              <span className="font-extrabold text-gray-900 text-lg tracking-wider">IC</span>
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight text-white m-0 p-0 text-left">IronCart</h1>
-              <p className="text-xs text-slate-400 text-left">Professional Ironing & Pickup Service</p>
+              <h1 className="text-xl font-bold tracking-tight text-gray-900 m-0 p-0 text-left">IronCart</h1>
+              <p className="text-xs text-gray-500 text-left">Professional Ironing & Pickup Service</p>
             </div>
           </div>
         )}
@@ -903,25 +903,25 @@ export default function App() {
           <div className="flex-1 max-w-[400px] flex flex-col items-center">
             
             {/* Phone shell container */}
-            <div className="w-full aspect-[9/19.5] border-8 border-slate-850 bg-slate-950 rounded-[40px] shadow-2xl flex flex-col overflow-hidden relative border-t-[12px] border-b-[12px]">
+            <div className="w-full aspect-[9/19.5] border-8 border-gray-200 bg-white rounded-[40px] shadow-2xl flex flex-col overflow-hidden relative border-t-[12px] border-b-[12px]">
               
               {/* Camera Notch simulation */}
-              <div className="absolute top-2 left-1/2 -translate-x-1/2 w-28 h-4 bg-slate-850 rounded-full z-20"></div>
+              <div className="absolute top-2 left-1/2 -translate-x-1/2 w-28 h-4 bg-gray-100 rounded-full z-20"></div>
 
               {/* Inside Mobile App Viewport */}
-              <div className="flex-1 flex flex-col bg-slate-900 overflow-y-auto px-4 pt-8 pb-4">
+              <div className="flex-1 flex flex-col bg-gray-50 overflow-y-auto px-4 pt-8 pb-4">
                 
                 {/* Rider Portal View */}
                 {viewMode === 'rider' ? (
-                  <div className="flex-1 flex flex-col gap-4 text-white">
-                    <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                  <div className="flex-1 flex flex-col gap-4 text-gray-900">
+                    <div className="flex items-center justify-between pb-4 border-b border-gray-200">
                       <div>
                         <h2 className="text-xl font-bold">Rider Portal</h2>
                         <p className="text-xs text-amber-400">Delivery Dashboard</p>
                       </div>
                       <button 
                         onClick={() => setViewMode('customer')}
-                        className="bg-slate-800 p-2 rounded-full hover:bg-slate-700"
+                        className="bg-gray-200 p-2 rounded-full hover:bg-gray-300"
                       >
                         <X className="size-4" />
                       </button>
@@ -929,27 +929,27 @@ export default function App() {
 
                     <div className="flex-1 overflow-y-auto space-y-4 pb-10">
                       {orders.filter(o => !['Delivered', 'Cancelled'].includes(o.status)).length === 0 ? (
-                        <div className="text-center text-slate-500 py-10 text-sm">No active tasks today. Relax!</div>
+                        <div className="text-center text-gray-400 py-10 text-sm">No active tasks today. Relax!</div>
                       ) : (
                         orders.filter(o => !['Delivered', 'Cancelled'].includes(o.status)).map(order => (
-                          <div key={order.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 shadow-sm flex flex-col gap-3">
+                          <div key={order.id} className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm flex flex-col gap-3">
                             <div className="flex justify-between items-start">
                               <div>
                                 <span className="text-[10px] bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full font-bold">{order.id}</span>
                                 <h4 className="font-semibold text-sm mt-1">{order.customerName}</h4>
-                                <div className="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                                <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                                   <Phone className="size-3" /> {order.customerPhone}
                                 </div>
                               </div>
                               <div className="text-right">
-                                <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-bold">{order.status}</span>
+                                <span className="text-[10px] bg-gray-200 text-gray-700 px-2 py-0.5 rounded font-bold">{order.status}</span>
                                 <div className="text-xs font-bold mt-1 text-emerald-400">₹{order.total}</div>
                               </div>
                             </div>
 
-                            <div className="bg-slate-900 p-2.5 rounded-xl flex items-center gap-2">
+                            <div className="bg-gray-50 p-2.5 rounded-xl flex items-center gap-2">
                               <MapPin className="size-4 text-rose-500 shrink-0" />
-                              <div className="text-xs text-slate-300 truncate">{order.apartmentNo}, {order.address}</div>
+                              <div className="text-xs text-gray-700 truncate">{order.apartmentNo}, {order.address}</div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-2 mt-1">
@@ -963,13 +963,13 @@ export default function App() {
                               </a>
                               <a 
                                 href={`tel:${order.customerPhone}`}
-                                className="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold py-2 rounded-xl flex items-center justify-center gap-1"
+                                className="bg-gray-200 hover:bg-gray-300 text-gray-900 text-xs font-bold py-2 rounded-xl flex items-center justify-center gap-1"
                               >
                                 <Phone className="size-3.5" /> Call
                               </a>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-2 mt-1 border-t border-slate-800 pt-3">
+                            <div className="grid grid-cols-2 gap-2 mt-1 border-t border-gray-200 pt-3">
                               <button 
                                 onClick={() => updateOrderStatus(order.id, 'Picked Up')}
                                 disabled={['Picked Up', 'In Progress', 'Out for Delivery'].includes(order.status)}
@@ -996,22 +996,22 @@ export default function App() {
                       <div className="size-16 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 shadow-md">
                         <ShoppingBag className="size-8" />
                       </div>
-                      <h2 className="text-xl font-bold text-white">IronCart Delivery</h2>
-                      <p className="text-xs text-slate-400">Bringing Crispness to Your Doorstep</p>
+                      <h2 className="text-xl font-bold text-gray-900">IronCart Delivery</h2>
+                      <p className="text-xs text-gray-500">Bringing Crispness to Your Doorstep</p>
                     </div>
 
                     {authStep === 'login' && (
                       <div className="flex flex-col gap-4">
                         <div className="flex flex-col gap-1.5 text-left">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase">Mobile Number</label>
-                          <div className="flex gap-2 items-center bg-slate-950 border border-slate-800 rounded-xl px-3 py-2">
-                            <span className="text-slate-500 text-sm font-semibold">+91</span>
+                          <label className="text-[10px] font-bold text-gray-500 uppercase">Mobile Number</label>
+                          <div className="flex gap-2 items-center bg-white border border-gray-200 rounded-xl px-3 py-2">
+                            <span className="text-gray-400 text-sm font-semibold">+91</span>
                             <input 
                               type="tel"
                               value={authPhone}
                               onChange={e => setAuthPhone(e.target.value.replace(/\D/g, '').slice(0,10))}
                               autoComplete="off"
-                              className="bg-transparent text-sm text-white w-full outline-none"
+                              className="bg-transparent text-sm text-gray-900 w-full outline-none"
                             />
                           </div>
                         </div>
@@ -1024,8 +1024,8 @@ export default function App() {
                         <div id="recaptcha-container"></div>
                         
                         {/* Owner Admin Gateway Switcher */}
-                        <div className="mt-8 border-t border-slate-800 pt-5 text-left">
-                          <h4 className="text-[10px] font-bold text-slate-400 flex items-center gap-1.5">
+                        <div className="mt-8 border-t border-gray-200 pt-5 text-left">
+                          <h4 className="text-[10px] font-bold text-gray-500 flex items-center gap-1.5">
                             <Key className="size-3 text-amber-500" />
                             System Portal (Admin/Rider)
                           </h4>
@@ -1036,7 +1036,7 @@ export default function App() {
                               value={adminPin}
                               onChange={e => setAdminPin(e.target.value.replace(/\D/g, ''))}
                               autoComplete="new-password"
-                              className="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white w-20 text-center outline-none"
+                              className="bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-900 w-20 text-center outline-none"
                             />
                             <button 
                               onClick={handleAdminAccess}
@@ -1052,14 +1052,14 @@ export default function App() {
                     {authStep === 'otp' && (
                       <div className="flex flex-col gap-4">
                         <div className="flex flex-col gap-1.5 text-left">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase">Enter Verification OTP</label>
+                          <label className="text-[10px] font-bold text-gray-500 uppercase">Enter Verification OTP</label>
                           <input 
                             type="password"
                             maxLength={6}
                             value={authOTP}
                             onChange={e => setAuthOTP(e.target.value.replace(/\D/g, ''))}
                             autoComplete="one-time-code"
-                            className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-center text-lg font-bold tracking-widest text-white outline-none"
+                            className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-center text-lg font-bold tracking-widest text-gray-900 outline-none"
                           />
                         </div>
                         <button 
@@ -1068,7 +1068,7 @@ export default function App() {
                         >
                           Verify & Continue
                         </button>
-                        <div className="flex justify-end items-center text-xs text-slate-400 mt-1">
+                        <div className="flex justify-end items-center text-xs text-gray-500 mt-1">
                           <button onClick={() => setAuthStep('login')} className="text-rose-500 hover:underline">Change Number</button>
                         </div>
                       </div>
@@ -1076,45 +1076,45 @@ export default function App() {
 
                     {authStep === 'register' && (
                       <div className="flex flex-col gap-3 max-h-[380px] overflow-y-auto pr-1">
-                        <h3 className="text-sm font-bold text-white text-left">Setup New Account</h3>
+                        <h3 className="text-sm font-bold text-gray-900 text-left">Setup New Account</h3>
                         <div className="flex flex-col gap-1 text-left mt-1">
-                          <label className="text-[9px] font-semibold text-slate-400 uppercase">Full Name</label>
+                          <label className="text-[9px] font-semibold text-gray-500 uppercase">Full Name</label>
                           <input 
                             type="text"
                             value={authName}
                             onChange={e => setAuthName(e.target.value)}
                             autoComplete="off"
-                            className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none"
+                            className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 outline-none"
                           />
                         </div>
                         <div className="flex flex-col gap-1 text-left">
-                          <label className="text-[9px] font-semibold text-slate-400 uppercase">Apartment / Flat Number</label>
+                          <label className="text-[9px] font-semibold text-gray-500 uppercase">Apartment / Flat Number</label>
                           <input 
                             type="text"
                             value={authApartment}
                             onChange={e => setAuthApartment(e.target.value)}
                             autoComplete="off"
-                            className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none"
+                            className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 outline-none"
                           />
                         </div>
                         <div className="flex flex-col gap-1 text-left">
-                          <label className="text-[9px] font-semibold text-slate-400 uppercase">Street Address / Landmark</label>
+                          <label className="text-[9px] font-semibold text-gray-500 uppercase">Street Address / Landmark</label>
                           <textarea 
                             value={authAddress}
                             onChange={e => setAuthAddress(e.target.value)}
                             autoComplete="off"
                             rows={3}
-                            className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none resize-none"
+                            className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 outline-none resize-none"
                           />
                         </div>
                         <div className="flex flex-col gap-1 text-left">
-                          <label className="text-[9px] font-semibold text-slate-400 uppercase">Referral Code (Optional)</label>
+                          <label className="text-[9px] font-semibold text-gray-500 uppercase">Referral Code (Optional)</label>
                           <input 
                             type="text"
                             value={authReferredBy}
                             onChange={e => setAuthReferredBy(e.target.value)}
                             autoComplete="off"
-                            className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-rose-500 uppercase"
+                            className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 outline-none focus:border-rose-500 uppercase"
                           />
                         </div>
                         <button 
@@ -1132,7 +1132,7 @@ export default function App() {
                   <div className="flex-1 flex flex-col justify-between">
                     
                     {/* Customer Top App Bar */}
-                    <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-gray-200 mb-4">
                       {customerActiveTab === 'home' ? (
                         <div className="flex items-center gap-3">
                           <div className="size-10 rounded-full bg-rose-500 flex items-center justify-center text-white font-bold text-lg shadow-lg">
@@ -1140,18 +1140,18 @@ export default function App() {
                           </div>
                           <div className="text-left">
                             <div className="text-[10px] text-rose-300 font-bold tracking-wide uppercase">Warm Welcome Back</div>
-                            <div className="text-sm font-black text-white max-w-[160px] truncate">{currentCustomer.name}</div>
+                            <div className="text-sm font-black text-gray-900 max-w-[160px] truncate">{currentCustomer.name}</div>
                           </div>
                         </div>
                       ) : (
                         <div className="flex items-center gap-3">
                           <button 
                             onClick={() => setCustomerActiveTab('home')} 
-                            className="p-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-400 hover:text-rose-500 transition-colors"
+                            className="p-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-500 hover:text-rose-500 transition-colors"
                           >
                             <ArrowLeft className="size-4" />
                           </button>
-                          <h2 className="text-sm font-bold text-white uppercase tracking-wide">
+                          <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
                             {customerActiveTab === 'order' ? 'Place Order' : 
                              customerActiveTab === 'prices' ? 'Pricing' :
                              customerActiveTab === 'history' ? 'My Orders' : 
@@ -1160,13 +1160,13 @@ export default function App() {
                         </div>
                       )}
                       <div className="flex items-center gap-2">
-                        <button onClick={() => setCustomerActiveTab('notifications')} className="text-slate-500 hover:text-rose-500 p-2 rounded-lg bg-slate-900 border border-slate-800 relative">
+                        <button onClick={() => setCustomerActiveTab('notifications')} className="text-gray-400 hover:text-rose-500 p-2 rounded-lg bg-gray-50 border border-gray-200 relative">
                           <Bell className="size-4" />
                           {orders.filter(o => o.customerPhone === currentCustomer?.phone && o.status !== 'Delivered').length > 0 && (
                             <span className="absolute top-1.5 right-1.5 size-2 bg-rose-500 rounded-full animate-pulse"></span>
                           )}
                         </button>
-                        <button onClick={handleLogout} className="text-slate-500 hover:text-rose-500 p-2 rounded-lg bg-slate-900 border border-slate-800">
+                        <button onClick={handleLogout} className="text-gray-400 hover:text-rose-500 p-2 rounded-lg bg-gray-50 border border-gray-200">
                           <LogOut className="size-4" />
                         </button>
                       </div>
@@ -1183,18 +1183,18 @@ export default function App() {
                           <div className="bg-gradient-to-r from-rose-600 to-amber-500 rounded-2xl p-0 text-left shadow-lg relative overflow-hidden h-32 flex items-center justify-center">
                             <img src="/ironing_hero_banner_1785298412643.png" alt="Hero Banner" className="w-full h-full object-cover opacity-90 mix-blend-overlay absolute inset-0" />
                             <div className="relative z-10 px-4 w-full">
-                              <h4 className="font-extrabold text-sm text-white drop-shadow-md">Premium Garment Care</h4>
-                              <p className="text-[10px] text-white/90 mt-1 max-w-[200px] drop-shadow-md">Get 50% off on your first order. Standard delivery starts at just ₹12/item.</p>
+                              <h4 className="font-extrabold text-sm text-gray-900 drop-shadow-md">Premium Garment Care</h4>
+                              <p className="text-[10px] text-gray-900/90 mt-1 max-w-[200px] drop-shadow-md">Get 50% off on your first order. Standard delivery starts at just ₹12/item.</p>
                               <span className="inline-block bg-white text-rose-600 text-[9px] font-bold px-2 py-0.5 rounded-full mt-2.5 shadow-sm">Code: WELCOME50</span>
                             </div>
                           </div>
 
                           {/* Wallet Section */}
-                          <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col gap-3">
+                          <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col gap-3">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <span className="text-lg">💳</span>
-                                <span className="text-sm font-bold text-white">IronCart Wallet</span>
+                                <span className="text-sm font-bold text-gray-900">IronCart Wallet</span>
                               </div>
                               <span className="text-lg font-black text-emerald-400">₹{currentCustomer?.walletBalance || 0}</span>
                             </div>
@@ -1206,13 +1206,13 @@ export default function App() {
                                   value={addMoneyAmount}
                                   onChange={e => setAddMoneyAmount(e.target.value)}
                                   placeholder="Amount (₹)"
-                                  className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none"
+                                  className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-900 outline-none"
                                 />
                                 <button onClick={handleAddFunds} className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-2 rounded-lg text-xs font-bold transition-colors">Add</button>
-                                <button onClick={() => setShowAddMoney(false)} className="bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-lg text-xs font-bold transition-colors">Cancel</button>
+                                <button onClick={() => setShowAddMoney(false)} className="bg-gray-200 hover:bg-gray-300 text-gray-900 px-3 py-2 rounded-lg text-xs font-bold transition-colors">Cancel</button>
                               </div>
                             ) : (
-                              <button onClick={() => setShowAddMoney(true)} className="w-full bg-slate-900 hover:bg-slate-800 border border-slate-800 text-emerald-400 text-xs font-bold py-2 rounded-lg transition-colors">
+                              <button onClick={() => setShowAddMoney(true)} className="w-full bg-gray-50 hover:bg-gray-200 border border-gray-200 text-emerald-400 text-xs font-bold py-2 rounded-lg transition-colors">
                                 + Add Money to Wallet
                               </button>
                             )}
@@ -1222,32 +1222,32 @@ export default function App() {
                           <div className="grid grid-cols-3 gap-3">
                             <button 
                               onClick={() => setCustomerActiveTab('order')}
-                              className="flex flex-col items-center justify-center gap-2 p-3 bg-slate-950 border border-slate-800 rounded-xl hover:border-rose-500 transition-all text-center relative overflow-hidden"
+                              className="flex flex-col items-center justify-center gap-2 p-3 bg-white border border-gray-200 rounded-xl hover:border-rose-500 transition-all text-center relative overflow-hidden"
                             >
                               <div className="size-8 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500">
                                 <Plus className="size-4" />
                               </div>
-                              <span className="text-[10px] font-semibold text-white">Ironing</span>
+                              <span className="text-[10px] font-semibold text-gray-900">Ironing</span>
                             </button>
                             <button 
                               onClick={() => triggerNotification('✨ Dry Cleaning service is launching very soon! Stay tuned!')}
-                              className="flex flex-col items-center justify-center gap-2 p-3 bg-slate-950 border border-slate-800 rounded-xl opacity-70 hover:opacity-100 transition-all text-center relative"
+                              className="flex flex-col items-center justify-center gap-2 p-3 bg-white border border-gray-200 rounded-xl opacity-70 hover:opacity-100 transition-all text-center relative"
                             >
                               <span className="absolute top-1 right-1 text-[7px] bg-amber-500 text-black font-bold px-1 rounded-sm">SOON</span>
-                              <div className="size-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400">
+                              <div className="size-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
                                 <Star className="size-4" />
                               </div>
-                              <span className="text-[10px] font-semibold text-slate-300">Dry Clean</span>
+                              <span className="text-[10px] font-semibold text-gray-700">Dry Clean</span>
                             </button>
                             <button 
                               onClick={() => triggerNotification('💧 Laundry service is launching very soon! Stay tuned!')}
-                              className="flex flex-col items-center justify-center gap-2 p-3 bg-slate-950 border border-slate-800 rounded-xl opacity-70 hover:opacity-100 transition-all text-center relative"
+                              className="flex flex-col items-center justify-center gap-2 p-3 bg-white border border-gray-200 rounded-xl opacity-70 hover:opacity-100 transition-all text-center relative"
                             >
                               <span className="absolute top-1 right-1 text-[7px] bg-amber-500 text-black font-bold px-1 rounded-sm">SOON</span>
-                              <div className="size-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400">
+                              <div className="size-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
                                 <RefreshCw className="size-4" />
                               </div>
-                              <span className="text-[10px] font-semibold text-slate-300">Laundry</span>
+                              <span className="text-[10px] font-semibold text-gray-700">Laundry</span>
                             </button>
                           </div>
 
@@ -1255,30 +1255,30 @@ export default function App() {
                           <div className="grid grid-cols-3 gap-3">
                             <button 
                               onClick={() => setCustomerActiveTab('history')}
-                              className="flex flex-col items-center justify-center gap-2 p-3 bg-slate-950 border border-slate-800 rounded-xl hover:border-amber-500 transition-all text-center"
+                              className="flex flex-col items-center justify-center gap-2 p-3 bg-white border border-gray-200 rounded-xl hover:border-amber-500 transition-all text-center"
                             >
                               <div className="size-8 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500">
                                 <ShoppingBag className="size-4" />
                               </div>
-                              <span className="text-[10px] font-semibold text-white">My Orders</span>
+                              <span className="text-[10px] font-semibold text-gray-900">My Orders</span>
                             </button>
                             <button 
                               onClick={() => setCustomerActiveTab('prices')}
-                              className="flex flex-col items-center justify-center gap-2 p-3 bg-slate-950 border border-slate-800 rounded-xl hover:border-blue-500 transition-all text-center"
+                              className="flex flex-col items-center justify-center gap-2 p-3 bg-white border border-gray-200 rounded-xl hover:border-blue-500 transition-all text-center"
                             >
                               <div className="size-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
                                 <FileText className="size-4" />
                               </div>
-                              <span className="text-[10px] font-semibold text-white">Price List</span>
+                              <span className="text-[10px] font-semibold text-gray-900">Price List</span>
                             </button>
                             <button 
                               onClick={() => setCustomerActiveTab('support')}
-                              className="flex flex-col items-center justify-center gap-2 p-3 bg-slate-950 border border-slate-800 rounded-xl hover:border-emerald-500 transition-all text-center"
+                              className="flex flex-col items-center justify-center gap-2 p-3 bg-white border border-gray-200 rounded-xl hover:border-emerald-500 transition-all text-center"
                             >
                               <div className="size-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500">
                                 <HelpCircle className="size-4" />
                               </div>
-                              <span className="text-[10px] font-semibold text-white">Support</span>
+                              <span className="text-[10px] font-semibold text-gray-900">Support</span>
                             </button>
                           </div>
 
@@ -1288,8 +1288,8 @@ export default function App() {
                             className="bg-gradient-to-r from-rose-500 to-amber-500 rounded-xl p-4 cursor-pointer text-left relative overflow-hidden shadow-lg mt-1"
                           >
                             <div className="relative z-10">
-                              <h3 className="text-white font-black text-sm tracking-wide">REFER & EARN ₹50</h3>
-                              <p className="text-white/80 text-[10px] mt-0.5">Invite friends and you both get ₹50 off!</p>
+                              <h3 className="text-gray-900 font-black text-sm tracking-wide">REFER & EARN ₹50</h3>
+                              <p className="text-gray-900/80 text-[10px] mt-0.5">Invite friends and you both get ₹50 off!</p>
                             </div>
                             <div className="absolute right-[-10px] bottom-[-10px] opacity-20">
                               <Gift className="size-20" />
@@ -1298,10 +1298,10 @@ export default function App() {
 
                           {/* Quick Tracker shortcut */}
                           {orders.filter(o => o.customerPhone === currentCustomer.phone).length > 0 && (
-                            <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 text-left">
-                              <div className="flex justify-between items-center pb-2 border-b border-slate-800 mb-3">
-                                <span className="text-xs font-bold text-white">Active Order</span>
-                                <span className="text-[10px] text-slate-500">
+                            <div className="bg-white border border-gray-200 rounded-2xl p-4 text-left">
+                              <div className="flex justify-between items-center pb-2 border-b border-gray-200 mb-3">
+                                <span className="text-xs font-bold text-gray-900">Active Order</span>
+                                <span className="text-[10px] text-gray-400">
                                   {orders.filter(o => o.customerPhone === currentCustomer.phone)[0].id}
                                 </span>
                               </div>
@@ -1310,7 +1310,7 @@ export default function App() {
                                   <div className="text-xs font-bold text-rose-500">
                                     Status: {orders.filter(o => o.customerPhone === currentCustomer.phone)[0].status}
                                   </div>
-                                  <div className="text-[10px] text-slate-400 mt-1">
+                                  <div className="text-[10px] text-gray-500 mt-1">
                                     Pickup: {orders.filter(o => o.customerPhone === currentCustomer.phone)[0].pickupDate}
                                   </div>
                                 </div>
@@ -1319,7 +1319,7 @@ export default function App() {
                                     setSelectedOrderForTracking(orders.filter(o => o.customerPhone === currentCustomer.phone)[0]);
                                     setCustomerActiveTab('history');
                                   }}
-                                  className="text-xs bg-slate-800 hover:bg-slate-700 text-white px-2.5 py-1 rounded-lg flex items-center gap-1 font-semibold"
+                                  className="text-xs bg-gray-200 hover:bg-gray-300 text-gray-900 px-2.5 py-1 rounded-lg flex items-center gap-1 font-semibold"
                                 >
                                   Track <ChevronRight className="size-3" />
                                 </button>
@@ -1335,30 +1335,30 @@ export default function App() {
                         <div className="flex flex-col gap-4 text-left max-h-[500px] overflow-y-auto pb-6 pr-1">
                           
                           <div className="flex items-center gap-2 mb-1">
-                            <button onClick={() => setCustomerActiveTab('home')} className="p-1 hover:bg-slate-800 rounded-lg">
-                              <ArrowLeft className="size-4 text-slate-400" />
+                            <button onClick={() => setCustomerActiveTab('home')} className="p-1 hover:bg-gray-200 rounded-lg">
+                              <ArrowLeft className="size-4 text-gray-500" />
                             </button>
-                            <h3 className="text-sm font-bold text-white">Refer & Earn</h3>
+                            <h3 className="text-sm font-bold text-gray-900">Refer & Earn</h3>
                           </div>
                           
                           {/* Header Graphic */}
-                          <div className="bg-gradient-to-tr from-slate-900 to-slate-800 rounded-[24px] p-6 border border-slate-700/50 shadow-xl flex flex-col items-center justify-center text-center mt-1 relative overflow-hidden">
+                          <div className="bg-gradient-to-tr from-slate-900 to-slate-800 rounded-[24px] p-6 border border-gray-300/50 shadow-xl flex flex-col items-center justify-center text-center mt-1 relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 rounded-full blur-3xl"></div>
                             <div className="absolute bottom-0 left-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl"></div>
                             
                             <div className="size-16 bg-gradient-to-tr from-rose-500 to-amber-500 rounded-full flex items-center justify-center shadow-lg shadow-rose-500/20 mb-3 relative z-10">
-                              <Gift className="size-8 text-white" />
+                              <Gift className="size-8 text-gray-900" />
                             </div>
-                            <h2 className="text-xl font-black text-white relative z-10 tracking-tight">Refer & Earn ₹50</h2>
-                            <p className="text-xs text-slate-400 mt-2 relative z-10 max-w-[250px] leading-relaxed">
+                            <h2 className="text-xl font-black text-gray-900 relative z-10 tracking-tight">Refer & Earn ₹50</h2>
+                            <p className="text-xs text-gray-500 mt-2 relative z-10 max-w-[250px] leading-relaxed">
                               Invite your friends to IronCart. When they complete their first order, you <strong className="text-rose-400">both get ₹50</strong> added to your wallets!
                             </p>
                           </div>
 
                           {/* Code Display */}
-                          <div className="bg-slate-950 border border-slate-800 rounded-2xl p-5 mt-2 flex flex-col items-center shadow-sm">
-                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Your Unique Code</span>
-                            <div className="bg-slate-900 border-2 border-dashed border-rose-500/30 text-rose-500 font-mono text-2xl font-black px-6 py-3 rounded-xl tracking-[0.2em] w-full text-center select-all">
+                          <div className="bg-white border border-gray-200 rounded-2xl p-5 mt-2 flex flex-col items-center shadow-sm">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Your Unique Code</span>
+                            <div className="bg-gray-50 border-2 border-dashed border-rose-500/30 text-rose-500 font-mono text-2xl font-black px-6 py-3 rounded-xl tracking-[0.2em] w-full text-center select-all">
                               {currentCustomer.referralCode || 'IRON-NEW'}
                             </div>
                             
@@ -1368,7 +1368,7 @@ export default function App() {
                                 const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
                                 window.open(whatsappUrl, '_blank');
                               }}
-                              className="w-full bg-[#25D366] hover:bg-[#1ebd5a] text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 mt-4 shadow-md transition-all"
+                              className="w-full bg-\[#25D366\] hover:bg-[#1ebd5a] text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 mt-4 shadow-md transition-all"
                             >
                               Share via WhatsApp
                             </button>
@@ -1376,19 +1376,19 @@ export default function App() {
                           
                           {/* How it works */}
                           <div className="mt-2">
-                            <h3 className="text-xs font-bold text-slate-300 mb-3 ml-1">How it works</h3>
+                            <h3 className="text-xs font-bold text-gray-700 mb-3 ml-1">How it works</h3>
                             <div className="flex flex-col gap-3">
-                              <div className="flex items-center gap-3 bg-slate-900/50 p-3 rounded-xl border border-slate-800/50">
-                                <div className="size-8 rounded-full bg-slate-800 flex items-center justify-center font-black text-xs text-slate-400">1</div>
-                                <p className="text-[11px] text-slate-400 leading-snug flex-1">Share your unique code with friends.</p>
+                              <div className="flex items-center gap-3 bg-gray-50/50 p-3 rounded-xl border border-gray-200/80">
+                                <div className="size-8 rounded-full bg-gray-200 flex items-center justify-center font-black text-xs text-gray-500">1</div>
+                                <p className="text-[11px] text-gray-500 leading-snug flex-1">Share your unique code with friends.</p>
                               </div>
-                              <div className="flex items-center gap-3 bg-slate-900/50 p-3 rounded-xl border border-slate-800/50">
-                                <div className="size-8 rounded-full bg-slate-800 flex items-center justify-center font-black text-xs text-slate-400">2</div>
-                                <p className="text-[11px] text-slate-400 leading-snug flex-1">They sign up and enter your code during registration.</p>
+                              <div className="flex items-center gap-3 bg-gray-50/50 p-3 rounded-xl border border-gray-200/80">
+                                <div className="size-8 rounded-full bg-gray-200 flex items-center justify-center font-black text-xs text-gray-500">2</div>
+                                <p className="text-[11px] text-gray-500 leading-snug flex-1">They sign up and enter your code during registration.</p>
                               </div>
-                              <div className="flex items-center gap-3 bg-slate-900/50 p-3 rounded-xl border border-slate-800/50">
+                              <div className="flex items-center gap-3 bg-gray-50/50 p-3 rounded-xl border border-gray-200/80">
                                 <div className="size-8 rounded-full bg-emerald-500/10 flex items-center justify-center font-black text-xs text-emerald-500">3</div>
-                                <p className="text-[11px] text-slate-300 leading-snug flex-1">You <strong className="text-emerald-400">both get ₹50</strong> in your wallet when their first order is delivered!</p>
+                                <p className="text-[11px] text-gray-700 leading-snug flex-1">You <strong className="text-emerald-400">both get ₹50</strong> in your wallet when their first order is delivered!</p>
                               </div>
                             </div>
                           </div>
@@ -1401,30 +1401,30 @@ export default function App() {
                         <div className="flex flex-col gap-4 text-left max-h-[500px] overflow-y-auto pb-6 pr-1">
                           
                           <div className="flex items-center gap-2 mb-1">
-                            <button onClick={() => setCustomerActiveTab('home')} className="p-1 hover:bg-slate-800 rounded-lg">
-                              <ArrowLeft className="size-4 text-slate-400" />
+                            <button onClick={() => setCustomerActiveTab('home')} className="p-1 hover:bg-gray-200 rounded-lg">
+                              <ArrowLeft className="size-4 text-gray-500" />
                             </button>
-                            <h3 className="text-sm font-bold text-white">Refer & Earn</h3>
+                            <h3 className="text-sm font-bold text-gray-900">Refer & Earn</h3>
                           </div>
                           
                           {/* Header Graphic */}
-                          <div className="bg-gradient-to-tr from-slate-900 to-slate-800 rounded-[24px] p-6 border border-slate-700/50 shadow-xl flex flex-col items-center justify-center text-center mt-1 relative overflow-hidden">
+                          <div className="bg-gradient-to-tr from-slate-900 to-slate-800 rounded-[24px] p-6 border border-gray-300/50 shadow-xl flex flex-col items-center justify-center text-center mt-1 relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 rounded-full blur-3xl"></div>
                             <div className="absolute bottom-0 left-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl"></div>
                             
                             <div className="size-16 bg-gradient-to-tr from-rose-500 to-amber-500 rounded-full flex items-center justify-center shadow-lg shadow-rose-500/20 mb-3 relative z-10">
-                              <Gift className="size-8 text-white" />
+                              <Gift className="size-8 text-gray-900" />
                             </div>
-                            <h2 className="text-xl font-black text-white relative z-10 tracking-tight">Refer & Earn ₹50</h2>
-                            <p className="text-xs text-slate-400 mt-2 relative z-10 max-w-[250px] leading-relaxed">
+                            <h2 className="text-xl font-black text-gray-900 relative z-10 tracking-tight">Refer & Earn ₹50</h2>
+                            <p className="text-xs text-gray-500 mt-2 relative z-10 max-w-[250px] leading-relaxed">
                               Invite your friends to IronCart. When they complete their first order, you <strong className="text-rose-400">both get ₹50</strong> added to your wallets!
                             </p>
                           </div>
 
                           {/* Code Display */}
-                          <div className="bg-slate-950 border border-slate-800 rounded-2xl p-5 mt-2 flex flex-col items-center shadow-sm">
-                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Your Unique Code</span>
-                            <div className="bg-slate-900 border-2 border-dashed border-rose-500/30 text-rose-500 font-mono text-2xl font-black px-6 py-3 rounded-xl tracking-[0.2em] w-full text-center select-all">
+                          <div className="bg-white border border-gray-200 rounded-2xl p-5 mt-2 flex flex-col items-center shadow-sm">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Your Unique Code</span>
+                            <div className="bg-gray-50 border-2 border-dashed border-rose-500/30 text-rose-500 font-mono text-2xl font-black px-6 py-3 rounded-xl tracking-[0.2em] w-full text-center select-all">
                               {currentCustomer.referralCode || 'IRON-NEW'}
                             </div>
                             
@@ -1434,7 +1434,7 @@ export default function App() {
                                 const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
                                 window.open(whatsappUrl, '_blank');
                               }}
-                              className="w-full bg-[#25D366] hover:bg-[#1ebd5a] text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 mt-4 shadow-md transition-all"
+                              className="w-full bg-\[#25D366\] hover:bg-[#1ebd5a] text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 mt-4 shadow-md transition-all"
                             >
                               Share via WhatsApp
                             </button>
@@ -1442,19 +1442,19 @@ export default function App() {
                           
                           {/* How it works */}
                           <div className="mt-2">
-                            <h3 className="text-xs font-bold text-slate-300 mb-3 ml-1">How it works</h3>
+                            <h3 className="text-xs font-bold text-gray-700 mb-3 ml-1">How it works</h3>
                             <div className="flex flex-col gap-3">
-                              <div className="flex items-center gap-3 bg-slate-900/50 p-3 rounded-xl border border-slate-800/50">
-                                <div className="size-8 rounded-full bg-slate-800 flex items-center justify-center font-black text-xs text-slate-400">1</div>
-                                <p className="text-[11px] text-slate-400 leading-snug flex-1">Share your unique code with friends.</p>
+                              <div className="flex items-center gap-3 bg-gray-50/50 p-3 rounded-xl border border-gray-200/80">
+                                <div className="size-8 rounded-full bg-gray-200 flex items-center justify-center font-black text-xs text-gray-500">1</div>
+                                <p className="text-[11px] text-gray-500 leading-snug flex-1">Share your unique code with friends.</p>
                               </div>
-                              <div className="flex items-center gap-3 bg-slate-900/50 p-3 rounded-xl border border-slate-800/50">
-                                <div className="size-8 rounded-full bg-slate-800 flex items-center justify-center font-black text-xs text-slate-400">2</div>
-                                <p className="text-[11px] text-slate-400 leading-snug flex-1">They sign up and enter your code during registration.</p>
+                              <div className="flex items-center gap-3 bg-gray-50/50 p-3 rounded-xl border border-gray-200/80">
+                                <div className="size-8 rounded-full bg-gray-200 flex items-center justify-center font-black text-xs text-gray-500">2</div>
+                                <p className="text-[11px] text-gray-500 leading-snug flex-1">They sign up and enter your code during registration.</p>
                               </div>
-                              <div className="flex items-center gap-3 bg-slate-900/50 p-3 rounded-xl border border-slate-800/50">
+                              <div className="flex items-center gap-3 bg-gray-50/50 p-3 rounded-xl border border-gray-200/80">
                                 <div className="size-8 rounded-full bg-emerald-500/10 flex items-center justify-center font-black text-xs text-emerald-500">3</div>
-                                <p className="text-[11px] text-slate-300 leading-snug flex-1">You <strong className="text-emerald-400">both get ₹50</strong> in your wallet when their first order is delivered!</p>
+                                <p className="text-[11px] text-gray-700 leading-snug flex-1">You <strong className="text-emerald-400">both get ₹50</strong> in your wallet when their first order is delivered!</p>
                               </div>
                             </div>
                           </div>
@@ -1464,25 +1464,25 @@ export default function App() {
 
                       {customerActiveTab === 'notifications' && (
                         <div className="flex flex-col gap-4 text-left">
-                          <h3 className="text-sm font-bold text-slate-300">Order Updates & Notifications</h3>
+                          <h3 className="text-sm font-bold text-gray-700">Order Updates & Notifications</h3>
                           {orders.filter(o => o.customerPhone === currentCustomer?.phone).length === 0 ? (
-                            <div className="text-center py-10 bg-slate-900/50 rounded-2xl border border-slate-800">
+                            <div className="text-center py-10 bg-gray-50/50 rounded-2xl border border-gray-200">
                               <Bell className="size-8 text-slate-600 mx-auto mb-3" />
-                              <p className="text-xs text-slate-400">No notifications yet.</p>
+                              <p className="text-xs text-gray-500">No notifications yet.</p>
                             </div>
                           ) : (
                             <div className="flex flex-col gap-3">
                               {orders.filter(o => o.customerPhone === currentCustomer?.phone).map(order => (
-                                <div key={order.id} className="bg-slate-900 border border-slate-800 p-3 rounded-xl flex gap-3 items-start">
+                                <div key={order.id} className="bg-gray-50 border border-gray-200 p-3 rounded-xl flex gap-3 items-start">
                                   <div className="size-8 rounded-full bg-rose-500/10 flex items-center justify-center shrink-0">
                                     <Bell className="size-4 text-rose-500" />
                                   </div>
                                   <div className="flex-1">
                                     <div className="flex justify-between items-center mb-1">
-                                      <span className="text-xs font-bold text-white">Order {order.id}</span>
-                                      <span className="text-[9px] text-slate-500">{order.createdAt}</span>
+                                      <span className="text-xs font-bold text-gray-900">Order {order.id}</span>
+                                      <span className="text-[9px] text-gray-400">{order.createdAt}</span>
                                     </div>
-                                    <p className="text-[11px] text-slate-400">
+                                    <p className="text-[11px] text-gray-500">
                                       Status updated to <strong className="text-rose-400">{order.status}</strong>. 
                                       {order.status === 'Delivered' ? ' Thank you for choosing IronCart!' : ' We are working on it.'}
                                     </p>
@@ -1498,79 +1498,79 @@ export default function App() {
                       {customerActiveTab === 'order' && (
                         <div className="flex flex-col gap-4 text-left">
                           <div className="flex items-center gap-2 mb-1">
-                            <button onClick={() => setCustomerActiveTab('home')} className="p-1 hover:bg-slate-800 rounded-lg">
-                              <ArrowLeft className="size-4 text-slate-400" />
+                            <button onClick={() => setCustomerActiveTab('home')} className="p-1 hover:bg-gray-200 rounded-lg">
+                              <ArrowLeft className="size-4 text-gray-500" />
                             </button>
-                            <h3 className="text-sm font-bold text-white">Schedule Ironing Pickup</h3>
+                            <h3 className="text-sm font-bold text-gray-900">Schedule Ironing Pickup</h3>
                           </div>
 
                           {/* Address Details Card */}
-                          <div className="bg-slate-950 p-3 rounded-xl border border-slate-850 text-xs flex flex-col gap-2">
-                            <div className="font-bold text-white flex items-center justify-between">
+                          <div className="bg-white p-3 rounded-xl border border-gray-200 text-xs flex flex-col gap-2">
+                            <div className="font-bold text-gray-900 flex items-center justify-between">
                               <span className="flex items-center gap-1.5"><MapPin className="size-3.5 text-rose-500" /> Pickup Details</span>
-                              <span className="text-[9px] text-slate-500 font-normal">Editable</span>
+                              <span className="text-[9px] text-gray-400 font-normal">Editable</span>
                             </div>
                             
                             <div className="flex flex-col gap-2 mt-1">
                               <div className="flex flex-col gap-1">
-                                <label className="text-[9px] font-bold text-slate-400 uppercase">Customer Name</label>
+                                <label className="text-[9px] font-bold text-gray-500 uppercase">Customer Name</label>
                                 <input 
                                   type="text" 
                                   value={orderName} 
                                   onChange={e => setOrderName(e.target.value)}
-                                  className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-rose-500"
+                                  className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-900 outline-none focus:border-rose-500"
                                 />
                               </div>
                               <div className="flex flex-col gap-1">
-                                <label className="text-[9px] font-bold text-slate-400 uppercase">Phone Number</label>
+                                <label className="text-[9px] font-bold text-gray-500 uppercase">Phone Number</label>
                                 <input 
                                   type="text" 
                                   value={orderPhone} 
                                   onChange={e => setOrderPhone(e.target.value)}
-                                  className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-rose-500"
+                                  className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-900 outline-none focus:border-rose-500"
                                 />
                               </div>
                               <div className="flex flex-col gap-2">
-                                <label className="text-[9px] font-bold text-slate-400 uppercase">Select Address</label>
+                                <label className="text-[9px] font-bold text-gray-500 uppercase">Select Address</label>
                                 
                                 {currentCustomer?.addresses?.map(addr => (
                                   <div 
                                     key={addr.id}
                                     onClick={() => setOrderAddress(addr.fullAddress)}
-                                    className={`p-2 border rounded-lg cursor-pointer flex justify-between items-center ${orderAddress === addr.fullAddress ? 'border-rose-500 bg-rose-500/10' : 'border-slate-800 bg-slate-900'}`}
+                                    className={`p-2 border rounded-lg cursor-pointer flex justify-between items-center ${orderAddress === addr.fullAddress ? 'border-rose-500 bg-rose-500/10' : 'border-gray-200 bg-gray-50'}`}
                                   >
                                     <div>
-                                      <div className="text-xs font-bold text-white">{addr.label}</div>
-                                      <div className="text-[10px] text-slate-400 truncate w-48">{addr.fullAddress}</div>
+                                      <div className="text-xs font-bold text-gray-900">{addr.label}</div>
+                                      <div className="text-[10px] text-gray-500 truncate w-48">{addr.fullAddress}</div>
                                     </div>
                                     {orderAddress === addr.fullAddress && <div className="size-2 rounded-full bg-rose-500" />}
                                   </div>
                                 ))}
 
                                 {showAddAddress ? (
-                                  <div className="bg-slate-900 border border-slate-800 rounded-lg p-2 mt-2">
+                                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 mt-2">
                                     <input 
                                       type="text"
                                       value={newAddressLabel}
                                       onChange={e => setNewAddressLabel(e.target.value)}
                                       placeholder="e.g. Home, Office"
-                                      className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 mb-2 text-xs text-white outline-none focus:border-rose-500"
+                                      className="w-full bg-white border border-gray-200 rounded px-2 py-1 mb-2 text-xs text-gray-900 outline-none focus:border-rose-500"
                                     />
                                     <textarea 
                                       value={newAddressText}
                                       onChange={e => setNewAddressText(e.target.value)}
                                       placeholder="Full Address Details..."
-                                      className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 mb-2 text-xs text-white outline-none focus:border-rose-500 resize-none h-16"
+                                      className="w-full bg-white border border-gray-200 rounded px-2 py-1 mb-2 text-xs text-gray-900 outline-none focus:border-rose-500 resize-none h-16"
                                     />
                                     <div className="flex gap-2">
                                       <button onClick={handleAddAddress} className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-bold py-1.5 rounded transition-colors">Save Address</button>
-                                      <button onClick={() => setShowAddAddress(false)} className="flex-1 bg-slate-800 hover:bg-slate-700 text-white text-[10px] font-bold py-1.5 rounded transition-colors">Cancel</button>
+                                      <button onClick={() => setShowAddAddress(false)} className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 text-[10px] font-bold py-1.5 rounded transition-colors">Cancel</button>
                                     </div>
                                   </div>
                                 ) : (
                                   <button 
                                     onClick={() => setShowAddAddress(true)}
-                                    className="border border-dashed border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-slate-400 text-xs py-2 rounded-lg transition-colors mt-1"
+                                    className="border border-dashed border-gray-300 bg-gray-50/50 hover:bg-gray-200 text-gray-500 text-xs py-2 rounded-lg transition-colors mt-1"
                                   >
                                     + Add New Address
                                   </button>
@@ -1582,7 +1582,7 @@ export default function App() {
                           {/* Iztri-Style Service Selection Carousel */}
                           <div className="flex flex-col gap-2 mt-2">
                             <div className="flex justify-between items-end">
-                              <label className="text-[11px] font-bold text-white tracking-wide">Select Service</label>
+                              <label className="text-[11px] font-bold text-gray-900 tracking-wide">Select Service</label>
                             </div>
                             <div className="flex gap-4 overflow-x-auto pb-4 pt-1 scrollbar-hide -mx-2 px-2 snap-x">
                               {[
@@ -1593,19 +1593,19 @@ export default function App() {
                                 <button 
                                   key={svc.name}
                                   onClick={() => setSelectedService(svc.name as any)}
-                                  className={`snap-center shrink-0 w-[220px] rounded-2xl border transition-all text-left flex flex-col overflow-hidden relative ${selectedService === svc.name ? 'bg-slate-900 border-rose-500 ring-2 ring-rose-500 shadow-[0_4px_15px_rgba(225,29,72,0.4)]' : 'bg-slate-950 border-slate-800 hover:border-slate-700'}`}
+                                  className={`snap-center shrink-0 w-[220px] rounded-2xl border transition-all text-left flex flex-col overflow-hidden relative ${selectedService === svc.name ? 'bg-gray-50 border-rose-500 ring-2 ring-rose-500 shadow-[0_4px_15px_rgba(225,29,72,0.4)]' : 'bg-white border-gray-200 hover:border-gray-300'}`}
                                 >
-                                  <div className="h-[120px] w-full bg-slate-900 relative">
+                                  <div className="h-[120px] w-full bg-gray-50 relative">
                                     <img src={svc.img} alt={svc.name} className={`w-full h-full object-cover transition-all duration-500 ${selectedService === svc.name ? 'opacity-100 scale-105' : 'opacity-60 grayscale-[30%]'}`} />
                                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent"></div>
                                   </div>
                                   <div className="p-3 absolute bottom-0 left-0 right-0">
-                                    <h4 className={`text-sm font-extrabold ${selectedService === svc.name ? 'text-white' : 'text-slate-300'}`}>{svc.name}</h4>
-                                    <p className="text-[9px] text-slate-400 mt-0.5 line-clamp-1">{svc.desc}</p>
+                                    <h4 className={`text-sm font-extrabold ${selectedService === svc.name ? 'text-gray-900' : 'text-gray-700'}`}>{svc.name}</h4>
+                                    <p className="text-[9px] text-gray-500 mt-0.5 line-clamp-1">{svc.desc}</p>
                                   </div>
                                   {selectedService === svc.name && (
                                     <div className="absolute top-3 right-3 bg-rose-500 rounded-full p-1 shadow-md">
-                                      <Check className="size-3 text-white" />
+                                      <Check className="size-3 text-gray-900" />
                                     </div>
                                   )}
                                 </button>
@@ -1615,13 +1615,13 @@ export default function App() {
 
                           {/* Speed Selection */}
                           <div className="flex flex-col gap-1.5">
-                            <label className="text-[9px] font-bold text-slate-400 uppercase">Delivery Speed</label>
+                            <label className="text-[9px] font-bold text-gray-500 uppercase">Delivery Speed</label>
                             <div className="grid grid-cols-3 gap-2">
                               {['Normal', 'Express', 'Urgent'].map(sp => (
                                 <button 
                                   key={sp}
                                   onClick={() => setOrderSpeed(sp as any)}
-                                  className={`py-2 rounded-xl text-xs font-semibold border transition-all text-center ${orderSpeed === sp ? 'bg-rose-500/10 border-rose-500 text-rose-500' : 'bg-slate-950 border-slate-800 text-slate-400'}`}
+                                  className={`py-2 rounded-xl text-xs font-semibold border transition-all text-center ${orderSpeed === sp ? 'bg-rose-500/10 border-rose-500 text-rose-500' : 'bg-white border-gray-200 text-gray-500'}`}
                                 >
                                   {sp}
                                   <div className="text-[8px] opacity-80">
@@ -1636,7 +1636,7 @@ export default function App() {
 
                           {/* Iztri-Style Pickup schedule */}
                           <div className="flex flex-col gap-3 mt-4">
-                            <label className="text-[11px] font-bold text-white tracking-wide">Select Pickup Date</label>
+                            <label className="text-[11px] font-bold text-gray-900 tracking-wide">Select Pickup Date</label>
                             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1">
                               {availableDates.map(d => (
                                 <button
@@ -1645,16 +1645,16 @@ export default function App() {
                                   className={`flex flex-col items-center justify-center min-w-[65px] py-2 rounded-2xl border transition-all ${
                                     pickupDate === d.value 
                                     ? 'bg-gradient-to-br from-rose-500 to-rose-600 border-rose-500 shadow-[0_4px_12px_rgba(225,29,72,0.3)]' 
-                                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-white'
+                                    : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-200 hover:text-gray-900'
                                   }`}
                                 >
                                   <span className={`text-[10px] font-medium ${pickupDate === d.value ? 'text-rose-100' : ''}`}>{d.label}</span>
-                                  <span className={`text-lg font-bold mt-0.5 ${pickupDate === d.value ? 'text-white' : ''}`}>{d.dateNum}</span>
+                                  <span className={`text-lg font-bold mt-0.5 ${pickupDate === d.value ? 'text-gray-900' : ''}`}>{d.dateNum}</span>
                                 </button>
                               ))}
                             </div>
                             
-                            <label className="text-[11px] font-bold text-white tracking-wide mt-2">Select Pickup Slot</label>
+                            <label className="text-[11px] font-bold text-gray-900 tracking-wide mt-2">Select Pickup Slot</label>
                             <div className="grid grid-cols-2 gap-2">
                               {['09:00 - 12:00', '12:00 - 15:00', '15:00 - 18:00', '18:00 - 21:00'].map(slot => (
                                 <button
@@ -1663,10 +1663,10 @@ export default function App() {
                                   className={`flex items-center justify-center py-2.5 rounded-xl border text-xs font-medium transition-all ${
                                     pickupTime === slot
                                     ? 'bg-rose-500/20 border-rose-500 text-rose-400'
-                                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                                    : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-gray-300'
                                   }`}
                                 >
-                                  <Clock className={`size-3.5 mr-2 ${pickupTime === slot ? 'text-rose-400' : 'text-slate-500'}`} />
+                                  <Clock className={`size-3.5 mr-2 ${pickupTime === slot ? 'text-rose-400' : 'text-gray-400'}`} />
                                   {slot === '09:00 - 12:00' ? '09 AM - 12 PM' :
                                    slot === '12:00 - 15:00' ? '12 PM - 03 PM' :
                                    slot === '15:00 - 18:00' ? '03 PM - 06 PM' : '06 PM - 09 PM'}
@@ -1677,12 +1677,12 @@ export default function App() {
 
                           {/* Garment Categorized Selection */}
                           <div className="flex flex-col gap-2 mt-2">
-                            <div className="flex overflow-x-auto scrollbar-hide pb-2 -mx-2 px-2 gap-2 border-b border-slate-800">
+                            <div className="flex overflow-x-auto scrollbar-hide pb-2 -mx-2 px-2 gap-2 border-b border-gray-200">
                               {['Light Weight', 'Medium/Heavy', 'Premium', 'Household'].map(cat => (
                                 <button
                                   key={cat}
                                   onClick={() => setActiveCategory(cat)}
-                                  className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-bold transition-all ${activeCategory === cat ? 'bg-rose-500 text-white shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-white'}`}
+                                  className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-bold transition-all ${activeCategory === cat ? 'bg-rose-500 text-gray-900 shadow-md' : 'bg-gray-50 text-gray-500 border border-gray-200 hover:text-gray-900'}`}
                                 >
                                   {cat}
                                 </button>
@@ -1696,19 +1696,19 @@ export default function App() {
                                   const key = `${item.serviceType}-${item.name}`;
                                   const qty = selectedItems[key] || 0;
                                   return (
-                                    <div key={key} className={`flex justify-between items-center bg-slate-950 p-3 rounded-xl border transition-all ${qty > 0 ? 'border-rose-500/50 shadow-[0_2px_8px_rgba(225,29,72,0.15)]' : 'border-slate-800'}`}>
+                                    <div key={key} className={`flex justify-between items-center bg-white p-3 rounded-xl border transition-all ${qty > 0 ? 'border-rose-500/50 shadow-[0_2px_8px_rgba(225,29,72,0.15)]' : 'border-gray-200'}`}>
                                       <div>
-                                        <div className="text-xs font-bold text-white">{item.name}</div>
+                                        <div className="text-xs font-bold text-gray-900">{item.name}</div>
                                         <div className="text-[10px] text-rose-400 mt-0.5 font-semibold">₹{item.price} / pc</div>
                                       </div>
-                                      <div className="flex items-center gap-3 bg-slate-900 rounded-full p-1 border border-slate-800 shadow-inner">
+                                      <div className="flex items-center gap-3 bg-gray-50 rounded-full p-1 border border-gray-200 shadow-inner">
                                         <button 
                                           onClick={() => setSelectedItems(prev => ({ ...prev, [key]: Math.max(0, qty - 1) }))}
-                                          className={`size-6 rounded-full flex items-center justify-center transition-all ${qty > 0 ? 'bg-slate-800 text-white hover:bg-slate-700' : 'text-slate-600 pointer-events-none'}`}
+                                          className={`size-6 rounded-full flex items-center justify-center transition-all ${qty > 0 ? 'bg-gray-200 text-gray-900 hover:bg-gray-300' : 'text-slate-600 pointer-events-none'}`}
                                         >
                                           <Minus className="size-3" />
                                         </button>
-                                        <span className="text-xs font-extrabold text-white min-w-[12px] text-center">{qty}</span>
+                                        <span className="text-xs font-extrabold text-gray-900 min-w-[12px] text-center">{qty}</span>
                                         <button 
                                           onClick={() => setSelectedItems(prev => ({ ...prev, [key]: qty + 1 }))}
                                           className="size-6 bg-rose-500 rounded-full flex items-center justify-center text-white shadow-sm hover:scale-105 transition-all"
@@ -1724,13 +1724,13 @@ export default function App() {
 
                           {/* Special Instructions */}
                           <div className="flex flex-col gap-1">
-                            <label className="text-[9px] font-bold text-slate-400 uppercase">Special Instructions</label>
+                            <label className="text-[9px] font-bold text-gray-500 uppercase">Special Instructions</label>
                             <input 
                               type="text"
                               value={specialInstructions}
                               onChange={e => setSpecialInstructions(e.target.value)}
                               placeholder="starch saree, crease shirt sleeves"
-                              className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none"
+                              className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 outline-none"
                             />
                           </div>
 
@@ -1741,7 +1741,7 @@ export default function App() {
                               value={couponCode}
                               onChange={e => setCouponCode(e.target.value.toUpperCase())}
                               placeholder="Enter Promo Code"
-                              className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none flex-1 uppercase"
+                              className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 outline-none flex-1 uppercase"
                             />
                             <button 
                               onClick={() => {
@@ -1752,17 +1752,17 @@ export default function App() {
                                   alert('Invalid or Expired Coupon');
                                 }
                               }}
-                              className="bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-xl text-xs font-semibold"
+                              className="bg-gray-200 hover:bg-gray-300 text-gray-900 px-3 py-2 rounded-xl text-xs font-semibold"
                             >
                               Apply
                             </button>
                           </div>
 
                           {/* Price calculation summary */}
-                          <div className="bg-slate-950 border border-slate-850 p-3 rounded-xl flex flex-col gap-1 text-[10px] text-slate-400">
+                          <div className="bg-white border border-gray-200 p-3 rounded-xl flex flex-col gap-1 text-[10px] text-gray-500">
                             <div className="flex justify-between">
                               <span>Subtotal</span>
-                              <span className="font-bold text-white">₹{calculateTotals().subtotal}</span>
+                              <span className="font-bold text-gray-900">₹{calculateTotals().subtotal}</span>
                             </div>
                             {calculateTotals().discount > 0 && (
                               <div className="flex justify-between text-emerald-400">
@@ -1772,13 +1772,13 @@ export default function App() {
                             )}
                             <div className="flex justify-between">
                               <span>{orderSpeed} Speed Markup</span>
-                              <span className="font-bold text-white">₹{calculateTotals().markup}</span>
+                              <span className="font-bold text-gray-900">₹{calculateTotals().markup}</span>
                             </div>
                             <div className="flex justify-between">
                               <span>GST (5%)</span>
-                              <span className="font-bold text-white">₹{calculateTotals().tax}</span>
+                              <span className="font-bold text-gray-900">₹{calculateTotals().tax}</span>
                             </div>
-                            <div className="flex justify-between border-t border-slate-800 pt-1.5 text-xs font-bold text-rose-500">
+                            <div className="flex justify-between border-t border-gray-200 pt-1.5 text-xs font-bold text-rose-500">
                               <span>Estimated Total</span>
                               <span>₹{calculateTotals().total}</span>
                             </div>
@@ -1796,14 +1796,14 @@ export default function App() {
                       {/* PRICES TAB */}
                       {customerActiveTab === 'prices' && (
                         <div className="flex flex-col gap-3 text-left">
-                          <h3 className="text-sm font-bold text-white">Service Price List</h3>
+                          <h3 className="text-sm font-bold text-gray-900">Service Price List</h3>
                           
                           <div className="flex flex-col gap-2 max-h-[380px] overflow-y-auto">
                             {priceList.map(item => (
-                              <div key={item.name} className="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-850">
+                              <div key={item.name} className="flex justify-between items-center bg-white p-3 rounded-xl border border-gray-200">
                                 <div>
-                                  <div className="text-xs font-bold text-white">{item.name}</div>
-                                  <span className="text-[9px] bg-slate-900 text-slate-400 px-2 py-0.5 rounded">{item.category}</span>
+                                  <div className="text-xs font-bold text-gray-900">{item.name}</div>
+                                  <span className="text-[9px] bg-gray-50 text-gray-500 px-2 py-0.5 rounded">{item.category}</span>
                                 </div>
                                 <div className="text-sm font-extrabold text-rose-500">₹{item.price}</div>
                               </div>
@@ -1815,12 +1815,12 @@ export default function App() {
                       {/* MY ORDERS TAB */}
                       {customerActiveTab === 'history' && (
                         <div className="flex flex-col gap-3 text-left">
-                          <h3 className="text-sm font-bold text-white">Your Orders</h3>
+                          <h3 className="text-sm font-bold text-gray-900">Your Orders</h3>
 
                           {selectedOrderForTracking ? (
-                            <div className="flex flex-col gap-4 bg-slate-950 p-4 rounded-2xl border border-slate-850">
-                              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                                <button onClick={() => setSelectedOrderForTracking(null)} className="text-xs text-slate-400 hover:text-white flex items-center gap-1">
+                            <div className="flex flex-col gap-4 bg-white p-4 rounded-2xl border border-gray-200">
+                              <div className="flex items-center justify-between pb-2 border-b border-gray-200">
+                                <button onClick={() => setSelectedOrderForTracking(null)} className="text-xs text-gray-500 hover:text-gray-900 flex items-center gap-1">
                                   <ArrowLeft className="size-3" /> Back
                                 </button>
                                 <span className="text-[10px] font-bold text-rose-500">{selectedOrderForTracking.id}</span>
@@ -1843,12 +1843,12 @@ export default function App() {
                                   return (
                                     <div key={step.status} className="flex items-center gap-3 relative">
                                       {idx < 4 && (
-                                        <div className={`absolute left-2.5 top-6 w-0.5 h-6 ${stepIdx < currentIdx ? 'bg-rose-500' : 'bg-slate-800'}`}></div>
+                                        <div className={`absolute left-2.5 top-6 w-0.5 h-6 ${stepIdx < currentIdx ? 'bg-rose-500' : 'bg-gray-200'}`}></div>
                                       )}
-                                      <div className={`size-5 rounded-full flex items-center justify-center text-[10px] font-bold border-2 ${isActive ? 'bg-rose-500 border-rose-500 text-white shadow-sm' : 'border-slate-800 text-slate-500'}`}>
+                                      <div className={`size-5 rounded-full flex items-center justify-center text-[10px] font-bold border-2 ${isActive ? 'bg-rose-500 border-rose-500 text-gray-900 shadow-sm' : 'border-gray-200 text-gray-400'}`}>
                                         {isActive ? <Check className="size-2.5" /> : idx + 1}
                                       </div>
-                                      <span className={`text-xs font-semibold ${isActive ? 'text-white' : 'text-slate-500'}`}>
+                                      <span className={`text-xs font-semibold ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>
                                         {step.label}
                                       </span>
                                     </div>
@@ -1858,14 +1858,14 @@ export default function App() {
 
                               {/* GPS Tracking UI (Simulated) */}
                               {(selectedOrderForTracking.status === 'Picked Up' || selectedOrderForTracking.status === 'Delivered' || selectedOrderForTracking.status === 'Ready') && (
-                                <div className="bg-slate-900 overflow-hidden rounded-xl border border-slate-800 relative h-32 flex flex-col items-center justify-center">
+                                <div className="bg-gray-50 overflow-hidden rounded-xl border border-gray-200 relative h-32 flex flex-col items-center justify-center">
                                   {/* Simulated Map Background */}
                                   <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at center, #334155 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
                                   
                                   {/* Animated Path & Marker */}
                                   <div className="relative z-10 w-full px-8 flex items-center justify-between">
-                                    <div className="size-6 bg-slate-800 rounded-full border-2 border-slate-700 flex items-center justify-center z-10"><MapPin className="size-3 text-slate-400" /></div>
-                                    <div className="flex-1 h-0.5 bg-slate-800 relative overflow-hidden">
+                                    <div className="size-6 bg-gray-200 rounded-full border-2 border-gray-300 flex items-center justify-center z-10"><MapPin className="size-3 text-gray-500" /></div>
+                                    <div className="flex-1 h-0.5 bg-gray-200 relative overflow-hidden">
                                       <div className={`absolute top-0 left-0 h-full bg-rose-500 transition-all duration-[3000ms] ${selectedOrderForTracking.status === 'Delivered' ? 'w-full' : 'w-1/2 animate-pulse'}`}></div>
                                     </div>
                                     <div className="size-6 bg-emerald-900 rounded-full border-2 border-emerald-500 flex items-center justify-center z-10 shadow-[0_0_10px_rgba(16,185,129,0.5)]"><Check className="size-3 text-emerald-400" /></div>
@@ -1876,31 +1876,31 @@ export default function App() {
                                     </div>
                                   </div>
                                   
-                                  <div className="relative z-10 mt-4 text-[10px] font-bold text-slate-300">
+                                  <div className="relative z-10 mt-4 text-[10px] font-bold text-gray-700">
                                     {selectedOrderForTracking.status === 'Delivered' ? 'Driver reached destination' : 'Driver is on the way...'}
                                   </div>
                                 </div>
                               )}
 
-                              <div className="bg-slate-900/60 p-3 rounded-xl text-[10px] text-slate-400 flex flex-col gap-1 border border-slate-850">
+                              <div className="bg-gray-50/60 p-3 rounded-xl text-[10px] text-gray-500 flex flex-col gap-1 border border-gray-200">
                                 <div className="flex justify-between">
                                   <span>Apartment No</span>
-                                  <span className="font-bold text-white">{selectedOrderForTracking.apartmentNo}</span>
+                                  <span className="font-bold text-gray-900">{selectedOrderForTracking.apartmentNo}</span>
                                 </div>
                                 <div className="flex justify-between">
                                   <span>Pickup slot</span>
-                                  <span className="font-bold text-white">{selectedOrderForTracking.pickupDate} ({selectedOrderForTracking.pickupTime})</span>
+                                  <span className="font-bold text-gray-900">{selectedOrderForTracking.pickupDate} ({selectedOrderForTracking.pickupTime})</span>
                                 </div>
                                 <div className="flex justify-between">
                                   <span>Total amount</span>
-                                  <span className="font-bold text-white">₹{selectedOrderForTracking.total} ({selectedOrderForTracking.paymentStatus})</span>
+                                  <span className="font-bold text-gray-900">₹{selectedOrderForTracking.total} ({selectedOrderForTracking.paymentStatus})</span>
                                 </div>
                               </div>
 
                               {selectedOrderForTracking.status === 'Delivered' && (
                                 <button 
                                   onClick={() => setSelectedInvoice(selectedOrderForTracking)}
-                                  className="w-full bg-slate-900 hover:bg-slate-850 border border-slate-800 text-white py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 mt-2"
+                                  className="w-full bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-900 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 mt-2"
                                 >
                                   <FileText className="size-3.5 text-rose-500" /> View Digital Invoice
                                 </button>
@@ -1910,7 +1910,7 @@ export default function App() {
                                 <div className="grid grid-cols-2 gap-2 mt-2">
                                   <button 
                                     onClick={() => setShowCancelModal(true)}
-                                    className="w-full bg-slate-900 hover:bg-rose-950/50 border border-rose-500/30 text-rose-400 hover:text-rose-300 py-2 rounded-xl text-xs font-semibold transition-all"
+                                    className="w-full bg-gray-50 hover:bg-rose-950/50 border border-rose-500/30 text-rose-400 hover:text-rose-300 py-2 rounded-xl text-xs font-semibold transition-all"
                                   >
                                     Cancel Order
                                   </button>
@@ -1920,7 +1920,7 @@ export default function App() {
                                       setRescheduleTime(selectedOrderForTracking.pickupTime);
                                       setShowRescheduleModal(true);
                                     }}
-                                    className="w-full bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white py-2 rounded-xl text-xs font-semibold transition-all"
+                                    className="w-full bg-gray-50 hover:bg-gray-200 border border-gray-300 text-gray-900 py-2 rounded-xl text-xs font-semibold transition-all"
                                   >
                                     Reschedule
                                   </button>
@@ -1930,7 +1930,7 @@ export default function App() {
                           ) : (
                             <div className="flex flex-col gap-3 overflow-y-auto max-h-[380px]">
                               {orders.filter(o => o.customerPhone === currentCustomer.phone).length === 0 ? (
-                                <div className="text-center py-10 text-xs text-slate-500">No active orders placed yet.</div>
+                                <div className="text-center py-10 text-xs text-gray-400">No active orders placed yet.</div>
                               ) : (
                                 orders
                                   .filter(o => o.customerPhone === currentCustomer.phone)
@@ -1938,15 +1938,15 @@ export default function App() {
                                     <div 
                                       key={o.id} 
                                       onClick={() => setSelectedOrderForTracking(o)}
-                                      className="bg-slate-950 p-3 rounded-xl border border-slate-850 hover:border-rose-500/30 transition-all flex items-center justify-between cursor-pointer"
+                                      className="bg-white p-3 rounded-xl border border-gray-200 hover:border-rose-500/30 transition-all flex items-center justify-between cursor-pointer"
                                     >
                                       <div>
-                                        <div className="text-xs font-bold text-white">{o.id}</div>
-                                        <div className="text-[9px] text-slate-400 mt-0.5">{o.createdAt}</div>
+                                        <div className="text-xs font-bold text-gray-900">{o.id}</div>
+                                        <div className="text-[9px] text-gray-500 mt-0.5">{o.createdAt}</div>
                                         <div className="text-[10px] font-semibold text-rose-500 mt-1">{o.status}</div>
                                       </div>
                                       <div className="text-right">
-                                        <div className="text-xs font-extrabold text-white">₹{o.total}</div>
+                                        <div className="text-xs font-extrabold text-gray-900">₹{o.total}</div>
                                         <span className={`inline-block text-[8px] font-bold px-1.5 py-0.5 rounded mt-1 ${o.paymentStatus === 'Paid' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>
                                           {o.paymentStatus}
                                         </span>
@@ -1962,20 +1962,20 @@ export default function App() {
                       {/* SUPPORT & ADMIN GATEWAY TAB */}
                       {customerActiveTab === 'support' && (
                         <div className="flex flex-col gap-3 text-left">
-                          <h3 className="text-sm font-bold text-white">Help & Support</h3>
+                          <h3 className="text-sm font-bold text-gray-900">Help & Support</h3>
                           
-                          <div className="bg-slate-950 border border-slate-850 p-4 rounded-2xl flex flex-col gap-4">
+                          <div className="bg-white border border-gray-200 p-4 rounded-2xl flex flex-col gap-4">
                             <div>
-                              <h4 className="text-xs font-bold text-white mb-1">📞 Contact Support</h4>
-                              <p className="text-[10px] text-slate-400 leading-relaxed">For immediate support regarding delivery schedules, reach us:</p>
+                              <h4 className="text-xs font-bold text-gray-900 mb-1">📞 Contact Support</h4>
+                              <p className="text-[10px] text-gray-500 leading-relaxed">For immediate support regarding delivery schedules, reach us:</p>
                               <div className="flex flex-col gap-1.5 mt-2.5 text-[10px]">
                                 <a href="tel:+919791019505" className="text-rose-500 font-bold hover:underline">Phone: +91 9791019505</a>
                                 <a href="mailto:support@ironcart.com" className="text-rose-500 font-bold hover:underline">Email: support@ironcart.com</a>
                               </div>
                             </div>
                             
-                            <div className="border-t border-slate-800 pt-3">
-                              <h4 className="text-xs font-bold text-white mb-1">💬 WhatsApp Chat</h4>
+                            <div className="border-t border-gray-200 pt-3">
+                              <h4 className="text-xs font-bold text-gray-900 mb-1">💬 WhatsApp Chat</h4>
                               <a 
                                 href="https://wa.me/919791019505" 
                                 target="_blank" 
@@ -1987,12 +1987,12 @@ export default function App() {
                             </div>
 
                             {/* Owner Admin Gateway Switcher */}
-                            <div className="border-t border-slate-800 pt-3 bg-slate-950/60 p-2.5 rounded-xl border border-dashed border-slate-800">
-                              <h4 className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                            <div className="border-t border-gray-200 pt-3 bg-white/60 p-2.5 rounded-xl border border-dashed border-gray-200">
+                              <h4 className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
                                 <Key className="size-3.5 text-amber-500 animate-pulse" />
                                 Owner Portal Gateway
                               </h4>
-                              <p className="text-[9px] text-slate-500 mt-1">If you are the business owner, enter your access PIN to open the dashboard:</p>
+                              <p className="text-[9px] text-gray-400 mt-1">If you are the business owner, enter your access PIN to open the dashboard:</p>
                               <div className="flex gap-2 mt-3">
                                 <input 
                                   type="password"
@@ -2000,7 +2000,7 @@ export default function App() {
                                   placeholder="PIN"
                                   value={adminPin}
                                   onChange={e => setAdminPin(e.target.value.replace(/\D/g, ''))}
-                                  className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-white w-24 text-center outline-none"
+                                  className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs text-gray-900 w-24 text-center outline-none"
                                 />
                                 <button 
                                   onClick={handleAdminAccess}
@@ -2017,34 +2017,34 @@ export default function App() {
                       {customerActiveTab === 'subscriptions' && (
                         <div className="flex flex-col gap-4 text-left">
                           <div className="flex items-center gap-2 mb-1">
-                            <button onClick={() => setCustomerActiveTab('home')} className="p-1 hover:bg-slate-800 rounded-lg">
-                              <ArrowLeft className="size-4 text-slate-400" />
+                            <button onClick={() => setCustomerActiveTab('home')} className="p-1 hover:bg-gray-200 rounded-lg">
+                              <ArrowLeft className="size-4 text-gray-500" />
                             </button>
-                            <h3 className="text-sm font-bold text-white">IronCart Prime Plans</h3>
+                            <h3 className="text-sm font-bold text-gray-900">IronCart Prime Plans</h3>
                           </div>
                           
                           <div className="w-full h-32 rounded-2xl overflow-hidden relative shadow-lg">
                             <img src="/subscription_banner_1785298423353.png" alt="Prime Subscription" className="w-full h-full object-cover opacity-80 mix-blend-screen" />
                             <div className="absolute inset-0 flex flex-col justify-end p-4 bg-gradient-to-t from-slate-950 to-transparent">
-                              <h4 className="font-extrabold text-white text-lg drop-shadow-md">Subscribe & Save</h4>
+                              <h4 className="font-extrabold text-gray-900 text-lg drop-shadow-md">Subscribe & Save</h4>
                             </div>
                           </div>
 
                           <div className="flex flex-col gap-3 pb-2">
                             {[
                               { name: 'Bronze', items: 20, price: 499, color: 'text-orange-300', bg: 'bg-orange-300/10', border: 'border-orange-300' },
-                              { name: 'Silver', items: 50, price: 999, color: 'text-slate-300', bg: 'bg-slate-300/10', border: 'border-slate-300' },
+                              { name: 'Silver', items: 50, price: 999, color: 'text-gray-700', bg: 'bg-slate-300/10', border: 'border-slate-300' },
                               { name: 'Gold', items: 100, price: 1799, color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400' }
                             ].map(plan => (
-                              <div key={plan.name} className={`border ${userSubscription === plan.name ? plan.border : 'border-slate-800'} bg-slate-950 rounded-xl p-4 relative overflow-hidden transition-all`}>
+                              <div key={plan.name} className={`border ${userSubscription === plan.name ? plan.border : 'border-gray-200'} bg-white rounded-xl p-4 relative overflow-hidden transition-all`}>
                                 {userSubscription === plan.name && <div className="absolute top-0 right-0 bg-emerald-500 text-white text-[8px] font-bold px-2 py-1 rounded-bl-lg">ACTIVE</div>}
                                 <div className="flex justify-between items-center mb-2">
                                   <h4 className={`font-bold ${plan.color} text-sm flex items-center gap-1.5`}>
                                     <Star className="size-4" fill="currentColor" /> {plan.name} Plan
                                   </h4>
-                                  <span className="text-white font-extrabold">₹{plan.price}<span className="text-[9px] text-slate-500 font-normal">/mo</span></span>
+                                  <span className="text-gray-900 font-extrabold">₹{plan.price}<span className="text-[9px] text-gray-400 font-normal">/mo</span></span>
                                 </div>
-                                <p className="text-[10px] text-slate-400">Includes {plan.items} garments (Ironing or Laundry). Express delivery extra.</p>
+                                <p className="text-[10px] text-gray-500">Includes {plan.items} garments (Ironing or Laundry). Express delivery extra.</p>
                                 <button 
                                   onClick={() => {
                                     if(confirm(`Subscribe to ${plan.name} for ₹${plan.price}?`)) {
@@ -2054,7 +2054,7 @@ export default function App() {
                                     }
                                   }}
                                   disabled={userSubscription === plan.name}
-                                  className={`w-full mt-3 py-2 rounded-lg text-xs font-bold ${userSubscription === plan.name ? 'bg-slate-800 text-slate-500' : 'bg-slate-800 hover:bg-slate-700 text-white shadow-sm'}`}
+                                  className={`w-full mt-3 py-2 rounded-lg text-xs font-bold ${userSubscription === plan.name ? 'bg-gray-200 text-gray-400' : 'bg-gray-200 hover:bg-gray-300 text-gray-900 shadow-sm'}`}
                                 >
                                   {userSubscription === plan.name ? `Quota Left: ${userSubscriptionQuota} Items` : 'Subscribe Now'}
                                 </button>
@@ -2067,7 +2067,7 @@ export default function App() {
                     </div>
 
                     {/* Premium Iztri-Style Bottom Navigation Bar */}
-                    <div className="border-t border-slate-800/60 pt-3 pb-1 flex justify-around bg-slate-950/90 backdrop-blur-md text-slate-500 -mx-4 px-2 mt-4 sticky bottom-0 z-10 shadow-[0_-4px_20px_rgba(0,0,0,0.2)]">
+                    <div className="border-t border-gray-200/60 pt-3 pb-1 flex justify-around bg-white/90 backdrop-blur-md text-gray-400 -mx-4 px-2 mt-4 sticky bottom-0 z-10 shadow-[0_-4px_20px_rgba(0,0,0,0.2)]">
                       {[
                         { tab: 'home', label: 'Home', icon: Smartphone },
                         { tab: 'order', label: 'Book', icon: Plus },
@@ -2086,13 +2086,13 @@ export default function App() {
                             }}
                             className="relative flex flex-col items-center gap-1.5 py-1 px-3 rounded-xl transition-all w-14"
                           >
-                            <div className={`relative flex items-center justify-center transition-all ${isActive ? 'text-rose-500' : 'text-slate-400 group-hover:text-slate-300'}`}>
+                            <div className={`relative flex items-center justify-center transition-all ${isActive ? 'text-rose-500' : 'text-gray-500 group-hover:text-gray-700'}`}>
                               <Icon className={`size-[18px] ${isActive ? 'fill-rose-500/10' : ''}`} strokeWidth={isActive ? 2.5 : 2} />
                               {isActive && (
                                 <div className="absolute -inset-1.5 bg-rose-500/10 rounded-full blur-sm" />
                               )}
                             </div>
-                            <span className={`text-[9px] font-bold tracking-wide transition-all ${isActive ? 'text-rose-500' : 'text-slate-400'}`}>
+                            <span className={`text-[9px] font-bold tracking-wide transition-all ${isActive ? 'text-rose-500' : 'text-gray-500'}`}>
                               {item.label}
                             </span>
                             {isActive && (
@@ -2111,25 +2111,25 @@ export default function App() {
 
             {/* Simulated Mobile Device Checkout Modal (Razorpay simulation) */}
             {showCheckoutModal && (
-              <div className="absolute inset-0 bg-slate-950/90 z-40 flex items-end justify-center p-4 rounded-[40px]">
-                <div className="w-full bg-slate-900 border border-slate-800 rounded-3xl p-5 text-left flex flex-col gap-4 animate-slide-up">
+              <div className="absolute inset-0 bg-white/90 z-40 flex items-end justify-center p-4 rounded-[40px]">
+                <div className="w-full bg-gray-50 border border-gray-200 rounded-3xl p-5 text-left flex flex-col gap-4 animate-slide-up">
                   
                   {/* Checkout Header */}
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                  <div className="flex items-center justify-between pb-3 border-b border-gray-200">
                     <div>
-                      <h4 className="text-xs font-bold text-slate-400">IronCart Checkout</h4>
-                      <h3 className="text-sm font-extrabold text-white mt-0.5">Pay ₹{calculateTotals().total}</h3>
+                      <h4 className="text-xs font-bold text-gray-500">IronCart Checkout</h4>
+                      <h3 className="text-sm font-extrabold text-gray-900 mt-0.5">Pay ₹{calculateTotals().total}</h3>
                     </div>
-                    <button onClick={() => setShowCheckoutModal(false)} className="text-xs text-slate-500 hover:text-white">Cancel</button>
+                    <button onClick={() => setShowCheckoutModal(false)} className="text-xs text-gray-400 hover:text-gray-900">Cancel</button>
                   </div>
 
                   {/* Payment Options */}
                   <div className="flex flex-col gap-2.5">
-                    <label className="text-[9px] font-bold text-slate-400 uppercase">Select Payment Mode</label>
+                    <label className="text-[9px] font-bold text-gray-500 uppercase">Select Payment Mode</label>
                     
                     <button 
                       onClick={() => setPaymentMethod('UPI')}
-                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${paymentMethod === 'UPI' ? 'bg-rose-500/10 border-rose-500 text-rose-500' : 'bg-slate-950 border-slate-800 text-slate-300'}`}
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${paymentMethod === 'UPI' ? 'bg-rose-500/10 border-rose-500 text-rose-500' : 'bg-white border-gray-200 text-gray-700'}`}
                     >
                       <CreditCard className="size-4 text-purple-500" />
                       <div className="text-xs font-semibold text-left">
@@ -2140,7 +2140,7 @@ export default function App() {
 
                     <button 
                       onClick={() => setPaymentMethod('Wallet')}
-                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${paymentMethod === 'Wallet' ? 'bg-rose-500/10 border-rose-500 text-rose-500' : 'bg-slate-950 border-slate-800 text-slate-300'}`}
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${paymentMethod === 'Wallet' ? 'bg-rose-500/10 border-rose-500 text-rose-500' : 'bg-white border-gray-200 text-gray-700'}`}
                     >
                       <Wallet className="size-4 text-emerald-400" />
                       <div className="text-xs font-semibold text-left">
@@ -2151,7 +2151,7 @@ export default function App() {
 
                     <button 
                       onClick={() => setPaymentMethod('COD')}
-                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${paymentMethod === 'COD' ? 'bg-rose-500/10 border-rose-500 text-rose-500' : 'bg-slate-950 border-slate-800 text-slate-300'}`}
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${paymentMethod === 'COD' ? 'bg-rose-500/10 border-rose-500 text-rose-500' : 'bg-white border-gray-200 text-gray-700'}`}
                     >
                       <ShoppingBag className="size-4 text-emerald-500" />
                       <div className="text-xs font-semibold text-left">
@@ -2162,8 +2162,8 @@ export default function App() {
                   </div>
 
                   {paymentMethod === 'UPI' && (
-                    <div className="bg-slate-950 border border-slate-850 p-3 rounded-xl flex flex-col gap-2 mt-1 text-left text-xs animate-fade-in">
-                      <div className="font-bold text-white flex items-center justify-between">
+                    <div className="bg-white border border-gray-200 p-3 rounded-xl flex flex-col gap-2 mt-1 text-left text-xs animate-fade-in">
+                      <div className="font-bold text-gray-900 flex items-center justify-between">
                         <span>📱 Direct UPI Transfer</span>
                       </div>
                       
@@ -2177,10 +2177,10 @@ export default function App() {
                             />
                           </div>
                         )}
-                        <div className="flex-1 flex flex-col gap-1 text-[10px] text-slate-400">
+                        <div className="flex-1 flex flex-col gap-1 text-[10px] text-gray-500">
                           <div className="flex justify-between border-b border-slate-900 pb-1">
                             <span>Phone Number:</span>
-                            <span className="font-bold text-white select-all">{upiDetails.phone}</span>
+                            <span className="font-bold text-gray-900 select-all">{upiDetails.phone}</span>
                           </div>
                           <div className="flex justify-between pt-0.5">
                             <span>UPI ID:</span>
@@ -2191,20 +2191,20 @@ export default function App() {
 
                       <a 
                         href={`upi://pay?pa=${upiDetails.id}&pn=IronCart&cu=INR`} 
-                        className="w-full bg-slate-900 hover:bg-slate-800 text-center text-white py-2 rounded-lg font-bold border border-slate-800 transition-colors mt-2"
+                        className="w-full bg-gray-50 hover:bg-gray-200 text-center text-gray-900 py-2 rounded-lg font-bold border border-gray-200 transition-colors mt-2"
                       >
                         Click to Open UPI App
                       </a>
 
-                      <p className="text-[8px] text-slate-500 leading-relaxed italic bg-slate-900/50 p-1.5 rounded mt-1">
+                      <p className="text-[8px] text-gray-400 leading-relaxed italic bg-gray-50/50 p-1.5 rounded mt-1">
                         *Scan QR or click link to pay, then click "Confirm & Submit Order".
                       </p>
                     </div>
                   )}
 
                   {paymentMethod === 'Wallet' && (
-                    <div className="bg-slate-950 border border-slate-850 p-3 rounded-xl flex flex-col gap-2 mt-1 text-left text-xs animate-fade-in">
-                      <div className="font-bold text-white flex items-center justify-between">
+                    <div className="bg-white border border-gray-200 p-3 rounded-xl flex flex-col gap-2 mt-1 text-left text-xs animate-fade-in">
+                      <div className="font-bold text-gray-900 flex items-center justify-between">
                         <span>💳 IronCart Wallet</span>
                         <span className="text-emerald-400">₹{currentCustomer?.walletBalance || 0}</span>
                       </div>
@@ -2233,10 +2233,10 @@ export default function App() {
         {/* --- 2. ADMIN PORTAL / WEB DASHBOARD --- */}
         {(viewMode === 'admin' || viewMode === 'dual') && (
           <div className="flex-1 flex flex-col min-w-0">
-            <div className="flex-1 bg-slate-950 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col gap-6">
+            <div className="flex-1 bg-white border border-gray-200 rounded-3xl p-6 shadow-2xl flex flex-col gap-6">
               
               {/* Admin Tabs */}
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center justify-between border-b border-gray-200 pb-3">
                 <div className="flex gap-2">
                   {[
                     { tab: 'overview', label: 'Overview', icon: TrendingUp },
@@ -2251,7 +2251,7 @@ export default function App() {
                       <button 
                         key={item.tab}
                         onClick={() => setAdminActiveTab(item.tab as any)}
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${isActive ? 'bg-slate-900 border border-slate-800 text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${isActive ? 'bg-gray-50 border border-gray-200 text-gray-900' : 'text-gray-500 hover:text-gray-800'}`}
                       >
                         <Icon className="size-3.5 text-rose-500" />
                         {item.label}
@@ -2263,7 +2263,7 @@ export default function App() {
                 {/* Simulated Refresh */}
                 <button 
                   onClick={() => triggerNotification('🔄 Real-time data synchronized!')}
-                  className="text-xs text-slate-400 hover:text-white flex items-center gap-1"
+                  className="text-xs text-gray-500 hover:text-gray-900 flex items-center gap-1"
                 >
                   <RefreshCw className="size-3.5" /> Sync
                 </button>
@@ -2279,30 +2279,30 @@ export default function App() {
                     {/* Metrics Cards Grid */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                       
-                      <div className="bg-slate-900 border border-slate-850 p-4 rounded-2xl flex flex-col gap-1.5">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">Total Revenue</span>
-                        <div className="text-2xl font-extrabold text-white">₹{totalRevenue.toFixed(2)}</div>
+                      <div className="bg-gray-50 border border-gray-200 p-4 rounded-2xl flex flex-col gap-1.5">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase">Total Revenue</span>
+                        <div className="text-2xl font-extrabold text-gray-900">₹{totalRevenue.toFixed(2)}</div>
                         <span className="text-[9px] text-emerald-500 font-semibold">100% digital payouts</span>
                       </div>
 
-                      <div className="bg-slate-900 border border-slate-850 p-4 rounded-2xl flex flex-col gap-1.5">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">Pending Pickups</span>
+                      <div className="bg-gray-50 border border-gray-200 p-4 rounded-2xl flex flex-col gap-1.5">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase">Pending Pickups</span>
                         <div className="text-2xl font-extrabold text-rose-500">
                           {orders.filter(o => o.status === 'Placed').length}
                         </div>
-                        <span className="text-[9px] text-slate-400">Needs immediate assignment</span>
+                        <span className="text-[9px] text-gray-500">Needs immediate assignment</span>
                       </div>
 
-                      <div className="bg-slate-900 border border-slate-850 p-4 rounded-2xl flex flex-col gap-1.5">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">Active In-process</span>
+                      <div className="bg-gray-50 border border-gray-200 p-4 rounded-2xl flex flex-col gap-1.5">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase">Active In-process</span>
                         <div className="text-2xl font-extrabold text-amber-500">
                           {orders.filter(o => o.status === 'Picked Up' || o.status === 'Ironing').length}
                         </div>
-                        <span className="text-[9px] text-slate-400">Undergoing ironing flow</span>
+                        <span className="text-[9px] text-gray-500">Undergoing ironing flow</span>
                       </div>
 
-                      <div className="bg-slate-900 border border-slate-850 p-4 rounded-2xl flex flex-col gap-1.5">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">Completed orders</span>
+                      <div className="bg-gray-50 border border-gray-200 p-4 rounded-2xl flex flex-col gap-1.5">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase">Completed orders</span>
                         <div className="text-2xl font-extrabold text-emerald-500">
                           {completedOrders.length}
                         </div>
@@ -2313,14 +2313,14 @@ export default function App() {
 
                     {/* Recent Orders Overview */}
                     <div className="flex flex-col gap-3">
-                      <h3 className="text-sm font-bold text-white">Today&apos;s Active Inbound Pickups</h3>
-                      <div className="bg-slate-900 border border-slate-850 rounded-2xl overflow-hidden">
+                      <h3 className="text-sm font-bold text-gray-900">Today&apos;s Active Inbound Pickups</h3>
+                      <div className="bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden">
                         {orders.length === 0 ? (
-                          <div className="p-8 text-center text-xs text-slate-500">No active ironing orders right now. Use the Customer Mobile App to place a simulated order!</div>
+                          <div className="p-8 text-center text-xs text-gray-400">No active ironing orders right now. Use the Customer Mobile App to place a simulated order!</div>
                         ) : (
                           <div className="overflow-x-auto">
                             <table className="w-full text-left text-xs">
-                              <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-[9px] border-b border-slate-850">
+                              <thead className="bg-white text-gray-500 uppercase font-bold text-[9px] border-b border-gray-200">
                                 <tr>
                                   <th className="p-3">Order ID</th>
                                   <th className="p-3">Customer</th>
@@ -2333,21 +2333,21 @@ export default function App() {
                               </thead>
                               <tbody className="divide-y divide-slate-850">
                                 {orders.slice(0, 4).map(o => (
-                                  <tr key={o.id} className="hover:bg-slate-850/50">
+                                  <tr key={o.id} className="hover:bg-gray-100/50">
                                     <td className="p-3 font-mono font-bold text-rose-500">{o.id}</td>
                                     <td className="p-3">
-                                      <div className="font-semibold text-white">{o.customerName}</div>
-                                      <div className="text-[9px] text-slate-400">{o.customerPhone}</div>
+                                      <div className="font-semibold text-gray-900">{o.customerName}</div>
+                                      <div className="text-[9px] text-gray-500">{o.customerPhone}</div>
                                     </td>
                                     <td className="p-3">
-                                      <div className="font-semibold text-white truncate max-w-[120px]">{o.apartmentNo}</div>
-                                      <div className="text-[9px] text-slate-400 truncate max-w-[120px]">{o.address}</div>
+                                      <div className="font-semibold text-gray-900 truncate max-w-[120px]">{o.apartmentNo}</div>
+                                      <div className="text-[9px] text-gray-500 truncate max-w-[120px]">{o.address}</div>
                                     </td>
                                     <td className="p-3">
-                                      <div className="font-semibold text-white">{o.pickupDate}</div>
-                                      <div className="text-[9px] text-slate-400">{o.pickupTime}</div>
+                                      <div className="font-semibold text-gray-900">{o.pickupDate}</div>
+                                      <div className="text-[9px] text-gray-500">{o.pickupTime}</div>
                                     </td>
-                                    <td className="p-3 font-semibold text-white">₹{o.total}</td>
+                                    <td className="p-3 font-semibold text-gray-900">₹{o.total}</td>
                                     <td className="p-3">
                                       <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-bold ${o.status === 'Delivered' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
                                         {o.status}
@@ -2356,7 +2356,7 @@ export default function App() {
                                     <td className="p-3 text-right">
                                       <button 
                                         onClick={() => setAdminActiveTab('orders')}
-                                        className="bg-slate-800 hover:bg-slate-700 text-white px-2 py-1 rounded font-bold text-[9px]"
+                                        className="bg-gray-200 hover:bg-gray-300 text-gray-900 px-2 py-1 rounded font-bold text-[9px]"
                                       >
                                         Manage
                                       </button>
@@ -2376,38 +2376,38 @@ export default function App() {
                 {/* MANAGE ORDERS PANEL */}
                 {adminActiveTab === 'orders' && (
                   <div className="flex flex-col gap-4 text-left">
-                    <h3 className="text-sm font-bold text-white">All Orders Management Queue</h3>
+                    <h3 className="text-sm font-bold text-gray-900">All Orders Management Queue</h3>
                     
                     <div className="flex flex-col gap-3">
                       {orders.length === 0 ? (
-                        <div className="bg-slate-900 border border-slate-850 p-8 rounded-2xl text-center text-xs text-slate-500">
+                        <div className="bg-gray-50 border border-gray-200 p-8 rounded-2xl text-center text-xs text-gray-400">
                           No order records. Try booking an order in the Customer App on the left!
                         </div>
                       ) : (
                         orders.map(o => (
-                          <div key={o.id} className="bg-slate-900 border border-slate-850 p-5 rounded-2xl flex flex-col lg:flex-row justify-between gap-4">
+                          <div key={o.id} className="bg-gray-50 border border-gray-200 p-5 rounded-2xl flex flex-col lg:flex-row justify-between gap-4">
                             
                             {/* Order Details Left Column */}
                             <div className="flex-1 flex flex-col gap-2">
                               <div className="flex items-center gap-2">
                                 <span className="text-xs font-mono font-bold text-rose-500">{o.id}</span>
-                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${o.speed === 'Urgent' ? 'bg-red-500/20 text-red-400' : o.speed === 'Express' ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-800 text-slate-400'}`}>
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${o.speed === 'Urgent' ? 'bg-red-500/20 text-red-400' : o.speed === 'Express' ? 'bg-amber-500/20 text-amber-400' : 'bg-gray-200 text-gray-500'}`}>
                                   {o.speed} Delivery
                                 </span>
                               </div>
-                              <div className="text-xs text-white">
+                              <div className="text-xs text-gray-900">
                                 <strong>Customer:</strong> {o.customerName} ({o.customerPhone})
                               </div>
-                              <div className="text-xs text-slate-400 leading-relaxed">
+                              <div className="text-xs text-gray-500 leading-relaxed">
                                 <strong>Apartment:</strong> {o.apartmentNo}
                               </div>
-                              <div className="text-xs text-slate-400 leading-relaxed">
+                              <div className="text-xs text-gray-500 leading-relaxed">
                                 <strong>Address:</strong> {o.address}
                               </div>
                               
                               {/* Items list */}
-                              <div className="text-[10px] text-slate-400 bg-slate-950 p-2.5 rounded-xl border border-slate-850 mt-1 max-w-sm">
-                                <div className="font-bold text-white border-b border-slate-800 pb-1 mb-1">Basket Details:</div>
+                              <div className="text-[10px] text-gray-500 bg-white p-2.5 rounded-xl border border-gray-200 mt-1 max-w-sm">
+                                <div className="font-bold text-gray-900 border-b border-gray-200 pb-1 mb-1">Basket Details:</div>
                                 {o.items.map(item => (
                                   <div key={item.name} className="flex justify-between">
                                     <span>{item.name} (x{item.qty})</span>
@@ -2425,7 +2425,7 @@ export default function App() {
                             {/* Status Control Right Column */}
                             <div className="flex flex-col gap-3 lg:items-end justify-between">
                               <div className="lg:text-right">
-                                <div className="text-sm font-extrabold text-white">Total Value: ₹{o.total}</div>
+                                <div className="text-sm font-extrabold text-gray-900">Total Value: ₹{o.total}</div>
                                 <div className="flex items-center gap-1.5 lg:justify-end mt-1 text-[10px]">
                                   <span>Payment:</span>
                                   <span className={`font-bold ${o.paymentStatus === 'Paid' ? 'text-emerald-500' : 'text-amber-500'}`}>
@@ -2479,7 +2479,7 @@ export default function App() {
                                 
                                 <button 
                                   onClick={() => setSelectedInvoice(o)}
-                                  className="bg-slate-800 hover:bg-slate-700 text-white px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1"
+                                  className="bg-gray-200 hover:bg-gray-300 text-gray-900 px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1"
                                 >
                                   <Eye className="size-3" /> Invoice
                                 </button>
@@ -2504,20 +2504,20 @@ export default function App() {
                 {adminActiveTab === 'prices' && (
                   <div className="flex flex-col gap-4 text-left">
                     <div>
-                      <h3 className="text-sm font-bold text-white">Garment Price Rates Manager</h3>
-                      <p className="text-xs text-slate-400 mt-1">Configure pricing categories. Edits immediately apply to the customer booking forms.</p>
+                      <h3 className="text-sm font-bold text-gray-900">Garment Price Rates Manager</h3>
+                      <p className="text-xs text-gray-500 mt-1">Configure pricing categories. Edits immediately apply to the customer booking forms.</p>
                     </div>
 
-                    <div className="bg-slate-900 border border-slate-850 p-5 rounded-2xl flex flex-col gap-4">
+                    <div className="bg-gray-50 border border-gray-200 p-5 rounded-2xl flex flex-col gap-4">
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[300px] overflow-y-auto pr-2">
                         {priceList.map(item => (
                           <div key={item.name} className="flex flex-col gap-1">
-                            <label className="text-[10px] font-semibold text-slate-400">{item.name} (₹)</label>
+                            <label className="text-[10px] font-semibold text-gray-500">{item.name} (₹)</label>
                             <input 
                               type="number"
                               defaultValue={item.price}
                               onChange={e => setEditingPrices(prev => ({ ...prev, [item.name]: parseFloat(e.target.value) || 0 }))}
-                              className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none"
+                              className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 outline-none"
                             />
                           </div>
                         ))}
@@ -2536,16 +2536,16 @@ export default function App() {
                 {/* CUSTOMERS LIST PANEL */}
                 {adminActiveTab === 'customers' && (
                   <div className="flex flex-col gap-4 text-left">
-                    <h3 className="text-sm font-bold text-white">Registered Customer Profiles</h3>
+                    <h3 className="text-sm font-bold text-gray-900">Registered Customer Profiles</h3>
                     
                     <div className="grid gap-3">
                       {customers.map(c => (
-                        <div key={c.phone} className="bg-slate-900 border border-slate-850 p-4 rounded-2xl flex flex-col gap-1">
+                        <div key={c.phone} className="bg-gray-50 border border-gray-200 p-4 rounded-2xl flex flex-col gap-1">
                           <div className="flex justify-between items-center">
-                            <h4 className="text-xs font-bold text-white">{c.name}</h4>
-                            <span className="text-[9px] bg-slate-950 text-slate-400 px-2 py-0.5 rounded font-bold">Active Customer</span>
+                            <h4 className="text-xs font-bold text-gray-900">{c.name}</h4>
+                            <span className="text-[9px] bg-white text-gray-500 px-2 py-0.5 rounded font-bold">Active Customer</span>
                           </div>
-                          <div className="text-[10px] text-slate-400 mt-1 flex flex-col gap-0.5 border-t border-slate-800/50 pt-2">
+                          <div className="text-[10px] text-gray-500 mt-1 flex flex-col gap-0.5 border-t border-gray-200/80 pt-2">
                             <span>📞 Phone: +91 {c.phone}</span>
                             {c.email && <span>📧 Email: {c.email}</span>}
                             <span>🏢 Apartment: {c.apartmentNo}</span>
@@ -2560,32 +2560,32 @@ export default function App() {
                 {/* SETTINGS PANEL */}
                 {adminActiveTab === 'settings' && (
                   <div className="flex flex-col gap-4 text-left">
-                    <h3 className="text-sm font-bold text-white">Payment & UPI Settings</h3>
+                    <h3 className="text-sm font-bold text-gray-900">Payment & UPI Settings</h3>
                     
-                    <div className="bg-slate-900 border border-slate-850 p-5 rounded-2xl flex flex-col gap-4">
-                      <p className="text-xs text-slate-400 leading-relaxed">
+                    <div className="bg-gray-50 border border-gray-200 p-5 rounded-2xl flex flex-col gap-4">
+                      <p className="text-xs text-gray-500 leading-relaxed">
                         Update your direct UPI details (GPay/PhonePe). These details and a QR code will be dynamically generated for your customers during checkout.
                       </p>
                       
                       <div className="flex flex-col gap-3 max-w-sm">
                         <div className="flex flex-col gap-1">
-                          <label className="text-[10px] font-semibold text-slate-400">Merchant Phone Number</label>
+                          <label className="text-[10px] font-semibold text-gray-500">Merchant Phone Number</label>
                           <input 
                             type="text"
                             value={upiDetails.phone}
                             onChange={e => setUpiDetails({ ...upiDetails, phone: e.target.value })}
                             placeholder="e.g. 9791019505"
-                            className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-rose-500"
+                            className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 outline-none focus:border-rose-500"
                           />
                         </div>
                         <div className="flex flex-col gap-1">
-                          <label className="text-[10px] font-semibold text-slate-400">Merchant UPI ID</label>
+                          <label className="text-[10px] font-semibold text-gray-500">Merchant UPI ID</label>
                           <input 
                             type="text"
                             value={upiDetails.id}
                             onChange={e => setUpiDetails({ ...upiDetails, id: e.target.value })}
                             placeholder="e.g. 9791019505@ybl"
-                            className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-rose-500"
+                            className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 outline-none focus:border-rose-500"
                           />
                         </div>
                       </div>
@@ -2598,7 +2598,7 @@ export default function App() {
                             className="w-[100px] h-[100px]"
                           />
                         </div>
-                        <div className="text-[10px] text-slate-500 pt-2 flex-1">
+                        <div className="text-[10px] text-gray-400 pt-2 flex-1">
                           <strong>Live QR Preview:</strong>
                           <br />This QR code updates instantly. Customers can scan this directly to pay you on PhonePe, GPay, or Paytm.
                         </div>
@@ -2624,14 +2624,14 @@ export default function App() {
 
       {/* Invoice Viewer Modal */}
       {selectedInvoice && (
-        <div className="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-white/80 z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-white text-slate-900 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 text-left">
             
             {/* Invoice Header */}
             <div className="flex justify-between items-start border-b border-slate-200 pb-4">
               <div>
                 <h3 className="text-lg font-black tracking-tight text-slate-900">IronCart Invoice</h3>
-                <span className="text-[10px] text-slate-500 font-mono">No. {selectedInvoice.invoiceNo}</span>
+                <span className="text-[10px] text-gray-400 font-mono">No. {selectedInvoice.invoiceNo}</span>
               </div>
               <button 
                 onClick={() => setSelectedInvoice(null)}
@@ -2646,25 +2646,25 @@ export default function App() {
               <div className="font-bold text-slate-800">Bill To:</div>
               <div className="mt-1 text-slate-600">{selectedInvoice.customerName}</div>
               <div className="text-slate-600">{selectedInvoice.customerPhone}</div>
-              <div className="text-[10px] text-slate-400 mt-1 font-semibold">{selectedInvoice.apartmentNo}</div>
-              <div className="text-[10px] text-slate-400 truncate">{selectedInvoice.address}</div>
+              <div className="text-[10px] text-gray-500 mt-1 font-semibold">{selectedInvoice.apartmentNo}</div>
+              <div className="text-[10px] text-gray-500 truncate">{selectedInvoice.address}</div>
             </div>
 
             {/* Date Details */}
             <div className="grid grid-cols-2 gap-4 text-[10px] border-b border-slate-100 pb-3">
               <div>
-                <span className="text-slate-400 block font-semibold">Date of Service:</span>
+                <span className="text-gray-500 block font-semibold">Date of Service:</span>
                 <span className="text-slate-800 font-bold">{selectedInvoice.createdAt}</span>
               </div>
               <div>
-                <span className="text-slate-400 block font-semibold">Pickup Slot:</span>
+                <span className="text-gray-500 block font-semibold">Pickup Slot:</span>
                 <span className="text-slate-800 font-bold">{selectedInvoice.pickupDate} ({selectedInvoice.pickupTime})</span>
               </div>
             </div>
 
             {/* Itemized Table */}
             <div className="flex-1 flex flex-col gap-2 max-h-[160px] overflow-y-auto">
-              <div className="grid grid-cols-12 text-[10px] font-bold uppercase text-slate-400 pb-1 border-b border-slate-100">
+              <div className="grid grid-cols-12 text-[10px] font-bold uppercase text-gray-500 pb-1 border-b border-slate-100">
                 <span className="col-span-6">Garment</span>
                 <span className="col-span-2 text-center">Qty</span>
                 <span className="col-span-2 text-right">Price</span>
@@ -2711,25 +2711,25 @@ export default function App() {
       {/* Cancel Order Modal */}
       {showCancelModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-950 border border-slate-800 p-6 rounded-[24px] max-w-sm w-full shadow-2xl animate-in fade-in zoom-in duration-200">
-            <h2 className="text-xl font-bold text-white mb-2">Cancel Order</h2>
-            <p className="text-xs text-slate-400 mb-4">Are you sure you want to cancel this order? This action cannot be undone.</p>
+          <div className="bg-white border border-gray-200 p-6 rounded-[24px] max-w-sm w-full shadow-2xl animate-in fade-in zoom-in duration-200">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Cancel Order</h2>
+            <p className="text-xs text-gray-500 mb-4">Are you sure you want to cancel this order? This action cannot be undone.</p>
             
             <div className="flex flex-col gap-1.5 mb-5 text-left">
-              <label className="text-[10px] font-bold text-slate-400 uppercase">Reason for cancellation</label>
+              <label className="text-[10px] font-bold text-gray-500 uppercase">Reason for cancellation</label>
               <textarea 
                 value={cancelReasonInput}
                 onChange={e => setCancelReasonInput(e.target.value)}
                 placeholder="e.g. Changed my mind, not at home..."
                 rows={3}
-                className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-rose-500 resize-none"
+                className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 outline-none focus:border-rose-500 resize-none"
               />
             </div>
             
             <div className="grid grid-cols-2 gap-3">
               <button 
                 onClick={() => { setShowCancelModal(false); setCancelReasonInput(''); }}
-                className="bg-slate-800 hover:bg-slate-700 text-white py-2.5 rounded-xl font-bold text-xs"
+                className="bg-gray-200 hover:bg-gray-300 text-gray-900 py-2.5 rounded-xl font-bold text-xs"
               >
                 Keep Order
               </button>
@@ -2747,11 +2747,11 @@ export default function App() {
       {/* Reschedule Order Modal */}
       {showRescheduleModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-950 border border-slate-800 p-6 rounded-[24px] max-w-sm w-full shadow-2xl animate-in fade-in zoom-in duration-200 text-left">
-            <h2 className="text-xl font-bold text-white mb-4">Reschedule Order</h2>
+          <div className="bg-white border border-gray-200 p-6 rounded-[24px] max-w-sm w-full shadow-2xl animate-in fade-in zoom-in duration-200 text-left">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Reschedule Order</h2>
             
             <div className="flex flex-col gap-2 mb-4">
-              <label className="text-[11px] font-bold text-white tracking-wide">Select New Date</label>
+              <label className="text-[11px] font-bold text-gray-900 tracking-wide">Select New Date</label>
               <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2 snap-x">
                 {availableDates.map(d => (
                   <button
@@ -2760,18 +2760,18 @@ export default function App() {
                     className={`min-w-[50px] flex flex-col items-center justify-center py-2 rounded-2xl border snap-center transition-all ${
                       rescheduleDate === d.value
                       ? 'bg-gradient-to-br from-rose-500 to-rose-600 border-rose-500 shadow-[0_4px_12px_rgba(225,29,72,0.3)]' 
-                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-white'
+                      : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-200 hover:text-gray-900'
                     }`}
                   >
                     <span className={`text-[10px] font-medium ${rescheduleDate === d.value ? 'text-rose-100' : ''}`}>{d.label}</span>
-                    <span className={`text-lg font-bold mt-0.5 ${rescheduleDate === d.value ? 'text-white' : ''}`}>{d.dateNum}</span>
+                    <span className={`text-lg font-bold mt-0.5 ${rescheduleDate === d.value ? 'text-gray-900' : ''}`}>{d.dateNum}</span>
                   </button>
                 ))}
               </div>
             </div>
 
             <div className="flex flex-col gap-2 mb-6">
-              <label className="text-[11px] font-bold text-white tracking-wide">Select New Time Slot</label>
+              <label className="text-[11px] font-bold text-gray-900 tracking-wide">Select New Time Slot</label>
               <div className="grid grid-cols-2 gap-2">
                 {['09:00 - 12:00', '12:00 - 15:00', '15:00 - 18:00', '18:00 - 21:00'].map(slot => (
                   <button
@@ -2780,7 +2780,7 @@ export default function App() {
                     className={`flex items-center justify-center py-2.5 rounded-xl border text-[10px] font-medium transition-all ${
                       rescheduleTime === slot
                       ? 'bg-rose-500/20 border-rose-500 text-rose-400'
-                      : 'bg-slate-900 border-slate-800 text-slate-400'
+                      : 'bg-gray-50 border-gray-200 text-gray-500'
                     }`}
                   >
                     {slot}
@@ -2792,7 +2792,7 @@ export default function App() {
             <div className="grid grid-cols-2 gap-3">
               <button 
                 onClick={() => setShowRescheduleModal(false)}
-                className="bg-slate-800 hover:bg-slate-700 text-white py-2.5 rounded-xl font-bold text-xs"
+                className="bg-gray-200 hover:bg-gray-300 text-gray-900 py-2.5 rounded-xl font-bold text-xs"
               >
                 Cancel
               </button>
@@ -2808,7 +2808,7 @@ export default function App() {
       )}
 
       {/* Simulation Dashboard Footer */}
-      <footer className="border-t border-slate-850 bg-slate-950 px-6 py-4 text-center text-xs text-slate-500">
+      <footer className="border-t border-gray-200 bg-white px-6 py-4 text-center text-xs text-gray-400">
         <p>© 2026 IronCart Ironing Service Inc. All systems simulated. Workflows are fully responsive and digital ready.</p>
       </footer>
 
