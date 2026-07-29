@@ -207,7 +207,7 @@ export default function App() {
   // --- Layout and Navigation State ---
   // Default to 'customer' view ONLY, so the customer app is used alone!
   const [viewMode, setViewMode] = useState<'customer' | 'admin' | 'dual' | 'rider'>('customer');
-  const [customerActiveTab, setCustomerActiveTab] = useState<'home' | 'order' | 'prices' | 'history' | 'support' | 'subscriptions' | 'rewards'>('home');
+  const [customerActiveTab, setCustomerActiveTab] = useState<'home' | 'order' | 'prices' | 'history' | 'support' | 'subscriptions' | 'rewards' | 'notifications'>('home');
   const [userSubscription, setUserSubscription] = useState<'None' | 'Bronze' | 'Silver' | 'Gold'>('None');
   const [userSubscriptionQuota, setUserSubscriptionQuota] = useState(0);
   const [adminActiveTab, setAdminActiveTab] = useState<'overview' | 'orders' | 'prices' | 'customers' | 'settings'>('overview');
@@ -1177,13 +1177,22 @@ export default function App() {
                           <h2 className="text-sm font-bold text-white uppercase tracking-wide">
                             {customerActiveTab === 'order' ? 'Place Order' : 
                              customerActiveTab === 'prices' ? 'Pricing' :
-                             customerActiveTab === 'history' ? 'My Orders' : 'Support'}
+                             customerActiveTab === 'history' ? 'My Orders' : 
+                             customerActiveTab === 'notifications' ? 'Notifications' : 'Support'}
                           </h2>
                         </div>
                       )}
-                      <button onClick={handleLogout} className="text-slate-500 hover:text-rose-500 p-2 rounded-lg bg-slate-900 border border-slate-800">
-                        <LogOut className="size-4" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => setCustomerActiveTab('notifications')} className="text-slate-500 hover:text-rose-500 p-2 rounded-lg bg-slate-900 border border-slate-800 relative">
+                          <Bell className="size-4" />
+                          {orders.filter(o => o.customerPhone === currentCustomer?.phone && o.status !== 'Delivered').length > 0 && (
+                            <span className="absolute top-1.5 right-1.5 size-2 bg-rose-500 rounded-full animate-pulse"></span>
+                          )}
+                        </button>
+                        <button onClick={handleLogout} className="text-slate-500 hover:text-rose-500 p-2 rounded-lg bg-slate-900 border border-slate-800">
+                          <LogOut className="size-4" />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Customer Screen Switcher */}
@@ -1449,6 +1458,38 @@ export default function App() {
                             </div>
                           </div>
 
+                        </div>
+                      )}
+
+                      {customerActiveTab === 'notifications' && (
+                        <div className="flex flex-col gap-4 text-left">
+                          <h3 className="text-sm font-bold text-slate-300">Order Updates & Notifications</h3>
+                          {orders.filter(o => o.customerPhone === currentCustomer?.phone).length === 0 ? (
+                            <div className="text-center py-10 bg-slate-900/50 rounded-2xl border border-slate-800">
+                              <Bell className="size-8 text-slate-600 mx-auto mb-3" />
+                              <p className="text-xs text-slate-400">No notifications yet.</p>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col gap-3">
+                              {orders.filter(o => o.customerPhone === currentCustomer?.phone).map(order => (
+                                <div key={order.id} className="bg-slate-900 border border-slate-800 p-3 rounded-xl flex gap-3 items-start">
+                                  <div className="size-8 rounded-full bg-rose-500/10 flex items-center justify-center shrink-0">
+                                    <Bell className="size-4 text-rose-500" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex justify-between items-center mb-1">
+                                      <span className="text-xs font-bold text-white">Order {order.id}</span>
+                                      <span className="text-[9px] text-slate-500">{order.createdAt}</span>
+                                    </div>
+                                    <p className="text-[11px] text-slate-400">
+                                      Status updated to <strong className="text-rose-400">{order.status}</strong>. 
+                                      {order.status === 'Delivered' ? ' Thank you for choosing IronCart!' : ' We are working on it.'}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
 
