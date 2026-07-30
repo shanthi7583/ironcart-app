@@ -262,7 +262,7 @@ app.patch('/api/orders/:id/status', async (req, res) => {
       return res.json(order);
     }
   }
-  res.json({ id, status, cancelReason });
+  res.json({ id, status, cancelReason, paymentStatus });
 });
 
 // 5.5 Update order schedule

@@ -1760,7 +1760,7 @@ export default function App() {
                                     <img src={svc.img} alt={svc.name} className={`w-full h-full object-cover transition-all duration-500 ${selectedService === svc.name ? 'opacity-100 scale-105' : 'opacity-60 grayscale-[30%]'}`} />
                                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent"></div>
                                   </div>
-                                  <div className="p-3 absolute bottom-0 left-0 right-0">
+                                  <div className="p-1.5 absolute bottom-0 left-0 right-0">
                                     <h4 className={`text-sm font-extrabold ${selectedService === svc.name ? 'text-gray-900' : 'text-gray-700'}`}>{svc.name}</h4>
                                     <p className="text-[9px] text-gray-500 mt-0.5 line-clamp-1">{svc.desc}</p>
                                   </div>
@@ -1822,9 +1822,9 @@ export default function App() {
 
                             <div className="flex overflow-x-auto scrollbar-hide pb-3 -mx-2 px-2 gap-3 border-b border-gray-200">
                               {[
-                                { name: 'Light Weight', img: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=400&h=300&fit=crop' },
-                                { name: 'Medium/Heavy', img: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=400&h=300&fit=crop' },
-                                { name: 'Premium', img: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=400&h=300&fit=crop' },
+                                { name: 'Light Weight', img: 'https://images.unsplash.com/photo-1517677129300-07b130802f46?w=400&h=300&fit=crop' },
+                                { name: 'Medium/Heavy', img: 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=400&h=300&fit=crop' },
+                                { name: 'Premium', img: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=400&h=300&fit=crop' },
                                 { name: 'Household', img: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=400&h=300&fit=crop' }
                               ].map(cat => (
                                 <button
@@ -2280,30 +2280,7 @@ export default function App() {
                             </div>
                           </div>
 
-                          {/* Owner Admin Gateway Switcher */}
-                          <div className="border-t border-gray-200 pt-3 bg-white/60 p-2.5 rounded-xl border border-dashed border-gray-200">
-                            <h4 className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
-                              <Key className="size-3.5 text-amber-500 animate-pulse" />
-                              Owner Portal Gateway
-                            </h4>
-                            <p className="text-[9px] text-gray-400 mt-1">If you are the business owner, enter your access PIN to open the dashboard:</p>
-                            <div className="flex gap-2 mt-3">
-                              <input 
-                                type="password"
-                                maxLength={4}
-                                placeholder="PIN"
-                                value={adminPin}
-                                onChange={e => setAdminPin(e.target.value.replace(/\D/g, ''))}
-                                className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs text-gray-900 w-24 text-center outline-none"
-                              />
-                              <button 
-                                onClick={handleAdminAccess}
-                                className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] px-3 py-1 rounded-lg"
-                              >
-                                Enter Portal
-                              </button>
-                            </div>
-                          </div>
+
 
                         </div>
                       )}
@@ -2671,6 +2648,52 @@ export default function App() {
                       <p className="text-[8px] text-gray-400 leading-relaxed italic bg-gray-50/50 p-1.5 rounded mt-1">
                         *Scan QR or click link to pay, then click "Confirm & Submit Order".
                       </p>
+                    </div>
+                  )}
+
+                  {paymentMethod === 'Card' && (
+                    <div className="bg-white border border-gray-200 p-3 rounded-xl flex flex-col gap-2.5 mt-1 text-left text-xs animate-fade-in">
+                      <div className="font-bold text-gray-900">💳 Card Payment Details</div>
+                      <div className="flex flex-col gap-2">
+                        <input 
+                          type="text" 
+                          placeholder="Cardholder Name" 
+                          className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 outline-none focus:border-rose-500" 
+                        />
+                        <input 
+                          type="text" 
+                          placeholder="Card Number (16-digits)" 
+                          maxLength={16}
+                          className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 outline-none focus:border-rose-500" 
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <input 
+                            type="text" 
+                            placeholder="Expiry (MM/YY)" 
+                            maxLength={5}
+                            className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 outline-none focus:border-rose-500" 
+                          />
+                          <input 
+                            type="password" 
+                            placeholder="CVV (3-digits)" 
+                            maxLength={3}
+                            className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 outline-none focus:border-rose-500" 
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {paymentMethod === 'NetBanking' && (
+                    <div className="bg-white border border-gray-200 p-3 rounded-xl flex flex-col gap-2.5 mt-1 text-left text-xs animate-fade-in">
+                      <div className="font-bold text-gray-900">🏦 Select NetBanking Bank</div>
+                      <select className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 outline-none focus:border-rose-500">
+                        <option value="SBI">State Bank of India (SBI)</option>
+                        <option value="HDFC">HDFC Bank</option>
+                        <option value="ICICI">ICICI Bank</option>
+                        <option value="AXIS">Axis Bank</option>
+                        <option value="KOTAK">Kotak Mahindra Bank</option>
+                      </select>
                     </div>
                   )}
 
