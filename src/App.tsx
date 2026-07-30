@@ -141,6 +141,15 @@ export default function App() {
   ];
   const [flashOffers, setFlashOffers] = useState<{name: string, img: string, cat: string}[]>(DEFAULT_OFFERS);
   const [editingOffers, setEditingOffers] = useState<{name: string, img: string, cat: string}[]>(DEFAULT_OFFERS);
+
+  const DEFAULT_FESTIVE_OFFER = {
+    enabled: false,
+    title: 'Diwali Special Offer',
+    subtitle: 'Get 20% off on all Premium Dry Cleaning!',
+    img: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&h=400&fit=crop'
+  };
+  const [festiveOffer, setFestiveOffer] = useState<{enabled: boolean, title: string, subtitle: string, img: string}>(DEFAULT_FESTIVE_OFFER);
+  const [editingFestive, setEditingFestive] = useState<{enabled: boolean, title: string, subtitle: string, img: string}>(DEFAULT_FESTIVE_OFFER);
   
   const [customers, setCustomers] = useState<CustomerProfile[]>([]);
   
@@ -169,6 +178,14 @@ export default function App() {
                 const parsed = JSON.parse(offersRow.icon);
                 setFlashOffers(parsed);
                 setEditingOffers(parsed);
+              } catch(e) {}
+            }
+            const festiveRow = data.find((p: any) => p.category === 'system' && p.item_name === 'festive_offer');
+            if (festiveRow && festiveRow.icon) {
+              try { 
+                const parsed = JSON.parse(festiveRow.icon);
+                setFestiveOffer(parsed);
+                setEditingFestive(parsed);
               } catch(e) {}
             }
             const garments = data.filter((p: any) => p.category !== 'system');
@@ -243,6 +260,14 @@ export default function App() {
                 const parsed = JSON.parse(offersRow.icon);
                 setFlashOffers(parsed);
                 setEditingOffers(parsed);
+              } catch(e) {}
+            }
+            const festiveRow = data.find((p: any) => p.category === 'system' && (p.item_name === 'festive_offer' || p.name === 'festive_offer'));
+            if (festiveRow && festiveRow.icon) {
+              try { 
+                const parsed = JSON.parse(festiveRow.icon);
+                setFestiveOffer(parsed);
+                setEditingFestive(parsed);
               } catch(e) {}
             }
             const garments = data.filter((p: any) => p.category !== 'system');
@@ -1679,13 +1704,27 @@ export default function App() {
                             className="bg-gradient-to-r from-rose-500 to-amber-500 rounded-xl p-4 cursor-pointer text-left relative overflow-hidden shadow-lg mt-1"
                           >
                             <div className="relative z-10">
-                              <h3 className="text-gray-900 font-black text-sm tracking-wide">REFER & EARN ₹50</h3>
+                              <h3 className="text-gray-900 font-black text-sm tracking-wide leading-tight break-words whitespace-normal">REFER & EARN ₹50</h3>
                               <p className="text-gray-900/80 text-[10px] mt-0.5">Invite friends and you both get ₹50 off!</p>
                             </div>
                             <div className="absolute right-[-10px] bottom-[-10px] opacity-20">
                               <Gift className="size-20" />
                             </div>
                           </div>
+
+                          {/* Festive Offer Banner */}
+                          {festiveOffer.enabled && (
+                            <div 
+                              onClick={() => setCustomerActiveTab('order')}
+                              className="relative rounded-2xl overflow-hidden shadow-lg mt-1 cursor-pointer group border border-gray-200"
+                            >
+                              <img src={festiveOffer.img} className="w-full h-36 object-cover" alt={festiveOffer.title} />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex flex-col justify-end p-4">
+                                <h3 className="text-white font-black text-lg tracking-wide group-active:scale-95 transition-transform">{festiveOffer.title}</h3>
+                                <p className="text-gray-200 text-xs mt-0.5 font-medium">{festiveOffer.subtitle}</p>
+                              </div>
+                            </div>
+                          )}
 
                           {/* Steam Press Feature Banner */}
                           <div 
@@ -1776,10 +1815,10 @@ export default function App() {
                             <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 rounded-full blur-3xl"></div>
                             <div className="absolute bottom-0 left-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl"></div>
                             
-                            <div className="size-16 bg-gradient-to-tr from-rose-500 to-amber-500 rounded-full flex items-center justify-center shadow-lg shadow-rose-500/20 mb-3 relative z-10">
+                            <div className="size-16 bg-gradient-to-tr from-rose-500 to-amber-500 rounded-full flex items-center justify-center shadow-lg shadow-rose-500/20 mb-3 relative z-10 shrink-0">
                               <Gift className="size-8 text-white" />
                             </div>
-                            <h2 className="text-lg font-black text-white relative z-10 tracking-tight whitespace-normal break-words">Refer & Earn ₹50</h2>
+                            <h2 className="text-base font-black text-white relative z-10 tracking-tight leading-tight break-words whitespace-normal">Refer & Earn ₹50</h2>
                             <p className="text-xs text-gray-300 mt-2 relative z-10 max-w-[250px] leading-relaxed">
                               Invite your friends to Iron Kart. When they complete their first order, you <strong className="text-amber-300">both get ₹50</strong> added to your wallets!
                             </p>
@@ -3231,9 +3270,30 @@ export default function App() {
                   <div className="flex flex-col gap-4 text-left animate-fade-in">
                     <h3 className="text-sm font-bold text-gray-900">Manage Flash Offers (Home Screen Banners)</h3>
                     <div className="bg-amber-50 border border-amber-100 p-4 rounded-xl text-xs text-amber-800 font-medium">
-                      Update the 4 Quick Book image banners that appear on the customer home screen.
+                      Manage the main Festive Banner (e.g. Diwali) and the 4 Quick Book image banners below it.
                     </div>
                     
+                    <h4 className="font-bold text-sm text-gray-900 border-b border-gray-200 pb-2 mt-2">1. Main Festive Banner</h4>
+                    <div className="bg-gray-50 border border-gray-200 p-4 rounded-xl flex flex-col gap-3">
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" checked={editingFestive.enabled} onChange={e => setEditingFestive({...editingFestive, enabled: e.target.checked})} id="enableFestive" className="size-4 accent-rose-500" />
+                        <label htmlFor="enableFestive" className="text-xs font-bold text-gray-900 cursor-pointer">Enable Main Banner</label>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-bold text-gray-500 uppercase">Banner Title</label>
+                        <input type="text" value={editingFestive.title} onChange={e => setEditingFestive({...editingFestive, title: e.target.value})} className="px-2 py-1.5 border border-gray-300 rounded text-xs outline-none focus:border-rose-500" />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-bold text-gray-500 uppercase">Subtitle</label>
+                        <input type="text" value={editingFestive.subtitle} onChange={e => setEditingFestive({...editingFestive, subtitle: e.target.value})} className="px-2 py-1.5 border border-gray-300 rounded text-xs outline-none focus:border-rose-500" />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-bold text-gray-500 uppercase">Image URL (Wide Format)</label>
+                        <input type="text" value={editingFestive.img} onChange={e => setEditingFestive({...editingFestive, img: e.target.value})} className="px-2 py-1.5 border border-gray-300 rounded text-xs outline-none focus:border-rose-500" />
+                      </div>
+                    </div>
+
+                    <h4 className="font-bold text-sm text-gray-900 border-b border-gray-200 pb-2 mt-4">2. Quick Book Category Images</h4>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                       {editingOffers.map((offer, idx) => (
                         <div key={idx} className="bg-gray-50 border border-gray-200 p-4 rounded-xl flex flex-col gap-3">
@@ -3271,13 +3331,24 @@ export default function App() {
                               err = error;
                             }
                             
+                            const { data: existingFestive } = await supabase.from('prices').select('id').eq('category', 'system').eq('item_name', 'festive_offer').single();
+                            if (existingFestive) {
+                              const { error } = await supabase.from('prices').update({ icon: JSON.stringify(editingFestive) }).eq('id', existingFestive.id);
+                              if (error) err = error;
+                            } else {
+                              const { error } = await supabase.from('prices').insert({ category: 'system', item_name: 'festive_offer', icon: JSON.stringify(editingFestive), price: 0, service_type: 'system' });
+                              if (error) err = error;
+                            }
+                            
                             if (err) alert("Failed to save: " + err.message);
                             else {
                               setFlashOffers(editingOffers);
+                              setFestiveOffer(editingFestive);
                               triggerNotification('✅ Offers updated and saved to DB!');
                             }
                           } else {
                             setFlashOffers(editingOffers);
+                            setFestiveOffer(editingFestive);
                             triggerNotification('✅ Offers updated locally (Offline Mode).');
                           }
                         }}
