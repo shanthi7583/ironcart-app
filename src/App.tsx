@@ -1264,13 +1264,13 @@ export default function App() {
           <div className="flex-1 max-w-[400px] flex flex-col items-center">
             
             {/* Phone shell container */}
-            <div className="w-full aspect-[9/19.5] border-8 border-gray-200 bg-white rounded-[40px] shadow-2xl flex flex-col overflow-hidden relative border-t-[12px] border-b-[12px]">
+            <div className="w-full aspect-[9/19.5] border-8 border-gray-200 bg-slate-50 rounded-[40px] shadow-2xl flex flex-col overflow-hidden relative border-t-[12px] border-b-[12px]">
               
               {/* Camera Notch simulation */}
               <div className="absolute top-2 left-1/2 -translate-x-1/2 w-28 h-4 bg-gray-100 rounded-full z-20"></div>
 
               {/* Inside Mobile App Viewport */}
-              <div className="flex-1 flex flex-col bg-gray-50 overflow-y-auto px-4 pt-8 pb-4">
+              <div className="flex-1 flex flex-col bg-stone-50 overflow-y-auto px-4 pt-8 pb-4">
                 
                 {/* Rider Portal View */}
                 {viewMode === 'rider' ? (
@@ -1580,7 +1580,7 @@ export default function App() {
                           {/* Welcome User Greeting */}
                           <div className="text-left mt-1">
                             <h3 className="text-sm font-extrabold text-gray-900">Hello, {currentCustomer?.name || 'Friend'}! 👋</h3>
-                            <p className="text-[10px] text-gray-500 mt-0.5">Ready to make your wardrobe look fresh and perfectly pressed? ✨</p>
+                            <p className="text-[10px] text-purple-600 font-medium mt-0.5">Experience premium fabric care tailored just for you. ✨</p>
                           </div>
                           
                           {/* Promotional Slide Banner */}
