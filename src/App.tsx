@@ -272,6 +272,7 @@ export default function App() {
   const [pickupTime, setPickupTime] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>('Light Weight');
+  const [showConsoleInput, setShowConsoleInput] = useState(false);
 
   // Cancel & Reschedule Modal State
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -1439,6 +1440,45 @@ export default function App() {
                             ) : (
                               <button onClick={() => setShowAddMoney(true)} className="w-full bg-gray-50 hover:bg-gray-200 border border-gray-200 text-emerald-400 text-xs font-bold py-2 rounded-lg transition-colors">
                                 + Add Money to Wallet
+                              </button>
+                            )}
+                          </div>
+
+
+                          {/* Console Gateway Link */}
+                          <div className="mt-6 pt-4 border-t border-gray-150 flex flex-col items-center gap-2">
+                            {showConsoleInput ? (
+                              <div className="flex gap-2 items-center animate-fade-in">
+                                <input 
+                                  type="password"
+                                  maxLength={4}
+                                  placeholder="PIN"
+                                  value={adminPin}
+                                  onChange={e => setAdminPin(e.target.value.replace(/\D/g, ''))}
+                                  className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs text-gray-900 w-20 text-center outline-none focus:border-rose-500"
+                                />
+                                <button 
+                                  onClick={() => {
+                                    handleAdminAccess();
+                                    setShowConsoleInput(false);
+                                  }}
+                                  className="bg-rose-500 hover:bg-rose-600 text-white font-bold text-[10px] px-3.5 py-1 rounded-lg transition-colors"
+                                >
+                                  Go
+                                </button>
+                                <button 
+                                  onClick={() => setShowConsoleInput(false)}
+                                  className="text-gray-400 hover:text-gray-600 text-xs px-1"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ) : (
+                              <button 
+                                onClick={() => setShowConsoleInput(true)}
+                                className="text-[9px] font-bold text-gray-400 hover:text-rose-500 transition-colors uppercase tracking-wider"
+                              >
+                                Console
                               </button>
                             )}
                           </div>
