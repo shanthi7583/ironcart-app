@@ -1347,7 +1347,7 @@ export default function App() {
                       </div>
                       <h2 className="text-2xl font-black text-gray-900 tracking-tight">Iron Kart</h2>
                       <p className="text-xs font-bold text-rose-500 bg-gradient-to-r from-rose-500 to-amber-500 bg-clip-text text-transparent mt-1 max-w-[250px] mx-auto leading-relaxed">
-                        Flawless Garments. Runway-Ready Perfection.
+                        100% Customer Satisfaction. Premium Care for Every Garment.
                       </p>
                     </div>
 
