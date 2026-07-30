@@ -1239,7 +1239,7 @@ export default function App() {
               <Sparkles className="size-3 text-amber-200 absolute top-1 right-1" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight text-gray-900 m-0 p-0 text-left bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-700">Iron Kart</h1>
+              <h1 className="text-xl font-black tracking-tight m-0 p-0 text-left bg-clip-text text-transparent bg-gradient-to-r from-purple-600 via-rose-500 to-amber-500">Iron Kart</h1>
               <p className="text-xs text-gray-500 text-left font-medium">Premium Ironing & Care</p>
             </div>
           </div>
@@ -1370,8 +1370,8 @@ export default function App() {
                         </svg>
                         <span className="text-[9px] font-black tracking-wider uppercase">Premium Steam Care</span>
                       </div>
-                      <h2 className="text-2xl font-black text-gray-900 tracking-tight">Iron Kart</h2>
-                      <p className="text-xs font-extrabold bg-gradient-to-r from-rose-500 via-fuchsia-500 to-amber-500 bg-clip-text text-transparent mt-1.5 max-w-[260px] mx-auto leading-relaxed animate-pulse drop-shadow-sm">
+                      <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-rose-500 to-amber-500 tracking-tight drop-shadow-sm pb-1">Iron Kart</h2>
+                      <p className="text-xs font-extrabold bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 bg-clip-text text-transparent mt-1 max-w-[260px] mx-auto leading-relaxed animate-pulse drop-shadow-sm">
                         Your Trusted Care Partner. Crisp, Clean & Perfectly Delivered.
                       </p>
                     </div>
