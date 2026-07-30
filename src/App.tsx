@@ -180,7 +180,9 @@ export default function App() {
       client.from('orders').select('*').order('created_at', { ascending: false })
         .then(({ data, error }) => {
           if (error) console.error(error);
-          else if (data) setOrders(data);
+          else if (data) {
+            setOrders(data.map((o: any) => ({ ...o, customerName: o.customer_name || o.customerName, customerPhone: o.customer_phone || o.customerPhone, apartmentNo: o.apartment_no || o.apartmentNo, paymentStatus: o.payment_status || o.paymentStatus, paymentMethod: o.payment_method || o.paymentMethod })));
+          }
         });
 
       client.from('customers').select('*')
@@ -196,7 +198,9 @@ export default function App() {
           console.log('Realtime Order Event received:', payload);
           client.from('orders').select('*').order('created_at', { ascending: false })
             .then(({ data, error }) => {
-              if (!error && data) setOrders(data);
+              if (!error && data) {
+                setOrders(data.map((o: any) => ({ ...o, customerName: o.customer_name || o.customerName, customerPhone: o.customer_phone || o.customerPhone, apartmentNo: o.apartment_no || o.apartmentNo, paymentStatus: o.payment_status || o.paymentStatus, paymentMethod: o.payment_method || o.paymentMethod })));
+              }
             });
         })
         .subscribe();
@@ -759,7 +763,7 @@ export default function App() {
         'Picked Up': `Hello ${order.customerName}, your garments for order *${order.id}* have been Picked Up! 🛵💨`,
         'Ironing': `Hi ${order.customerName}, your garments for order *${order.id}* are currently being Ironed & Processed! 👔✨`,
         'Ready': `Great news ${order.customerName}! Your order *${order.id}* is Ready for delivery. 🎉`,
-        'Delivered': `Thank you ${order.customerName}! Order *${order.id}* has been successfully Delivered. We hope you love the crisp finish! 🌟`
+        'Delivered': `Thank you ${order.customerName}! 🌟\n\nYour garments for order *${order.id}* have been successfully Delivered.\n\n*--- INVOICE ---*\nTotal Amount: ₹${order.total}\nPayment Status: ${order.paymentStatus} (${order.paymentMethod})\n\nWe hope you love the crisp finish! 👔✨`
       };
       if (statuses[nextStatus]) {
         const whatsappUrl = `https://wa.me/91${order.customerPhone}?text=${encodeURIComponent(statuses[nextStatus])}`;
@@ -1675,9 +1679,9 @@ export default function App() {
                             <h4 className="text-xs font-bold text-gray-900 mb-2 pl-1">Quick Book by Category</h4>
                             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
                               {[
-                                { name: 'Everyday', img: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=200&h=200&fit=crop', cat: 'Light Weight' },
-                                { name: 'Party Wear', img: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=200&h=200&fit=crop', cat: 'Medium/Heavy' },
-                                { name: 'Premium', img: 'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=200&h=200&fit=crop', cat: 'Premium' },
+                                { name: 'Everyday', img: 'https://images.unsplash.com/photo-1544441893-675973e31985?w=200&h=200&fit=crop', cat: 'Light Weight' },
+                                { name: 'Party Wear', img: 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=200&h=200&fit=crop', cat: 'Medium/Heavy' },
+                                { name: 'Premium', img: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=200&h=200&fit=crop', cat: 'Premium' },
                                 { name: 'Home', img: 'https://images.unsplash.com/photo-1616627561950-9f746e330187?w=200&h=200&fit=crop', cat: 'Household' }
                               ].map(f => (
                                 <button 
@@ -1751,7 +1755,7 @@ export default function App() {
                             <div className="size-16 bg-gradient-to-tr from-rose-500 to-amber-500 rounded-full flex items-center justify-center shadow-lg shadow-rose-500/20 mb-3 relative z-10">
                               <Gift className="size-8 text-white" />
                             </div>
-                            <h2 className="text-xl font-black text-white relative z-10 tracking-tight">Refer & Earn ₹50</h2>
+                            <h2 className="text-lg font-black text-white relative z-10 tracking-tight whitespace-normal break-words">Refer & Earn ₹50</h2>
                             <p className="text-xs text-gray-300 mt-2 relative z-10 max-w-[250px] leading-relaxed">
                               Invite your friends to Iron Kart. When they complete their first order, you <strong className="text-amber-300">both get ₹50</strong> added to your wallets!
                             </p>
@@ -1923,7 +1927,7 @@ export default function App() {
                             <div className="flex gap-4 overflow-x-auto pb-4 pt-1 scrollbar-hide -mx-2 px-2 snap-x">
                               {[
                                 {name: 'Ironing', desc: 'Crisp pressing', img: '/hero_banner.png'},
-                                {name: 'Dry Cleaning', desc: 'Delicate care', img: 'https://images.unsplash.com/photo-1626449557762-23f46f41443d?w=400&h=300&fit=crop'},
+                                {name: 'Dry Cleaning', desc: 'Delicate care', img: 'https://images.unsplash.com/photo-1582719478250-c89402617688?w=400&h=300&fit=crop'},
                                 {name: 'Laundry', desc: 'Wash & fold', img: 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=400&h=300&fit=crop'}
                               ].map(svc => (
                                 <button 
@@ -1997,9 +2001,9 @@ export default function App() {
 
                             <div className="flex overflow-x-auto scrollbar-hide pb-3 -mx-2 px-2 gap-3 border-b border-gray-200">
                               {[
-                                { name: 'Light Weight', img: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=400&h=300&fit=crop' },
-                                { name: 'Medium/Heavy', img: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=400&h=300&fit=crop' },
-                                { name: 'Premium', img: 'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=400&h=300&fit=crop' },
+                                { name: 'Light Weight', img: 'https://images.unsplash.com/photo-1544441893-675973e31985?w=400&h=300&fit=crop' },
+                                { name: 'Medium/Heavy', img: 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=400&h=300&fit=crop' },
+                                { name: 'Premium', img: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&h=300&fit=crop' },
                                 { name: 'Household', img: 'https://images.unsplash.com/photo-1616627561950-9f746e330187?w=400&h=300&fit=crop' }
                               ].map(cat => (
                                 <button
