@@ -269,7 +269,7 @@ export default function App() {
 
   const orderSpeed = 'Normal';
   const [pickupDate, setPickupDate] = useState('');
-  const [pickupTime, setPickupTime] = useState('09:00 - 12:00');
+  const [pickupTime, setPickupTime] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>('Light Weight');
 
@@ -1086,7 +1086,7 @@ export default function App() {
         ) : (
           <div className="flex items-center gap-3">
             <div className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-tr from-rose-500 to-amber-500 shadow-md">
-              <span className="font-extrabold text-gray-900 text-lg tracking-wider">IC</span>
+              <span className="font-extrabold text-gray-900 text-lg tracking-wider">IK</span>
             </div>
             <div>
               <h1 className="text-xl font-bold tracking-tight text-gray-900 m-0 p-0 text-left">Iron Kart</h1>
@@ -2140,85 +2140,171 @@ export default function App() {
                       )}
 
                       {/* SUPPORT & ADMIN GATEWAY TAB */}
+                                            {/* SUPPORT & ADMIN GATEWAY TAB */}
                       {customerActiveTab === 'support' && (
-                        <div className="flex flex-col gap-3 text-left">
-                          <h3 className="text-sm font-bold text-gray-900">Help & Support</h3>
+                        <div className="flex flex-col gap-4 text-left max-h-[500px] overflow-y-auto pb-6 pr-1">
                           
-                          <div className="bg-white border border-gray-200 p-4 rounded-2xl flex flex-col gap-4">
-                            <div>
-                              <h4 className="text-xs font-bold text-gray-900 mb-1">📞 Contact Support</h4>
-                              <p className="text-[10px] text-gray-500 leading-relaxed">For immediate support regarding delivery schedules, reach us:</p>
-                              <div className="flex flex-col gap-1.5 mt-2.5 text-[10px]">
-                                <a href="tel:+919791019505" className="text-rose-500 font-bold hover:underline">Phone: +91 9791019505</a>
-                                <a href="mailto:support@ironcart.com" className="text-rose-500 font-bold hover:underline">Email: support@ironcart.com</a>
-                              </div>
-                            </div>
-                            
-                            <div className="border-t border-gray-200 pt-3">
-                              <h4 className="text-xs font-bold text-gray-900 mb-1">💬 WhatsApp Chat</h4>
-                              <a 
-                                href="https://wa.me/919791019505" 
-                                target="_blank" 
-                                rel="noreferrer" 
-                                className="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] px-3.5 py-2 rounded-xl mt-2 text-center"
-                              >
-                                Chat on WhatsApp
-                              </a>
-                            </div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <button onClick={() => setCustomerActiveTab('home')} className="p-1 hover:bg-gray-200 rounded-lg">
+                              <ArrowLeft className="size-4 text-gray-500" />
+                            </button>
+                            <h3 className="text-sm font-bold text-gray-900">Help & Support</h3>
+                          </div>
 
-                            {/* FAQ Section */}
-                            <div className="border-t border-gray-200 pt-3">
-                              <h4 className="text-xs font-bold text-gray-950 mb-2">❓ Frequently Asked Questions</h4>
+                          {/* Quick Support Actions */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <a 
+                              href="tel:+919791019505" 
+                              className="flex flex-col items-center justify-center gap-2 p-4 bg-rose-50 border border-rose-200 rounded-2xl text-center shadow-sm hover:bg-rose-100 transition-colors"
+                            >
+                              <div className="size-8 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-600">
+                                <Phone className="size-4" strokeWidth={2.5} />
+                              </div>
+                              <span className="text-[10px] font-bold text-rose-600">Call Us Directly</span>
+                              <span className="text-[8px] text-rose-500/80 -mt-1">+91 97910 19505</span>
+                            </a>
+                            <a 
+                              href="https://wa.me/919791019505" 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              className="flex flex-col items-center justify-center gap-2 p-4 bg-emerald-50 border border-emerald-250 rounded-2xl text-center shadow-sm hover:bg-emerald-100 transition-colors"
+                            >
+                              <div className="size-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-600">
+                                <Truck className="size-4" strokeWidth={2.5} />
+                              </div>
+                              <span className="text-[10px] font-bold text-emerald-600">Chat with Us</span>
+                              <span className="text-[8px] text-emerald-500/80 -mt-1">Active on WhatsApp</span>
+                            </a>
+                          </div>
+
+                          {/* Detailed Support Categories Accordion */}
+                          <div className="bg-white border border-gray-200 p-4 rounded-2xl flex flex-col gap-4 shadow-sm">
+                            
+                            {/* Garment Quality & Issues */}
+                            <div>
+                              <h4 className="text-xs font-black text-gray-950 mb-2 flex items-center gap-1.5">👕 Garment & Quality Issues</h4>
                               <div className="flex flex-col gap-2">
                                 {[
-                                  { q: "How long does ironing take?", a: "Standard turnaround time is 24 to 48 hours depending on your pickup schedule." },
-                                  { q: "How do I top up my wallet?", a: "Go to the Home tab and tap '+ Add Money to Wallet'. You can pay securely using UPI, Credit/Debit cards, or NetBanking." },
-                                  { q: "Can I reschedule my pickup?", a: "Yes, go to 'My Orders' tab, select your active order, and tap the 'Reschedule' button to select a new slot." },
-                                  { q: "Do you iron designer sarees?", a: "Yes! Designer sarees, silk garments, and wedding sets fall under our Premium category and are ironed with special low-temperature steam care." }
-                                ].map((faq, idx) => (
-                                  <div key={idx} className="border border-gray-200 rounded-lg overflow-hidden">
-                                    <button 
-                                      onClick={() => setExpandedFaq(expandedFaq === idx ? null : idx)}
-                                      className="w-full text-left bg-gray-50 hover:bg-gray-100 p-2.5 flex justify-between items-center text-[10px] font-bold text-gray-700"
-                                    >
-                                      <span>{faq.q}</span>
-                                      <ChevronRight className={`size-3 text-gray-400 transition-all ${expandedFaq === idx ? 'rotate-90' : ''}`} />
-                                    </button>
-                                    {expandedFaq === idx && (
-                                      <div className="p-2.5 bg-white text-[9px] text-gray-500 leading-relaxed border-t border-gray-100">
-                                        {faq.a}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
+                                  { q: "What if some of my clothes are missing?", a: "We have strict CCTV tracking at our pressing centers. If an item is verified missing, we immediately resolve it or credit up to 5x the service cost of that garment to your wallet." },
+                                  { q: "What if there are quality or crease issues?", a: "We stand by our quality! If you find any poor creases or quality issues, contact us within 24 hours of delivery, and we will collect and re-iron the garments completely free of cost." }
+                                ].map((item, idx) => {
+                                  const keyIndex = 10 + idx;
+                                  return (
+                                    <div key={keyIndex} className="border border-gray-155 rounded-xl overflow-hidden">
+                                      <button 
+                                        onClick={() => setExpandedFaq(expandedFaq === keyIndex ? null : keyIndex)}
+                                        className="w-full text-left bg-gray-50 p-2.5 flex justify-between items-center text-[10px] font-bold text-gray-700 hover:bg-gray-100"
+                                      >
+                                        <span>{item.q}</span>
+                                        <ChevronRight className={`size-3 text-gray-400 transition-all ${expandedFaq === keyIndex ? 'rotate-90' : ''}`} />
+                                      </button>
+                                      {expandedFaq === keyIndex && (
+                                        <div className="p-2.5 bg-white text-[9px] text-gray-500 leading-relaxed border-t border-gray-100">
+                                          {item.a}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
 
-                            {/* Owner Admin Gateway Switcher */}
-                            <div className="border-t border-gray-200 pt-3 bg-white/60 p-2.5 rounded-xl border border-dashed border-gray-200">
-                              <h4 className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
-                                <Key className="size-3.5 text-amber-500 animate-pulse" />
-                                Owner Portal Gateway
-                              </h4>
-                              <p className="text-[9px] text-gray-400 mt-1">If you are the business owner, enter your access PIN to open the dashboard:</p>
-                              <div className="flex gap-2 mt-3">
-                                <input 
-                                  type="password"
-                                  maxLength={4}
-                                  placeholder="PIN"
-                                  value={adminPin}
-                                  onChange={e => setAdminPin(e.target.value.replace(/\D/g, ''))}
-                                  className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs text-gray-900 w-24 text-center outline-none"
-                                />
+                            {/* Order Tracking */}
+                            <div className="border-t border-gray-100 pt-3">
+                              <h4 className="text-xs font-black text-gray-950 mb-2 flex items-center gap-1.5">📦 Order Tracking</h4>
+                              <div className="border border-gray-155 rounded-xl overflow-hidden">
                                 <button 
-                                  onClick={handleAdminAccess}
-                                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] px-3 py-1 rounded-lg"
+                                  onClick={() => setExpandedFaq(expandedFaq === 20 ? null : 20)}
+                                  className="w-full text-left bg-gray-50 p-2.5 flex justify-between items-center text-[10px] font-bold text-gray-700 hover:bg-gray-100"
                                 >
-                                  Enter Portal
+                                  <span>Where is my active order?</span>
+                                  <ChevronRight className={`size-3 text-gray-400 transition-all ${expandedFaq === 20 ? 'rotate-90' : ''}`} />
                                 </button>
+                                {expandedFaq === 20 && (
+                                  <div className="p-2.5 bg-white text-[9px] text-gray-500 leading-relaxed border-t border-gray-100">
+                                    You can track the live progress of your order by going to the "My Orders" tab on the bottom navigation bar and tapping on your active booking.
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Payment Problems */}
+                            <div className="border-t border-gray-100 pt-3">
+                              <h4 className="text-xs font-black text-gray-950 mb-2 flex items-center gap-1.5">💳 Payment Problems</h4>
+                              <div className="border border-gray-155 rounded-xl overflow-hidden">
+                                <button 
+                                  onClick={() => setExpandedFaq(expandedFaq === 30 ? null : 30)}
+                                  className="w-full text-left bg-gray-50 p-2.5 flex justify-between items-center text-[10px] font-bold text-gray-700 hover:bg-gray-100"
+                                >
+                                  <span>Transaction failed but money deducted?</span>
+                                  <ChevronRight className={`size-3 text-gray-400 transition-all ${expandedFaq === 30 ? 'rotate-90' : ''}`} />
+                                </button>
+                                {expandedFaq === 30 && (
+                                  <div className="p-2.5 bg-white text-[9px] text-gray-500 leading-relaxed border-t border-gray-100">
+                                    Do not worry! In case of gateway failures, deducted funds are automatically refunded to your original payment source within 3-5 working days by Razorpay.
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* General FAQs */}
+                            <div className="border-t border-gray-100 pt-3">
+                              <h4 className="text-xs font-black text-gray-950 mb-2 flex items-center gap-1.5">❓ General FAQ</h4>
+                              <div className="flex flex-col gap-2">
+                                {[
+                                  { q: "Pricing & Scheduling", a: "Pricing is transparently listed on the 'Price List' page. You can choose any pickup date and time slot from the scheduling panel during booking." },
+                                  { q: "Delivery details", a: "Standard delivery is completed within 24-48 hours. Pickup and delivery are completely free for all orders above ₹150." },
+                                  { q: "Cancellations & Rescheduling", a: "You can cancel any placed order directly from 'My Orders' before it is picked up by our rider. Rescheduling is also supported." },
+                                  { q: "Garment Care guidelines", a: "We read fabric labels. Delicate fabrics are steam pressed on low temperatures, and household items are sanitized carefully." },
+                                  { q: "Wallet & Referral program", a: "Share your unique code in the 'Refer & Earn' tab. Once your friend completes their first order, you both get ₹50 added to your wallets!" }
+                                ].map((item, idx) => {
+                                  const keyIndex = 40 + idx;
+                                  return (
+                                    <div key={keyIndex} className="border border-gray-155 rounded-xl overflow-hidden">
+                                      <button 
+                                        onClick={() => setExpandedFaq(expandedFaq === keyIndex ? null : keyIndex)}
+                                        className="w-full text-left bg-gray-50 p-2.5 flex justify-between items-center text-[10px] font-bold text-gray-700 hover:bg-gray-100"
+                                      >
+                                        <span>{item.q}</span>
+                                        <ChevronRight className={`size-3 text-gray-400 transition-all ${expandedFaq === keyIndex ? 'rotate-90' : ''}`} />
+                                      </button>
+                                      {expandedFaq === keyIndex && (
+                                        <div className="p-2.5 bg-white text-[9px] text-gray-500 leading-relaxed border-t border-gray-100">
+                                          {item.a}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
                           </div>
+
+                          {/* Owner Admin Gateway Switcher */}
+                          <div className="border-t border-gray-200 pt-3 bg-white/60 p-2.5 rounded-xl border border-dashed border-gray-200">
+                            <h4 className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                              <Key className="size-3.5 text-amber-500 animate-pulse" />
+                              Owner Portal Gateway
+                            </h4>
+                            <p className="text-[9px] text-gray-400 mt-1">If you are the business owner, enter your access PIN to open the dashboard:</p>
+                            <div className="flex gap-2 mt-3">
+                              <input 
+                                type="password"
+                                maxLength={4}
+                                placeholder="PIN"
+                                value={adminPin}
+                                onChange={e => setAdminPin(e.target.value.replace(/\D/g, ''))}
+                                className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs text-gray-900 w-24 text-center outline-none"
+                              />
+                              <button 
+                                onClick={handleAdminAccess}
+                                className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] px-3 py-1 rounded-lg"
+                              >
+                                Enter Portal
+                              </button>
+                            </div>
+                          </div>
+
                         </div>
                       )}
 
