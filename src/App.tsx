@@ -753,6 +753,20 @@ export default function App() {
 
   // --- Admin Actions ---
   const updateOrderStatus = (orderId: string, nextStatus: 'Placed' | 'Picked Up' | 'Ironing' | 'Ready' | 'Delivered') => {
+    const order = orders.find(o => o.id === orderId);
+    if (order && order.customerPhone) {
+      const statuses: Record<string, string> = {
+        'Picked Up': `Hello ${order.customerName}, your garments for order *${order.id}* have been Picked Up! 🛵💨`,
+        'Ironing': `Hi ${order.customerName}, your garments for order *${order.id}* are currently being Ironed & Processed! 👔✨`,
+        'Ready': `Great news ${order.customerName}! Your order *${order.id}* is Ready for delivery. 🎉`,
+        'Delivered': `Thank you ${order.customerName}! Order *${order.id}* has been successfully Delivered. We hope you love the crisp finish! 🌟`
+      };
+      if (statuses[nextStatus]) {
+        const whatsappUrl = `https://wa.me/91${order.customerPhone}?text=${encodeURIComponent(statuses[nextStatus])}`;
+        window.open(whatsappUrl, '_blank');
+      }
+    }
+
     fetch(`${API_URL}/orders/${orderId}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -761,10 +775,7 @@ export default function App() {
       .then(res => res.json())
       .then(data => {
         setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...data } : o));
-        let notifyMsg = `📱 SMS: Order ${orderId} updated to [${nextStatus}]`;
-        if (nextStatus === 'Ready') notifyMsg = `🎉 WhatsApp sent: Your ironing is ready for pickup!`;
-        if (nextStatus === 'Delivered') notifyMsg = `🚚 Delivered! Invoice generated.`;
-        triggerNotification(notifyMsg);
+        triggerNotification(`Order ${orderId} updated to ${nextStatus}!`);
       })
       .catch(err => alert('API Connection Error: ' + err.message));
   };
@@ -1715,43 +1726,7 @@ export default function App() {
                             </div>
                           )}
 
-                          {/* Console Gateway Link */}
-                          <div className="mt-6 pt-4 border-t border-gray-150 flex flex-col items-center gap-2 pb-6">
-                            {showConsoleInput ? (
-                              <div className="flex gap-2 items-center animate-fade-in">
-                                <input 
-                                  type="password"
-                                  maxLength={4}
-                                  placeholder="PIN"
-                                  value={adminPin}
-                                  onChange={e => setAdminPin(e.target.value.replace(/\D/g, ''))}
-                                  className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs text-gray-900 w-20 text-center outline-none focus:border-rose-500"
-                                />
-                                <button 
-                                  onClick={() => {
-                                    handleAdminAccess();
-                                    setShowConsoleInput(false);
-                                  }}
-                                  className="bg-rose-500 hover:bg-rose-600 text-white font-bold text-[10px] px-3.5 py-1 rounded-lg transition-colors"
-                                >
-                                  Go
-                                </button>
-                                <button 
-                                  onClick={() => setShowConsoleInput(false)}
-                                  className="text-gray-400 hover:text-gray-600 text-xs px-1"
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                            ) : (
-                              <button 
-                                onClick={() => setShowConsoleInput(true)}
-                                className="text-[9px] font-bold text-gray-400 hover:text-rose-500 transition-colors uppercase tracking-wider"
-                              >
-                                Admin / Rider Login
-                              </button>
-                            )}
-                          </div>
+
 
                         </div>
                       )}
