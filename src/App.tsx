@@ -4,7 +4,7 @@ import {
   TrendingUp, Users, Smartphone, 
   ChevronRight, ShoppingBag, 
   FileText, CreditCard, ArrowLeft, Settings, 
-  Bell, HelpCircle, LogOut, Eye, RefreshCw, Key, Star, Navigation, Wallet, X, Phone, Gift
+  Bell, HelpCircle, LogOut, Eye, RefreshCw, Key, Star, Navigation, Wallet, X, Phone, Gift, Landmark, Truck
 } from 'lucide-react'
 import { supabase } from './supabaseClient'
 import { auth, RecaptchaVerifier } from './firebaseConfig'
@@ -16,6 +16,7 @@ interface GarmentItem {
   price: number;
   category: string;
   serviceType?: string;
+  icon?: string;
 }
 
 interface OrderItem {
@@ -143,10 +144,31 @@ export default function App() {
     const client = supabase;
     if (client) {
       // 1. Fetch from Supabase tables
-      client.from('price_list').select('*')
+      client.from('prices').select('*')
         .then(({ data, error }) => {
           if (error) console.error(error);
-          else if (data) setPriceList(data);
+          else if (data && data.length > 0) {
+            const mapped = data.map((p: any) => ({
+              name: p.item_name,
+              price: p.price,
+              category: p.category,
+              icon: p.icon || '👕',
+              serviceType: p.service_type || 'Ironing'
+            }));
+            setPriceList(mapped);
+          } else {
+            // Seed database prices table if empty
+            const seedData = DEFAULT_PRICE_LIST.map(item => ({
+              category: item.category,
+              item_name: item.name,
+              price: item.price,
+              icon: item.icon || '👕',
+              service_type: item.serviceType
+            }));
+            client.from('prices').insert(seedData).then(() => {
+              console.log('Seeded prices table in database.');
+            });
+          }
         });
 
       client.from('orders').select('*').order('created_at', { ascending: false })
@@ -208,9 +230,8 @@ export default function App() {
   // Default to 'customer' view ONLY, so the customer app is used alone!
   const [viewMode, setViewMode] = useState<'customer' | 'admin' | 'dual' | 'rider'>('customer');
   const [customerActiveTab, setCustomerActiveTab] = useState<'home' | 'order' | 'prices' | 'history' | 'support' | 'subscriptions' | 'rewards' | 'notifications'>('home');
-  const [userSubscription, setUserSubscription] = useState<'None' | 'Bronze' | 'Silver' | 'Gold'>('None');
-  const [userSubscriptionQuota, setUserSubscriptionQuota] = useState(0);
   const [adminActiveTab, setAdminActiveTab] = useState<'overview' | 'orders' | 'prices' | 'customers' | 'settings'>('overview');
+  const userSubscription = currentCustomer?.activePlan || 'None';
   const [upiDetails, setUpiDetails] = useState<{ phone: string, id: string }>(() => {
     const saved = localStorage.getItem('iron_upi_details');
     return saved ? JSON.parse(saved) : { phone: '9791019505', id: '9791019505@ybl' };
@@ -286,7 +307,7 @@ export default function App() {
   const [orderAddress, setOrderAddress] = useState('');
   const [selectedItems, setSelectedItems] = useState<{ [key: string]: number }>({});
   const [specialInstructions, setSpecialInstructions] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'Card' | 'COD' | 'Wallet'>('UPI');
+  const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'Card' | 'COD' | 'Wallet' | 'NetBanking'>('UPI');
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [selectedOrderForTracking, setSelectedOrderForTracking] = useState<Order | null>(null);
 
@@ -464,14 +485,12 @@ export default function App() {
     // Apply discount to subtotal
     let discount = 0;
     
-    if (userSubscription !== 'None' && userSubscriptionQuota > 0) {
-      if (totalItems <= userSubscriptionQuota) {
-        discount = subtotal; // Fully covered by subscription
-      } else {
-        // Approximate discount for covered items
-        const avgPrice = subtotal / totalItems;
-        discount = avgPrice * userSubscriptionQuota;
-      }
+    if (userSubscription !== 'None') {
+      let discountPercent = 0;
+      if (userSubscription === 'Bronze') discountPercent = 0.15;
+      else if (userSubscription === 'Silver') discountPercent = 0.25;
+      else if (userSubscription === 'Gold') discountPercent = 0.35;
+      discount = subtotal * discountPercent;
     } else {
       if (appliedCoupon === 'WELCOME50') discount = 50;
       else if (appliedCoupon === 'FIRST10') discount = subtotal * 0.10;
@@ -601,7 +620,7 @@ export default function App() {
       return;
     }
 
-    if ((paymentMethod === 'UPI' || paymentMethod === 'Card') && gatewayOrderData?.liveMode) {
+    if ((paymentMethod === 'UPI' || paymentMethod === 'Card' || paymentMethod === 'NetBanking') && gatewayOrderData?.liveMode) {
       // Trigger Live Razorpay Checkout
       const options = {
         key: gatewayOrderData.keyId,
@@ -668,8 +687,9 @@ export default function App() {
 
   const saveAdminPrices = () => {
     const updated = priceList.map(item => {
-      if (editingPrices[item.name] !== undefined) {
-        return { ...item, price: editingPrices[item.name] };
+      const key = `${item.serviceType}-${item.name}`;
+      if (editingPrices[key] !== undefined) {
+        return { ...item, price: editingPrices[key] };
       }
       return item;
     });
@@ -677,7 +697,16 @@ export default function App() {
     const client = supabase;
     if (client) {
       Promise.all(
-        updated.map(item => client.from('price_list').update({ price: item.price }).eq('name', item.name))
+        updated.map(item => {
+          const key = `${item.serviceType}-${item.name}`;
+          if (editingPrices[key] !== undefined) {
+            return client.from('prices')
+              .update({ price: item.price })
+              .eq('item_name', item.name)
+              .eq('service_type', item.serviceType);
+          }
+          return Promise.resolve();
+        })
       ).then(() => {
         setPriceList(updated);
         setEditingPrices({});
@@ -750,10 +779,15 @@ export default function App() {
       return;
     }
 
+    const paymentStatusUpdate = selectedOrderForTracking.paymentStatus === 'Pending' ? 'Cancelled' : selectedOrderForTracking.paymentStatus;
     fetch(`${API_URL}/orders/${selectedOrderForTracking.id}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'Cancelled', cancelReason: cancelReasonInput })
+      body: JSON.stringify({ 
+        status: 'Cancelled', 
+        cancelReason: cancelReasonInput,
+        paymentStatus: paymentStatusUpdate
+      })
     })
       .then(res => res.json())
       .then(updated => {
@@ -770,6 +804,8 @@ export default function App() {
   const [newAddressText, setNewAddressText] = useState('');
   const [showAddAddress, setShowAddAddress] = useState(false);
 
+
+  const [checkoutAddAmount, setCheckoutAddAmount] = useState('');
 
   const handleAddFunds = async () => {
     if (!currentCustomer) return;
@@ -826,6 +862,66 @@ export default function App() {
         alert(`Demo Mode: ₹${amount} added to wallet!`);
         setShowAddMoney(false);
         setAddMoneyAmount('');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Failed to initialize payment gateway.');
+    }
+  };
+
+  const handleCheckoutAddFunds = async () => {
+    if (!currentCustomer) return;
+    const amount = parseInt(checkoutAddAmount);
+    if (!amount || amount <= 0) return;
+
+    try {
+      const res = await fetch(`${API_URL}/payments/create-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, currency: 'INR' })
+      });
+      const gatewayOrderData = await res.json();
+      
+      if (gatewayOrderData.liveMode) {
+        const options = {
+          key: gatewayOrderData.keyId,
+          amount: gatewayOrderData.amount * 100, // paise
+          currency: gatewayOrderData.currency,
+          name: "IronCart Wallet",
+          description: "Wallet Top-up",
+          order_id: gatewayOrderData.gatewayOrderId,
+          handler: function (response: any) {
+            console.log("Razorpay Success Transaction ID:", response.razorpay_payment_id);
+            const newBalance = (currentCustomer.walletBalance || 0) + amount;
+            const updated = { ...currentCustomer, walletBalance: newBalance };
+            setCurrentCustomer(updated);
+            fetch(`${API_URL}/customers/${currentCustomer.phone}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(updated)
+            });
+            alert(`₹${amount} added to wallet successfully!`);
+            setCheckoutAddAmount('');
+          },
+          prefill: {
+            name: currentCustomer.name || '',
+            contact: currentCustomer.phone || ''
+          },
+          theme: { color: "#F43F5E" }
+        };
+        const rzp = new (window as any).Razorpay(options);
+        rzp.open();
+      } else {
+        const newBalance = (currentCustomer.walletBalance || 0) + amount;
+        const updated = { ...currentCustomer, walletBalance: newBalance };
+        setCurrentCustomer(updated);
+        fetch(`${API_URL}/customers/${currentCustomer.phone}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updated)
+        });
+        alert(`Demo Mode: ₹${amount} added to wallet!`);
+        setCheckoutAddAmount('');
       }
     } catch (e) {
       console.error(e);
@@ -2097,9 +2193,9 @@ export default function App() {
 
                           <div className="flex flex-col gap-3 pb-2">
                             {[
-                              { name: 'Bronze', items: 20, price: 499, color: 'text-orange-300', bg: 'bg-orange-300/10', border: 'border-orange-300' },
-                              { name: 'Silver', items: 50, price: 999, color: 'text-gray-700', bg: 'bg-slate-300/10', border: 'border-slate-300' },
-                              { name: 'Gold', items: 100, price: 1799, color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400' }
+                              { name: 'Bronze', discount: 15, price: 299, color: 'text-orange-300', bg: 'bg-orange-300/10', border: 'border-orange-300' },
+                              { name: 'Silver', discount: 25, price: 499, color: 'text-gray-700', bg: 'bg-slate-300/10', border: 'border-slate-300' },
+                              { name: 'Gold', discount: 35, price: 699, color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400' }
                             ].map(plan => (
                               <div key={plan.name} className={`border ${userSubscription === plan.name ? plan.border : 'border-gray-200'} bg-white rounded-xl p-4 relative overflow-hidden transition-all`}>
                                 {userSubscription === plan.name && <div className="absolute top-0 right-0 bg-emerald-500 text-white text-[8px] font-bold px-2 py-1 rounded-bl-lg">ACTIVE</div>}
@@ -2109,19 +2205,25 @@ export default function App() {
                                   </h4>
                                   <span className="text-gray-900 font-extrabold">₹{plan.price}<span className="text-[9px] text-gray-400 font-normal">/mo</span></span>
                                 </div>
-                                <p className="text-[10px] text-gray-500">Includes {plan.items} garments (Ironing or Laundry). Express delivery extra.</p>
+                                <p className="text-[10px] text-gray-500">Gets flat {plan.discount}% discount on all orders placed (includes Light, Medium, Premium & Household categories).</p>
                                 <button 
                                   onClick={() => {
-                                    if(confirm(`Subscribe to ${plan.name} for ₹${plan.price}?`)) {
-                                      setUserSubscription(plan.name as any);
-                                      setUserSubscriptionQuota(plan.items);
-                                      alert('Subscription Activated!');
+                                    if(confirm(`Subscribe to ${plan.name} Plan for ₹${plan.price}/mo?`)) {
+                                      if (!currentCustomer) return;
+                                      const updated = { ...currentCustomer, activePlan: plan.name };
+                                      setCurrentCustomer(updated);
+                                      fetch(`${API_URL}/customers/${currentCustomer.phone}`, {
+                                        method: 'PUT',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify(updated)
+                                      });
+                                      alert(`${plan.name} Subscription Activated! You now get ${plan.discount}% off on all orders.`);
                                     }
                                   }}
                                   disabled={userSubscription === plan.name}
-                                  className={`w-full mt-3 py-2 rounded-lg text-xs font-bold ${userSubscription === plan.name ? 'bg-gray-200 text-gray-400' : 'bg-gray-200 hover:bg-gray-300 text-gray-900 shadow-sm'}`}
+                                  className={`w-full mt-3 py-2 rounded-lg text-xs font-bold ${userSubscription === plan.name ? 'bg-gray-200 text-gray-400' : 'bg-rose-500 hover:bg-rose-600 text-white shadow-sm'}`}
                                 >
-                                  {userSubscription === plan.name ? `Quota Left: ${userSubscriptionQuota} Items` : 'Subscribe Now'}
+                                  {userSubscription === plan.name ? `Active Plan (${plan.discount}% Discount)` : 'Subscribe Now'}
                                 </button>
                               </div>
                             ))}
@@ -2137,8 +2239,7 @@ export default function App() {
                         { tab: 'home', label: 'Home', icon: Smartphone },
                         { tab: 'order', label: 'Book', icon: Plus },
                         { tab: 'subscriptions', label: 'Prime', icon: Star },
-                        { tab: 'history', label: 'Orders', icon: ShoppingBag },
-                        { tab: 'support', label: 'Support', icon: HelpCircle }
+                        { tab: 'history', label: 'Orders', icon: ShoppingBag }
                       ].map(item => {
                         const Icon = item.icon
                         const isActive = customerActiveTab === item.tab
@@ -2215,13 +2316,35 @@ export default function App() {
                     </button>
 
                     <button 
+                      onClick={() => setPaymentMethod('Card')}
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${paymentMethod === 'Card' ? 'bg-rose-500/10 border-rose-500 text-rose-500' : 'bg-white border-gray-200 text-gray-700'}`}
+                    >
+                      <CreditCard className="size-4 text-blue-500" />
+                      <div className="text-xs font-semibold text-left">
+                        <span>Credit / Debit Cards</span>
+                        <div className="text-[8px] opacity-75">Pay securely via Visa, Mastercard, RuPay</div>
+                      </div>
+                    </button>
+
+                    <button 
+                      onClick={() => setPaymentMethod('NetBanking')}
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${paymentMethod === 'NetBanking' ? 'bg-rose-500/10 border-rose-500 text-rose-500' : 'bg-white border-gray-200 text-gray-700'}`}
+                    >
+                      <Landmark className="size-4 text-amber-500" />
+                      <div className="text-xs font-semibold text-left">
+                        <span>NetBanking</span>
+                        <div className="text-[8px] opacity-75">Pay directly through your bank account</div>
+                      </div>
+                    </button>
+
+                    <button 
                       onClick={() => setPaymentMethod('COD')}
                       className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${paymentMethod === 'COD' ? 'bg-rose-500/10 border-rose-500 text-rose-500' : 'bg-white border-gray-200 text-gray-700'}`}
                     >
-                      <ShoppingBag className="size-4 text-emerald-500" />
+                      <Truck className="size-4 text-rose-500" />
                       <div className="text-xs font-semibold text-left">
-                        <span>Cash on Delivery / Pay on Pickup</span>
-                        <div className="text-[8px] opacity-75">Pay when order is picked up</div>
+                        <span>Pay On Pickup</span>
+                        <div className="text-[8px] opacity-75">Pay cash or digital at pickup time</div>
                       </div>
                     </button>
                   </div>
@@ -2270,12 +2393,29 @@ export default function App() {
                   {paymentMethod === 'Wallet' && (
                     <div className="bg-white border border-gray-200 p-3 rounded-xl flex flex-col gap-2 mt-1 text-left text-xs animate-fade-in">
                       <div className="font-bold text-gray-900 flex items-center justify-between">
-                        <span>💳 IronCart Wallet</span>
-                        <span className="text-emerald-400">₹{currentCustomer?.walletBalance || 0}</span>
+                        <span>💳 IronCart Wallet Balance</span>
+                        <span className="text-emerald-500">₹{currentCustomer?.walletBalance || 0}</span>
                       </div>
                       
                       {(currentCustomer?.walletBalance || 0) < calculateTotals().total ? (
-                        <p className="text-rose-500 text-[10px] mt-1">Insufficient Wallet Balance. Please add money to your wallet from the home screen.</p>
+                        <div className="flex flex-col gap-1.5 mt-1 border-t border-gray-100 pt-2">
+                          <p className="text-rose-500 text-[10px] font-bold">⚠️ Insufficient Wallet Balance (Need ₹{calculateTotals().total - (currentCustomer?.walletBalance || 0)} more)</p>
+                          <div className="flex gap-2 mt-1">
+                            <input 
+                              type="number"
+                              placeholder="Amount to Add"
+                              value={checkoutAddAmount}
+                              onChange={e => setCheckoutAddAmount(e.target.value)}
+                              className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1 text-xs text-gray-900 outline-none"
+                            />
+                            <button 
+                              onClick={handleCheckoutAddFunds}
+                              className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[10px] px-3.5 py-1 rounded-lg transition-colors"
+                            >
+                              Add & Pay
+                            </button>
+                          </div>
+                        </div>
                       ) : (
                         <p className="text-emerald-500 text-[10px] mt-1">Balance is sufficient for this order.</p>
                       )}
@@ -2574,18 +2714,35 @@ export default function App() {
                     </div>
 
                     <div className="bg-gray-50 border border-gray-200 p-5 rounded-2xl flex flex-col gap-4">
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[300px] overflow-y-auto pr-2">
-                        {priceList.map(item => (
-                          <div key={item.name} className="flex flex-col gap-1">
-                            <label className="text-[10px] font-semibold text-gray-500">{item.name} (₹)</label>
-                            <input 
-                              type="number"
-                              defaultValue={item.price}
-                              onChange={e => setEditingPrices(prev => ({ ...prev, [item.name]: parseFloat(e.target.value) || 0 }))}
-                              className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 outline-none"
-                            />
-                          </div>
-                        ))}
+                      <div className="flex flex-col gap-5 max-h-[400px] overflow-y-auto pr-2">
+                        {['Ironing', 'Laundry', 'Dry Cleaning'].map(service => {
+                          const items = priceList.filter(item => item.serviceType === service || (service === 'Dry Cleaning' && item.serviceType === 'Dry Cleaning'));
+                          if (items.length === 0) return null;
+                          return (
+                            <div key={service} className="flex flex-col gap-2">
+                              <h4 className="text-xs font-extrabold text-rose-500 uppercase tracking-wide border-b border-gray-200 pb-1">{service}</h4>
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                {items.map(item => {
+                                  const key = `${item.serviceType}-${item.name}`;
+                                  return (
+                                    <div key={key} className="flex flex-col gap-1 bg-white p-2.5 rounded-xl border border-gray-200">
+                                      <label className="text-[9px] font-bold text-gray-500 flex items-center justify-between">
+                                        <span>{item.name}</span>
+                                        <span className="text-[7px] bg-gray-100 text-gray-400 px-1 rounded-sm">{item.category}</span>
+                                      </label>
+                                      <input 
+                                        type="number"
+                                        value={editingPrices[key] !== undefined ? editingPrices[key] : item.price}
+                                        onChange={e => setEditingPrices(prev => ({ ...prev, [key]: parseFloat(e.target.value) || 0 }))}
+                                        className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1 text-xs text-gray-900 outline-none focus:border-rose-500"
+                                      />
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
 
                       <button 

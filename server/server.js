@@ -220,11 +220,12 @@ app.post('/api/orders', async (req, res) => {
 // 5. Update order status (Admin control)
 app.patch('/api/orders/:id/status', async (req, res) => {
   const { id } = req.params;
-  const { status, cancelReason } = req.body;
+  const { status, cancelReason, paymentStatus } = req.body;
   
   if (supabase) {
     const updatePayload = { status };
     if (cancelReason) updatePayload.cancel_reason = cancelReason;
+    if (paymentStatus) updatePayload.payment_status = paymentStatus;
 
     const { data, error } = await supabase.from('orders').update(updatePayload).eq('id', id).select();
     if (!error && data && data.length > 0) {
