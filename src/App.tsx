@@ -1341,28 +1341,42 @@ export default function App() {
                         </button>
                         <div id="recaptcha-container"></div>
                         
-                        {/* Owner Admin Gateway Switcher */}
-                        <div className="mt-8 border-t border-gray-200 pt-5 text-left">
-                          <h4 className="text-[10px] font-bold text-gray-500 flex items-center gap-1.5">
-                            <Key className="size-3 text-amber-500" />
-                            System Portal (Admin/Rider)
-                          </h4>
-                          <div className="flex gap-2 mt-2">
-                            <input 
-                              type="password"
-                              maxLength={4}
-                              value={adminPin}
-                              onChange={e => setAdminPin(e.target.value.replace(/\D/g, ''))}
-                              autoComplete="new-password"
-                              className="bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-900 w-20 text-center outline-none"
-                            />
+                        {/* Admin Login Gateway Switcher */}
+                        <div className="mt-8 pt-4 flex flex-col items-center gap-2 pb-2">
+                          {showConsoleInput ? (
+                            <div className="flex gap-2 items-center animate-fade-in">
+                              <input 
+                                type="password"
+                                maxLength={4}
+                                placeholder="PIN"
+                                value={adminPin}
+                                onChange={e => setAdminPin(e.target.value.replace(/\D/g, ''))}
+                                className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-900 w-20 text-center outline-none focus:border-rose-500"
+                              />
+                              <button 
+                                onClick={() => {
+                                  handleAdminAccess();
+                                  setShowConsoleInput(false);
+                                }}
+                                className="bg-rose-500 hover:bg-rose-600 text-white font-bold text-[10px] px-3.5 py-1.5 rounded-lg transition-colors"
+                              >
+                                Go
+                              </button>
+                              <button 
+                                onClick={() => setShowConsoleInput(false)}
+                                className="text-gray-400 hover:text-gray-600 text-xs px-1"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ) : (
                             <button 
-                              onClick={handleAdminAccess}
-                              className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg"
+                              onClick={() => setShowConsoleInput(true)}
+                              className="text-[10px] font-bold text-gray-400 hover:text-rose-500 transition-colors uppercase tracking-wider"
                             >
-                              Login
+                              Admin Login
                             </button>
-                          </div>
+                          )}
                         </div>
                       </div>
                     )}
@@ -1386,22 +1400,7 @@ export default function App() {
                         >
                           Verify & Continue
                         </button>
-                        <div className="flex justify-between items-center text-xs text-gray-500 mt-1">
-                          {showConsoleInput ? (
-                            <div className="flex gap-2 items-center">
-                              <input 
-                                type="password"
-                                maxLength={4}
-                                placeholder="PIN"
-                                value={adminPin}
-                                onChange={e => setAdminPin(e.target.value.replace(/\D/g, ''))}
-                                className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs text-gray-900 w-16 text-center outline-none"
-                              />
-                              <button onClick={() => { handleAdminAccess(); setShowConsoleInput(false); }} className="bg-rose-500 hover:bg-rose-600 text-white font-bold text-[9px] px-2 py-1 rounded-lg">Go</button>
-                            </div>
-                          ) : (
-                            <button onClick={() => setShowConsoleInput(true)} className="text-[10px] font-bold text-gray-400 hover:text-rose-500 uppercase tracking-wider">Admin Login</button>
-                          )}
+                        <div className="flex justify-end items-center text-xs text-gray-500 mt-1">
                           <button onClick={() => setAuthStep('login')} className="text-rose-500 hover:underline">Change Number</button>
                         </div>
                       </div>
