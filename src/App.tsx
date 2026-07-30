@@ -132,6 +132,16 @@ export default function App() {
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [priceList, setPriceList] = useState<GarmentItem[]>(DEFAULT_PRICE_LIST);
+  
+  const DEFAULT_OFFERS = [
+    { name: 'Everyday', img: 'https://images.unsplash.com/photo-1544441893-675973e31985?w=200&h=200&fit=crop', cat: 'Light Weight' },
+    { name: 'Party Wear', img: 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=200&h=200&fit=crop', cat: 'Medium/Heavy' },
+    { name: 'Premium', img: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=200&h=200&fit=crop', cat: 'Premium' },
+    { name: 'Home', img: 'https://images.unsplash.com/photo-1616627561950-9f746e330187?w=200&h=200&fit=crop', cat: 'Household' }
+  ];
+  const [flashOffers, setFlashOffers] = useState<{name: string, img: string, cat: string}[]>(DEFAULT_OFFERS);
+  const [editingOffers, setEditingOffers] = useState<{name: string, img: string, cat: string}[]>(DEFAULT_OFFERS);
+  
   const [customers, setCustomers] = useState<CustomerProfile[]>([]);
   
   const [currentCustomer, setCurrentCustomer] = useState<CustomerProfile | null>(() => {
@@ -152,6 +162,14 @@ export default function App() {
             if (upiRow && upiRow.icon) {
               const [phone, id] = upiRow.icon.split('|');
               setUpiDetails({ phone, id });
+            }
+            const offersRow = data.find((p: any) => p.category === 'system' && p.item_name === 'flash_offers');
+            if (offersRow && offersRow.icon) {
+              try { 
+                const parsed = JSON.parse(offersRow.icon);
+                setFlashOffers(parsed);
+                setEditingOffers(parsed);
+              } catch(e) {}
             }
             const garments = data.filter((p: any) => p.category !== 'system');
             const mapped = garments.map((p: any) => ({
@@ -219,6 +237,14 @@ export default function App() {
               const [phone, id] = upiRow.icon.split('|');
               setUpiDetails({ phone, id });
             }
+            const offersRow = data.find((p: any) => p.category === 'system' && (p.item_name === 'flash_offers' || p.name === 'flash_offers'));
+            if (offersRow && offersRow.icon) {
+              try { 
+                const parsed = JSON.parse(offersRow.icon);
+                setFlashOffers(parsed);
+                setEditingOffers(parsed);
+              } catch(e) {}
+            }
             const garments = data.filter((p: any) => p.category !== 'system');
             const mapped = garments.map((p: any) => ({
               name: p.item_name || p.name,
@@ -257,7 +283,7 @@ export default function App() {
   // Default to 'customer' view ONLY, so the customer app is used alone!
   const [viewMode, setViewMode] = useState<'customer' | 'admin' | 'dual' | 'rider'>('customer');
   const [customerActiveTab, setCustomerActiveTab] = useState<'home' | 'order' | 'prices' | 'history' | 'support' | 'subscriptions' | 'rewards' | 'notifications' | 'profile'>('home');
-  const [adminActiveTab, setAdminActiveTab] = useState<'overview' | 'orders' | 'prices' | 'customers' | 'settings'>('overview');
+  const [adminActiveTab, setAdminActiveTab] = useState<'overview' | 'orders' | 'prices' | 'customers' | 'settings' | 'offers'>('overview');
   const userSubscription = currentCustomer?.activePlan || 'None';
   const [upiDetails, setUpiDetails] = useState<{ phone: string, id: string }>(() => {
     const saved = localStorage.getItem('iron_upi_details');
@@ -1681,12 +1707,7 @@ export default function App() {
                           <div className="mt-2 mb-4">
                             <h4 className="text-xs font-bold text-gray-900 mb-2 pl-1">Quick Book by Category</h4>
                             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
-                              {[
-                                { name: 'Everyday', img: 'https://images.unsplash.com/photo-1544441893-675973e31985?w=200&h=200&fit=crop', cat: 'Light Weight' },
-                                { name: 'Party Wear', img: 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=200&h=200&fit=crop', cat: 'Medium/Heavy' },
-                                { name: 'Premium', img: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=200&h=200&fit=crop', cat: 'Premium' },
-                                { name: 'Home', img: 'https://images.unsplash.com/photo-1616627561950-9f746e330187?w=200&h=200&fit=crop', cat: 'Household' }
-                              ].map(f => (
+                              {flashOffers.map(f => (
                                 <button 
                                   key={f.name}
                                   onClick={() => { setActiveCategory(f.cat); setCustomerActiveTab('order'); }}
@@ -2945,6 +2966,7 @@ export default function App() {
                   {[
                     { tab: 'overview', label: 'Overview', icon: TrendingUp },
                     { tab: 'orders', label: 'Manage Orders', icon: ShoppingBag },
+                    { tab: 'offers', label: 'Flash Offers', icon: Gift },
                     { tab: 'prices', label: 'Pricing Rates', icon: Settings },
                     { tab: 'customers', label: 'Customers', icon: Users },
                     { tab: 'settings', label: 'UPI Settings', icon: Key }
@@ -3204,6 +3226,69 @@ export default function App() {
                   </div>
                 )}
 
+                {/* OFFERS TAB */}
+                {adminActiveTab === 'offers' && (
+                  <div className="flex flex-col gap-4 text-left animate-fade-in">
+                    <h3 className="text-sm font-bold text-gray-900">Manage Flash Offers (Home Screen Banners)</h3>
+                    <div className="bg-amber-50 border border-amber-100 p-4 rounded-xl text-xs text-amber-800 font-medium">
+                      Update the 4 Quick Book image banners that appear on the customer home screen.
+                    </div>
+                    
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {editingOffers.map((offer, idx) => (
+                        <div key={idx} className="bg-gray-50 border border-gray-200 p-4 rounded-xl flex flex-col gap-3">
+                          <h4 className="font-bold text-xs text-gray-900">Banner #{idx + 1}</h4>
+                          
+                          <div className="flex flex-col gap-1">
+                            <label className="text-[10px] font-bold text-gray-500 uppercase">Banner Name</label>
+                            <input type="text" value={offer.name} onChange={e => { const newO = [...editingOffers]; newO[idx].name = e.target.value; setEditingOffers(newO); }} className="px-2 py-1.5 border border-gray-300 rounded text-xs outline-none focus:border-rose-500" />
+                          </div>
+                          
+                          <div className="flex flex-col gap-1">
+                            <label className="text-[10px] font-bold text-gray-500 uppercase">Image URL (Unsplash or direct link)</label>
+                            <input type="text" value={offer.img} onChange={e => { const newO = [...editingOffers]; newO[idx].img = e.target.value; setEditingOffers(newO); }} className="px-2 py-1.5 border border-gray-300 rounded text-xs outline-none focus:border-rose-500" />
+                          </div>
+                          
+                          <div className="flex flex-col gap-1">
+                            <label className="text-[10px] font-bold text-gray-500 uppercase">Target Category Filter</label>
+                            <input type="text" value={offer.cat} onChange={e => { const newO = [...editingOffers]; newO[idx].cat = e.target.value; setEditingOffers(newO); }} className="px-2 py-1.5 border border-gray-300 rounded text-xs outline-none focus:border-rose-500" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="flex justify-end mt-2">
+                      <button 
+                        onClick={async () => {
+                          if (supabase) {
+                            const { data: existing } = await supabase.from('prices').select('id').eq('category', 'system').eq('item_name', 'flash_offers').single();
+                            let err = null;
+                            if (existing) {
+                              const { error } = await supabase.from('prices').update({ icon: JSON.stringify(editingOffers) }).eq('id', existing.id);
+                              err = error;
+                            } else {
+                              const { error } = await supabase.from('prices').insert({ category: 'system', item_name: 'flash_offers', icon: JSON.stringify(editingOffers), price: 0, service_type: 'system' });
+                              err = error;
+                            }
+                            
+                            if (err) alert("Failed to save: " + err.message);
+                            else {
+                              setFlashOffers(editingOffers);
+                              triggerNotification('✅ Offers updated and saved to DB!');
+                            }
+                          } else {
+                            setFlashOffers(editingOffers);
+                            triggerNotification('✅ Offers updated locally (Offline Mode).');
+                          }
+                        }}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors shadow-md"
+                      >
+                        Save Banners to Database
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
                 {/* PRICING RATES PANEL */}
                 {adminActiveTab === 'prices' && (
                   <div className="flex flex-col gap-4 text-left">
