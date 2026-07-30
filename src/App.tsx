@@ -1796,7 +1796,7 @@ export default function App() {
                                 const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
                                 window.open(whatsappUrl, '_blank');
                               }}
-                              className="w-full bg-\[#25D366\] hover:bg-[#1ebd5a] text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 mt-4 shadow-md transition-all"
+                              className="w-full bg-[#25D366] hover:bg-[#1ebd5a] text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 mt-4 shadow-md transition-all"
                             >
                               Share via WhatsApp
                             </button>
