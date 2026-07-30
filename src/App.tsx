@@ -4,7 +4,7 @@ import {
   TrendingUp, Users, Smartphone, 
   ChevronRight, ShoppingBag, 
   FileText, CreditCard, ArrowLeft, Settings, 
-  Bell, HelpCircle, LogOut, Eye, RefreshCw, Key, Star, Navigation, Wallet, X, Phone, Gift, Landmark, Truck, User
+  Bell, HelpCircle, LogOut, Eye, RefreshCw, Key, Star, Navigation, Wallet, X, Phone, Gift, Landmark, Truck, User, Shirt, Sparkles
 } from 'lucide-react'
 import { supabase } from './supabaseClient'
 import { auth, RecaptchaVerifier } from './firebaseConfig'
@@ -1182,12 +1182,14 @@ export default function App() {
           </>
         ) : (
           <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-tr from-rose-500 to-amber-500 shadow-md">
-              <span className="font-extrabold text-gray-900 text-lg tracking-wider">IK</span>
+            <div className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-tr from-rose-500 to-amber-500 shadow-md relative overflow-hidden border border-white/20">
+              <div className="absolute inset-0 bg-white/20 rotate-45 transform translate-x-[-10px]"></div>
+              <Shirt className="size-5 text-white drop-shadow-md" />
+              <Sparkles className="size-3 text-amber-200 absolute top-1 right-1" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight text-gray-900 m-0 p-0 text-left">Iron Kart</h1>
-              <p className="text-xs text-gray-500 text-left">Professional Ironing & Pickup Service</p>
+              <h1 className="text-xl font-bold tracking-tight text-gray-900 m-0 p-0 text-left bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-700">Iron Kart</h1>
+              <p className="text-xs text-gray-500 text-left font-medium">Premium Ironing & Care</p>
             </div>
           </div>
         )}
@@ -1301,9 +1303,10 @@ export default function App() {
                 ) : !currentCustomer ? (
                   <div className="flex-1 flex flex-col justify-center gap-6">
                     <div className="text-center flex flex-col items-center gap-2">
-                      <div className="size-20 bg-gradient-to-tr from-rose-500 to-amber-500 rounded-3xl flex items-center justify-center shadow-lg relative overflow-hidden mb-3 animate-pulse">
-                        <span className="text-white font-black text-2xl tracking-wider select-none">IK</span>
-                        <div className="absolute -bottom-2 -right-2 size-8 bg-white/20 rounded-full blur-md"></div>
+                      <div className="size-20 bg-gradient-to-tr from-rose-500 to-amber-500 rounded-3xl flex items-center justify-center shadow-lg shadow-rose-500/30 relative overflow-hidden mb-3 border-[3px] border-white animate-pulse">
+                        <div className="absolute inset-0 bg-white/20 rotate-45 transform translate-x-[-20px]"></div>
+                        <Shirt className="size-10 text-white drop-shadow-md" />
+                        <Sparkles className="size-5 text-amber-200 absolute top-3 right-3" />
                       </div>
                       {/* Steam Iron Icon badge under the IK logo */}
                       <div className="flex justify-center -mt-1 mb-1 text-rose-500 bg-rose-50 px-2 py-1 rounded-full border border-rose-100 items-center gap-1.5 shadow-sm scale-90 select-none">
@@ -1317,8 +1320,8 @@ export default function App() {
                         <span className="text-[9px] font-black tracking-wider uppercase">Premium Steam Care</span>
                       </div>
                       <h2 className="text-2xl font-black text-gray-900 tracking-tight">Iron Kart</h2>
-                      <p className="text-xs font-bold text-rose-500 bg-gradient-to-r from-rose-500 to-amber-500 bg-clip-text text-transparent mt-1">
-                        Perfect Creases, Zero Effort. Freshness Delivered.
+                      <p className="text-xs font-bold text-rose-500 bg-gradient-to-r from-rose-500 to-amber-500 bg-clip-text text-transparent mt-1 max-w-[250px] mx-auto leading-relaxed">
+                        Flawless Garments. Runway-Ready Perfection.
                       </p>
                     </div>
 
@@ -1664,9 +1667,9 @@ export default function App() {
                             className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-md flex items-center gap-3 cursor-pointer p-3 hover:border-rose-350 transition-all mt-1"
                           >
                             <img 
-                              src="/hero_banner.png" 
+                              src="https://images.unsplash.com/photo-1582719508461-905c673771fd?w=400&h=300&fit=crop" 
                               alt="Steam Ironing" 
-                              className="size-16 rounded-xl object-cover shrink-0" 
+                              className="size-16 rounded-xl object-cover shrink-0 border border-gray-100 shadow-sm" 
                             />
                             <div className="text-left flex-1 min-w-0">
                               <h4 className="text-xs font-black text-gray-950 uppercase tracking-wider">Professional Steam Press</h4>
