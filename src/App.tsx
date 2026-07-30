@@ -1153,7 +1153,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-slate-100 text-gray-900 flex flex-col font-sans">
       
       {/* Simulation Banner Notification */}
       {notification && (
@@ -1270,7 +1270,7 @@ export default function App() {
               <div className="absolute top-2 left-1/2 -translate-x-1/2 w-28 h-4 bg-gray-100 rounded-full z-20"></div>
 
               {/* Inside Mobile App Viewport */}
-              <div className="flex-1 flex flex-col bg-stone-50 overflow-y-auto px-4 pt-8 pb-4">
+              <div className="flex-1 flex flex-col bg-[#FFF9F0] overflow-y-auto px-4 pt-8 pb-4">
                 
                 {/* Rider Portal View */}
                 {viewMode === 'rider' ? (
