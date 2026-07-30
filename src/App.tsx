@@ -208,7 +208,24 @@ export default function App() {
       // Fallback: Local Server REST API
       fetch(`${API_URL}/prices`)
         .then(res => res.json())
-        .then(data => setPriceList(data))
+        .then(data => {
+          if (data && data.length > 0) {
+            const upiRow = data.find((p: any) => p.category === 'system' && (p.item_name === 'upi_details' || p.name === 'upi_details'));
+            if (upiRow && upiRow.icon) {
+              const [phone, id] = upiRow.icon.split('|');
+              setUpiDetails({ phone, id });
+            }
+            const garments = data.filter((p: any) => p.category !== 'system');
+            const mapped = garments.map((p: any) => ({
+              name: p.item_name || p.name,
+              price: p.price,
+              category: p.category,
+              icon: p.icon || '👕',
+              serviceType: p.service_type || p.serviceType || 'Ironing'
+            }));
+            setPriceList(mapped);
+          }
+        })
         .catch(err => console.error('Failed to fetch prices:', err));
 
       fetch(`${API_URL}/orders`)
@@ -242,6 +259,21 @@ export default function App() {
     const saved = localStorage.getItem('iron_upi_details');
     return saved ? JSON.parse(saved) : { phone: '9791019505', id: '9791019505@ybl' };
   });
+
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const slideImages = [
+    "https://images.unsplash.com/photo-1489274495757-95c7c837b101?w=800&h=400&fit=crop", // Steam Ironing
+    "https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=800&h=400&fit=crop", // Laundry
+    "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800&h=400&fit=crop", // Dry Cleaning
+    "https://images.unsplash.com/photo-1616627561950-9f746e330187?w=800&h=400&fit=crop"  // Linens/Curtains
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide(prev => (prev + 1) % slideImages.length);
+    }, 3500);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('iron_upi_details', JSON.stringify(upiDetails));
@@ -312,6 +344,22 @@ export default function App() {
   const [orderName, setOrderName] = useState('');
   const [orderPhone, setOrderPhone] = useState('');
   const [orderAddress, setOrderAddress] = useState('');
+
+  useEffect(() => {
+    if (currentCustomer) {
+      setOrderName(currentCustomer.name || '');
+      setOrderPhone(currentCustomer.phone || '');
+      if (currentCustomer.addresses && currentCustomer.addresses.length > 0) {
+        setOrderAddress(currentCustomer.addresses[0].fullAddress);
+      } else {
+        setOrderAddress(currentCustomer.address || '');
+      }
+    } else {
+      setOrderName('');
+      setOrderPhone('');
+      setOrderAddress('');
+    }
+  }, [currentCustomer]);
   const [selectedItems, setSelectedItems] = useState<{ [key: string]: number }>({});
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'Card' | 'COD' | 'Wallet' | 'NetBanking'>('UPI');
@@ -616,7 +664,7 @@ export default function App() {
       invoiceNo: `IC-${Math.floor(1000 + Math.random() * 9000)}`,
       customerName: orderName || 'Walk-in Customer',
       customerPhone: orderPhone || '',
-      apartmentNo: '',
+      apartmentNo: currentCustomer?.apartmentNo || '',
       address: orderAddress || '',
       pickupDate,
       pickupTime,
@@ -1450,8 +1498,17 @@ export default function App() {
                           </div>
                           
                           {/* Promotional Slide Banner */}
-                          <div className="bg-gradient-to-r from-rose-600 to-amber-500 rounded-2xl p-0 text-left shadow-lg relative overflow-hidden h-32 flex items-center justify-center">
-                            <img src="/hero_banner.png" alt="Hero Banner" className="w-full h-full object-cover opacity-45 absolute inset-0" />
+                          <div className="bg-gradient-to-r from-rose-600 to-amber-500 rounded-2xl p-0 text-left shadow-lg relative overflow-hidden h-32 flex items-center justify-center group">
+                            <div className="absolute inset-0 flex transition-transform duration-1000 ease-in-out" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
+                              {slideImages.map((src, index) => (
+                                <img 
+                                  key={index} 
+                                  src={src} 
+                                  alt={`Hero Banner ${index + 1}`} 
+                                  className="w-full h-full object-cover opacity-45 shrink-0" 
+                                />
+                              ))}
+                            </div>
                             <div className="relative z-10 px-4 w-full">
                               <h4 className="font-extrabold text-sm text-white drop-shadow-md">Premium Garment Pressing</h4>
                               <p className="text-[10px] text-white/95 mt-1 max-w-[200px] drop-shadow-md">Get 50% off on your first order. Professional steam care starts at just ₹12/item.</p>
@@ -1489,43 +1546,7 @@ export default function App() {
                           </div>
 
 
-                          {/* Console Gateway Link */}
-                          <div className="mt-6 pt-4 border-t border-gray-150 flex flex-col items-center gap-2">
-                            {showConsoleInput ? (
-                              <div className="flex gap-2 items-center animate-fade-in">
-                                <input 
-                                  type="password"
-                                  maxLength={4}
-                                  placeholder="PIN"
-                                  value={adminPin}
-                                  onChange={e => setAdminPin(e.target.value.replace(/\D/g, ''))}
-                                  className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs text-gray-900 w-20 text-center outline-none focus:border-rose-500"
-                                />
-                                <button 
-                                  onClick={() => {
-                                    handleAdminAccess();
-                                    setShowConsoleInput(false);
-                                  }}
-                                  className="bg-rose-500 hover:bg-rose-600 text-white font-bold text-[10px] px-3.5 py-1 rounded-lg transition-colors"
-                                >
-                                  Go
-                                </button>
-                                <button 
-                                  onClick={() => setShowConsoleInput(false)}
-                                  className="text-gray-400 hover:text-gray-600 text-xs px-1"
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                            ) : (
-                              <button 
-                                onClick={() => setShowConsoleInput(true)}
-                                className="text-[9px] font-bold text-gray-400 hover:text-rose-500 transition-colors uppercase tracking-wider"
-                              >
-                                Console
-                              </button>
-                            )}
-                          </div>
+
 
                           {/* Services Grid */}
                           <div className="grid grid-cols-3 gap-3">
@@ -1652,6 +1673,44 @@ export default function App() {
                             </div>
                           )}
 
+                          {/* Console Gateway Link */}
+                          <div className="mt-6 pt-4 border-t border-gray-150 flex flex-col items-center gap-2 pb-6">
+                            {showConsoleInput ? (
+                              <div className="flex gap-2 items-center animate-fade-in">
+                                <input 
+                                  type="password"
+                                  maxLength={4}
+                                  placeholder="PIN"
+                                  value={adminPin}
+                                  onChange={e => setAdminPin(e.target.value.replace(/\D/g, ''))}
+                                  className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs text-gray-900 w-20 text-center outline-none focus:border-rose-500"
+                                />
+                                <button 
+                                  onClick={() => {
+                                    handleAdminAccess();
+                                    setShowConsoleInput(false);
+                                  }}
+                                  className="bg-rose-500 hover:bg-rose-600 text-white font-bold text-[10px] px-3.5 py-1 rounded-lg transition-colors"
+                                >
+                                  Go
+                                </button>
+                                <button 
+                                  onClick={() => setShowConsoleInput(false)}
+                                  className="text-gray-400 hover:text-gray-600 text-xs px-1"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ) : (
+                              <button 
+                                onClick={() => setShowConsoleInput(true)}
+                                className="text-[9px] font-bold text-gray-400 hover:text-rose-500 transition-colors uppercase tracking-wider"
+                              >
+                                Admin / Rider Login
+                              </button>
+                            )}
+                          </div>
+
                         </div>
                       )}
 
@@ -1674,11 +1733,11 @@ export default function App() {
                             <div className="absolute bottom-0 left-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl"></div>
                             
                             <div className="size-16 bg-gradient-to-tr from-rose-500 to-amber-500 rounded-full flex items-center justify-center shadow-lg shadow-rose-500/20 mb-3 relative z-10">
-                              <Gift className="size-8 text-gray-900" />
+                              <Gift className="size-8 text-white" />
                             </div>
-                            <h2 className="text-xl font-black text-gray-900 relative z-10 tracking-tight">Refer & Earn ₹50</h2>
-                            <p className="text-xs text-gray-500 mt-2 relative z-10 max-w-[250px] leading-relaxed">
-                              Invite your friends to Iron Kart. When they complete their first order, you <strong className="text-rose-400">both get ₹50</strong> added to your wallets!
+                            <h2 className="text-xl font-black text-white relative z-10 tracking-tight">Refer & Earn ₹50</h2>
+                            <p className="text-xs text-gray-300 mt-2 relative z-10 max-w-[250px] leading-relaxed">
+                              Invite your friends to Iron Kart. When they complete their first order, you <strong className="text-amber-300">both get ₹50</strong> added to your wallets!
                             </p>
                           </div>
 
@@ -1847,26 +1906,26 @@ export default function App() {
                             </div>
                             <div className="flex gap-4 overflow-x-auto pb-4 pt-1 scrollbar-hide -mx-2 px-2 snap-x">
                               {[
-                                {name: 'Ironing', desc: 'Crisp, wrinkle-free pressing', img: '/ironing_icon.png'},
-                                {name: 'Dry Cleaning', desc: 'Deep chemical cleaning for delicate fabrics', img: 'https://images.unsplash.com/photo-1616423640778-28d1b53229bd?w=400&h=300&fit=crop'},
-                                {name: 'Laundry', desc: 'Everyday wash, dry, and fold', img: 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=400&h=300&fit=crop'}
+                                {name: 'Ironing', desc: 'Crisp pressing', img: '/hero_banner.png'},
+                                {name: 'Dry Cleaning', desc: 'Delicate care', img: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=400&h=300&fit=crop'},
+                                {name: 'Laundry', desc: 'Wash & fold', img: 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=400&h=300&fit=crop'}
                               ].map(svc => (
                                 <button 
                                   key={svc.name}
                                   onClick={() => setSelectedService(svc.name as any)}
-                                  className={`snap-center shrink-0 w-[220px] rounded-2xl border transition-all text-left flex flex-col overflow-hidden relative ${selectedService === svc.name ? 'bg-gray-50 border-rose-500 ring-2 ring-rose-500 shadow-[0_4px_15px_rgba(225,29,72,0.4)]' : 'bg-white border-gray-200 hover:border-gray-300'}`}
+                                  className={`snap-center shrink-0 w-[105px] rounded-xl border transition-all text-left flex flex-col overflow-hidden relative ${selectedService === svc.name ? 'bg-gray-50 border-rose-500 ring-2 ring-rose-500 shadow-[0_2px_8px_rgba(225,29,72,0.3)]' : 'bg-white border-gray-200 hover:border-gray-300'}`}
                                 >
-                                  <div className="h-[120px] w-full bg-gray-50 relative">
+                                  <div className="h-[65px] w-full bg-gray-50 relative">
                                     <img src={svc.img} alt={svc.name} className={`w-full h-full object-cover transition-all duration-500 ${selectedService === svc.name ? 'opacity-100 scale-105' : 'opacity-60 grayscale-[30%]'}`} />
                                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent"></div>
                                   </div>
                                   <div className="p-1.5 absolute bottom-0 left-0 right-0">
-                                    <h4 className={`text-sm font-extrabold ${selectedService === svc.name ? 'text-gray-900' : 'text-gray-700'}`}>{svc.name}</h4>
-                                    <p className="text-[9px] text-gray-500 mt-0.5 line-clamp-1">{svc.desc}</p>
+                                    <h4 className="text-[10px] font-black text-white">{svc.name}</h4>
+                                    <p className="text-[7px] text-gray-300 line-clamp-1">{svc.desc}</p>
                                   </div>
                                   {selectedService === svc.name && (
-                                    <div className="absolute top-3 right-3 bg-rose-500 rounded-full p-1 shadow-md">
-                                      <Check className="size-3 text-gray-900" />
+                                    <div className="absolute top-1.5 right-1.5 bg-rose-500 rounded-full p-0.5 shadow-md flex items-center justify-center">
+                                      <Check className="size-2 text-white" />
                                     </div>
                                   )}
                                 </button>
@@ -1923,9 +1982,9 @@ export default function App() {
                             <div className="flex overflow-x-auto scrollbar-hide pb-3 -mx-2 px-2 gap-3 border-b border-gray-200">
                               {[
                                 { name: 'Light Weight', img: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=400&h=300&fit=crop' },
-                                { name: 'Medium/Heavy', img: 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=400&h=300&fit=crop' },
-                                { name: 'Premium', img: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=400&h=300&fit=crop' },
-                                { name: 'Household', img: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=400&h=300&fit=crop' }
+                                { name: 'Medium/Heavy', img: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=400&h=300&fit=crop' },
+                                { name: 'Premium', img: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=400&h=300&fit=crop' },
+                                { name: 'Household', img: 'https://images.unsplash.com/photo-1616627561950-9f746e330187?w=400&h=300&fit=crop' }
                               ].map(cat => (
                                 <button
                                   key={cat.name}
@@ -2442,7 +2501,7 @@ export default function App() {
                       )}
 
                       {customerActiveTab === 'profile' && currentCustomer && (
-                        <div className="flex flex-col gap-4 text-left max-h-[500px] overflow-y-auto pb-6 pr-1">
+                        <div className="flex flex-col gap-4 text-left pb-6 pr-1 animate-fade-in">
                           <div className="flex items-center gap-2 mb-1">
                             <button onClick={() => setCustomerActiveTab('home')} className="p-1 hover:bg-gray-200 rounded-lg">
                               <ArrowLeft className="size-4 text-gray-500" />
@@ -2455,7 +2514,7 @@ export default function App() {
                             <div className="absolute top-0 right-0 size-24 bg-white/5 rounded-full blur-xl"></div>
                             <div className="flex items-center gap-3 relative z-10">
                               <div className="size-12 bg-white/20 rounded-full flex items-center justify-center text-white text-lg font-bold shadow-inner">
-                                {currentCustomer.name.slice(0, 2).toUpperCase()}
+                                {(currentCustomer.name || 'User').slice(0, 2).toUpperCase()}
                               </div>
                               <div className="flex-1 min-w-0">
                                 <h4 className="font-extrabold text-sm truncate">{currentCustomer.name}</h4>
@@ -2537,6 +2596,18 @@ export default function App() {
                               </button>
                             )}
                           </div>
+
+                          {/* Help & Support Button inside Profile */}
+                          <button 
+                            onClick={() => setCustomerActiveTab('support')}
+                            className="w-full text-left p-3.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 rounded-2xl text-emerald-800 flex justify-between items-center shadow-sm"
+                          >
+                            <div className="flex items-center gap-2">
+                              <HelpCircle className="size-4 text-emerald-600" />
+                              <span className="text-xs font-bold font-sans">Help & Support (FAQ)</span>
+                            </div>
+                            <ChevronRight className="size-4 text-emerald-600" />
+                          </button>
 
                           {/* App Settings / Information & Legal */}
                           <div className="bg-white border border-gray-200 rounded-2xl p-4 flex flex-col gap-2.5 shadow-sm">
