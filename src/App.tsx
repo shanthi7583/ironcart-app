@@ -1375,7 +1375,22 @@ export default function App() {
                         >
                           Verify & Continue
                         </button>
-                        <div className="flex justify-end items-center text-xs text-gray-500 mt-1">
+                        <div className="flex justify-between items-center text-xs text-gray-500 mt-1">
+                          {showConsoleInput ? (
+                            <div className="flex gap-2 items-center">
+                              <input 
+                                type="password"
+                                maxLength={4}
+                                placeholder="PIN"
+                                value={adminPin}
+                                onChange={e => setAdminPin(e.target.value.replace(/\D/g, ''))}
+                                className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs text-gray-900 w-16 text-center outline-none"
+                              />
+                              <button onClick={() => { handleAdminAccess(); setShowConsoleInput(false); }} className="bg-rose-500 hover:bg-rose-600 text-white font-bold text-[9px] px-2 py-1 rounded-lg">Go</button>
+                            </div>
+                          ) : (
+                            <button onClick={() => setShowConsoleInput(true)} className="text-[10px] font-bold text-gray-400 hover:text-rose-500 uppercase tracking-wider">Admin Login</button>
+                          )}
                           <button onClick={() => setAuthStep('login')} className="text-rose-500 hover:underline">Change Number</button>
                         </div>
                       </div>
@@ -1462,7 +1477,10 @@ export default function App() {
                             {customerActiveTab === 'order' ? 'Place Order' : 
                              customerActiveTab === 'prices' ? 'Pricing' :
                              customerActiveTab === 'history' ? 'My Orders' : 
-                             customerActiveTab === 'notifications' ? 'Notifications' : 'Support'}
+                             customerActiveTab === 'notifications' ? 'Notifications' : 
+                             customerActiveTab === 'rewards' ? 'Refer & Earn' :
+                             customerActiveTab === 'profile' ? 'My Profile' :
+                             customerActiveTab === 'subscriptions' ? 'Prime Plans' : 'Support'}
                           </h2>
                         </div>
                       )}
@@ -1639,6 +1657,30 @@ export default function App() {
                             <div className="text-left flex-1 min-w-0">
                               <h4 className="text-xs font-black text-gray-950 uppercase tracking-wider">Professional Steam Press</h4>
                               <p className="text-[9px] text-gray-500 leading-normal mt-0.5">We use high-temperature steam vacuum tables for premium garment care.</p>
+                            </div>
+                          </div>
+
+                          {/* Flash Images - Quick Book */}
+                          <div className="mt-2 mb-4">
+                            <h4 className="text-xs font-bold text-gray-900 mb-2 pl-1">Quick Book by Category</h4>
+                            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
+                              {[
+                                { name: 'Everyday', img: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=200&h=200&fit=crop', cat: 'Light Weight' },
+                                { name: 'Party Wear', img: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=200&h=200&fit=crop', cat: 'Medium/Heavy' },
+                                { name: 'Premium', img: 'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=200&h=200&fit=crop', cat: 'Premium' },
+                                { name: 'Home', img: 'https://images.unsplash.com/photo-1616627561950-9f746e330187?w=200&h=200&fit=crop', cat: 'Household' }
+                              ].map(f => (
+                                <button 
+                                  key={f.name}
+                                  onClick={() => { setActiveCategory(f.cat); setCustomerActiveTab('order'); }}
+                                  className="relative shrink-0 size-20 rounded-2xl overflow-hidden shadow-sm active:scale-95 transition-all"
+                                >
+                                  <img src={f.img} className="w-full h-full object-cover" />
+                                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                    <span className="text-[10px] font-bold text-white tracking-wider">{f.name}</span>
+                                  </div>
+                                </button>
+                              ))}
                             </div>
                           </div>
 
@@ -1907,7 +1949,7 @@ export default function App() {
                             <div className="flex gap-4 overflow-x-auto pb-4 pt-1 scrollbar-hide -mx-2 px-2 snap-x">
                               {[
                                 {name: 'Ironing', desc: 'Crisp pressing', img: '/hero_banner.png'},
-                                {name: 'Dry Cleaning', desc: 'Delicate care', img: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=400&h=300&fit=crop'},
+                                {name: 'Dry Cleaning', desc: 'Delicate care', img: 'https://images.unsplash.com/photo-1626449557762-23f46f41443d?w=400&h=300&fit=crop'},
                                 {name: 'Laundry', desc: 'Wash & fold', img: 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=400&h=300&fit=crop'}
                               ].map(svc => (
                                 <button 
@@ -1983,7 +2025,7 @@ export default function App() {
                               {[
                                 { name: 'Light Weight', img: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=400&h=300&fit=crop' },
                                 { name: 'Medium/Heavy', img: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=400&h=300&fit=crop' },
-                                { name: 'Premium', img: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=400&h=300&fit=crop' },
+                                { name: 'Premium', img: 'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=400&h=300&fit=crop' },
                                 { name: 'Household', img: 'https://images.unsplash.com/photo-1616627561950-9f746e330187?w=400&h=300&fit=crop' }
                               ].map(cat => (
                                 <button
@@ -2477,7 +2519,6 @@ export default function App() {
                                 <p className="text-[10px] text-gray-500">Gets flat {plan.discount}% discount on all orders placed (includes Light, Medium, Premium & Household categories).</p>
                                 <button 
                                   onClick={() => {
-                                    if(confirm(`Subscribe to ${plan.name} Plan for ₹${plan.price}/mo?`)) {
                                       if (!currentCustomer) return;
                                       const updated = { ...currentCustomer, activePlan: plan.name };
                                       setCurrentCustomer(updated);
@@ -2486,8 +2527,7 @@ export default function App() {
                                         headers: { 'Content-Type': 'application/json' },
                                         body: JSON.stringify(updated)
                                       });
-                                      alert(`${plan.name} Subscription Activated! You now get ${plan.discount}% off on all orders.`);
-                                    }
+                                      triggerNotification(`🎉 ${plan.name} Subscription Activated!`);
                                   }}
                                   disabled={userSubscription === plan.name}
                                   className={`w-full mt-3 py-2 rounded-lg text-xs font-bold ${userSubscription === plan.name ? 'bg-gray-200 text-gray-400' : 'bg-rose-500 hover:bg-rose-600 text-white shadow-sm'}`}
