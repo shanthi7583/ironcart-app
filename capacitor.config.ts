@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.ironcart.app',
-  appName: 'IronCart',
+  appName: 'Iron Kart',
   webDir: 'dist'
 };
 

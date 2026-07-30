@@ -211,7 +211,7 @@ app.post('/api/orders', async (req, res) => {
   }
   
   // Dispatch alerts
-  sendNotification('whatsapp', newOrder.customerPhone, `Hi ${newOrder.customerName}, your IronCart order ${newOrder.id} of ₹${newOrder.total} was placed! Pickup scheduled for ${newOrder.pickupDate} (${newOrder.pickupTime}).`);
+  sendNotification('whatsapp', newOrder.customerPhone, `Hi ${newOrder.customerName}, your Iron Kart order ${newOrder.id} of ₹${newOrder.total} was placed! Pickup scheduled for ${newOrder.pickupDate} (${newOrder.pickupTime}).`);
   sendNotification('sms', '9791019505', `Owner Alert: New order ${newOrder.id} received from ${newOrder.customerName} (${newOrder.apartmentNo}).`);
   
   res.status(201).json(newOrder);
@@ -231,9 +231,9 @@ app.patch('/api/orders/:id/status', async (req, res) => {
     if (!error && data && data.length > 0) {
       const order = mapOrderToFrontend(data[0]);
       if (status === 'Cancelled') {
-        sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your IronCart order ${order.id} has been Cancelled. Reason: ${cancelReason}`);
+        sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your Iron Kart order ${order.id} has been Cancelled. Reason: ${cancelReason}`);
       } else {
-        sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your IronCart order ${order.id} status is now: [${status}].`);
+        sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your Iron Kart order ${order.id} status is now: [${status}].`);
 
         // Referral Reward Logic
         if (status === 'Delivered') {
@@ -244,7 +244,7 @@ app.patch('/api/orders/:id/status', async (req, res) => {
               if (cData && cData.referred_by) {
                 // Reward new customer
                 await supabase.from('customers').update({ wallet_balance: (cData.wallet_balance || 0) + 50 }).eq('phone', order.customerPhone);
-                sendNotification('whatsapp', order.customerPhone, `🎉 Congratulations! ₹50 has been added to your IronCart wallet for completing your first referred order!`);
+                sendNotification('whatsapp', order.customerPhone, `🎉 Congratulations! ₹50 has been added to your Iron Kart wallet for completing your first referred order!`);
                 
                 // Reward referrer
                 const { data: refData } = await supabase.from('customers').select('wallet_balance, phone').eq('referral_code', cData.referred_by).single();
@@ -274,7 +274,7 @@ app.patch('/api/orders/:id/reschedule', async (req, res) => {
     const { data, error } = await supabase.from('orders').update({ pickup_date: pickupDate, pickup_time: pickupTime }).eq('id', id).select();
     if (!error && data && data.length > 0) {
       const order = mapOrderToFrontend(data[0]);
-      sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your IronCart order ${order.id} has been RESCHEDULED to ${pickupDate} (${pickupTime}).`);
+      sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your Iron Kart order ${order.id} has been RESCHEDULED to ${pickupDate} (${pickupTime}).`);
       return res.json(order);
     }
   }
@@ -290,7 +290,7 @@ app.patch('/api/orders/:id/payment', async (req, res) => {
     const { data, error } = await supabase.from('orders').update({ payment_status: paymentStatus }).eq('id', id).select();
     if (!error && data && data.length > 0) {
       const order = mapOrderToFrontend(data[0]);
-      sendNotification('sms', order.customerPhone, `IronCart: Payment of ₹${order.total} for order ${order.id} is confirmed [Paid].`);
+      sendNotification('sms', order.customerPhone, `Iron Kart: Payment of ₹${order.total} for order ${order.id} is confirmed [Paid].`);
       return res.json(order);
     }
   }
@@ -369,7 +369,7 @@ app.post('/api/customers', async (req, res) => {
     }
   }
   
-  sendNotification('sms', newCustomer.phone, `Welcome to IronCart, ${newCustomer.name}! Your pickup profile has been created successfully.`);
+  sendNotification('sms', newCustomer.phone, `Welcome to Iron Kart, ${newCustomer.name}! Your pickup profile has been created successfully.`);
   res.status(201).json(newCustomer);
 });
 
@@ -450,13 +450,13 @@ app.post('/api/auth/send-otp', (req, res) => {
   if (!phone) return res.status(400).json({ error: 'Phone number is required' });
   const otp = Math.floor(1000 + Math.random() * 9000).toString();
   
-  sendNotification('whatsapp', phone, `Your IronCart verification OTP code is ${otp}. Valid for 5 minutes.`);
+  sendNotification('whatsapp', phone, `Your Iron Kart verification OTP code is ${otp}. Valid for 5 minutes.`);
   res.json({ success: true, otp });
 });
 
 if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
-    console.log(`🚀 IronCart Backend API Server is running on http://localhost:${PORT}`);
+    console.log(`🚀 Iron Kart Backend API Server is running on http://localhost:${PORT}`);
   });
 }
 

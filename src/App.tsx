@@ -4,7 +4,7 @@ import {
   TrendingUp, Users, Smartphone, 
   ChevronRight, ShoppingBag, 
   FileText, CreditCard, ArrowLeft, Settings, 
-  Bell, HelpCircle, LogOut, Eye, RefreshCw, Key, Star, Navigation, Wallet, X, Phone, Gift, Landmark, Truck
+  Bell, HelpCircle, LogOut, Eye, RefreshCw, Key, Star, Navigation, Wallet, X, Phone, Gift, Landmark, Truck, User
 } from 'lucide-react'
 import { supabase } from './supabaseClient'
 import { auth, RecaptchaVerifier } from './firebaseConfig'
@@ -148,7 +148,13 @@ export default function App() {
         .then(({ data, error }) => {
           if (error) console.error(error);
           else if (data && data.length > 0) {
-            const mapped = data.map((p: any) => ({
+            const upiRow = data.find((p: any) => p.category === 'system' && p.item_name === 'upi_details');
+            if (upiRow && upiRow.icon) {
+              const [phone, id] = upiRow.icon.split('|');
+              setUpiDetails({ phone, id });
+            }
+            const garments = data.filter((p: any) => p.category !== 'system');
+            const mapped = garments.map((p: any) => ({
               name: p.item_name,
               price: p.price,
               category: p.category,
@@ -229,7 +235,7 @@ export default function App() {
   // --- Layout and Navigation State ---
   // Default to 'customer' view ONLY, so the customer app is used alone!
   const [viewMode, setViewMode] = useState<'customer' | 'admin' | 'dual' | 'rider'>('customer');
-  const [customerActiveTab, setCustomerActiveTab] = useState<'home' | 'order' | 'prices' | 'history' | 'support' | 'subscriptions' | 'rewards' | 'notifications'>('home');
+  const [customerActiveTab, setCustomerActiveTab] = useState<'home' | 'order' | 'prices' | 'history' | 'support' | 'subscriptions' | 'rewards' | 'notifications' | 'profile'>('home');
   const [adminActiveTab, setAdminActiveTab] = useState<'overview' | 'orders' | 'prices' | 'customers' | 'settings'>('overview');
   const userSubscription = currentCustomer?.activePlan || 'None';
   const [upiDetails, setUpiDetails] = useState<{ phone: string, id: string }>(() => {
@@ -261,7 +267,7 @@ export default function App() {
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState('');
 
-  const [orderSpeed, setOrderSpeed] = useState<'Normal' | 'Express' | 'Urgent'>('Normal');
+  const orderSpeed = 'Normal';
   const [pickupDate, setPickupDate] = useState('');
   const [pickupTime, setPickupTime] = useState('09:00 - 12:00');
   const [showNotifications, setShowNotifications] = useState(false);
@@ -318,6 +324,7 @@ export default function App() {
   const [selectedInvoice, setSelectedInvoice] = useState<Order | null>(null);
   const [gatewayOrderData, setGatewayOrderData] = useState<any>(null);
   const [firebaseConfirmResult, setFirebaseConfirmResult] = useState<any>(null);
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
 
   // Show simulated WhatsApp / System Notification banners
   const triggerNotification = (message: string) => {
@@ -446,7 +453,7 @@ export default function App() {
         localStorage.setItem('iron_current_user', JSON.stringify(data));
         setAuthPhone('');
         setAuthOTP('');
-        triggerNotification(`🎉 Welcome to IronCart, ${data.name}!`);
+        triggerNotification(`🎉 Welcome to Iron Kart, ${data.name}!`);
       })
       .catch(() => alert('Registration failed. Is the backend running?'));
   };
@@ -476,21 +483,36 @@ export default function App() {
       }
     });
 
-    let markupMultiplier = 0; // Normal
-    if (orderSpeed === 'Express') markupMultiplier = 0.5; // +50%
-    if (orderSpeed === 'Urgent') markupMultiplier = 1.0; // +100%
-
+    let markupMultiplier = 0; // Standard delivery (no extra markup)
     const markup = parseFloat((subtotal * markupMultiplier).toFixed(2));
     
     // Apply discount to subtotal
     let discount = 0;
     
     if (userSubscription !== 'None') {
-      let discountPercent = 0;
-      if (userSubscription === 'Bronze') discountPercent = 0.15;
-      else if (userSubscription === 'Silver') discountPercent = 0.25;
-      else if (userSubscription === 'Gold') discountPercent = 0.35;
-      discount = subtotal * discountPercent;
+      Object.entries(selectedItems).forEach(([name, qty]) => {
+        const item = priceList.find(i => i.name === name);
+        if (item && qty > 0) {
+          let catDiscountPercent = 0;
+          if (userSubscription === 'Bronze') {
+            if (item.category === 'Light Weight') catDiscountPercent = 0.05;
+            else if (item.category === 'Medium/Heavy') catDiscountPercent = 0.10;
+            else if (item.category === 'Premium') catDiscountPercent = 0.15;
+            else if (item.category === 'Household') catDiscountPercent = 0.10;
+          } else if (userSubscription === 'Silver') {
+            if (item.category === 'Light Weight') catDiscountPercent = 0.10;
+            else if (item.category === 'Medium/Heavy') catDiscountPercent = 0.20;
+            else if (item.category === 'Premium') catDiscountPercent = 0.30;
+            else if (item.category === 'Household') catDiscountPercent = 0.15;
+          } else if (userSubscription === 'Gold') {
+            if (item.category === 'Light Weight') catDiscountPercent = 0.15;
+            else if (item.category === 'Medium/Heavy') catDiscountPercent = 0.30;
+            else if (item.category === 'Premium') catDiscountPercent = 0.45;
+            else if (item.category === 'Household') catDiscountPercent = 0.20;
+          }
+          discount += item.price * qty * catDiscountPercent;
+        }
+      });
     } else {
       if (appliedCoupon === 'WELCOME50') discount = 50;
       else if (appliedCoupon === 'FIRST10') discount = subtotal * 0.10;
@@ -626,7 +648,7 @@ export default function App() {
         key: gatewayOrderData.keyId,
         amount: gatewayOrderData.amount * 100, // paise
         currency: gatewayOrderData.currency,
-        name: "IronCart Service",
+        name: "Iron Kart Service",
         description: "Ironing Booking Service Payment",
         order_id: gatewayOrderData.gatewayOrderId,
         handler: function (response: any) {
@@ -729,6 +751,41 @@ export default function App() {
       .catch(err => alert('API Connection Error: ' + err.message));
   };
 
+  const saveUpiSettings = () => {
+    const client = supabase;
+    const packed = `${upiDetails.phone}|${upiDetails.id}`;
+    if (client) {
+      client.from('prices')
+        .update({ icon: packed })
+        .eq('category', 'system')
+        .eq('item_name', 'upi_details')
+        .then(() => {
+          // If we had no row to update, we'll try to upsert
+          client.from('prices')
+            .select('id')
+            .eq('category', 'system')
+            .eq('item_name', 'upi_details')
+            .then(({ data: existData }) => {
+              if (!existData || existData.length === 0) {
+                client.from('prices').insert([{
+                  category: 'system',
+                  item_name: 'upi_details',
+                  price: 0,
+                  icon: packed,
+                  service_type: 'system'
+                }]).then(() => {
+                  triggerNotification('✅ UPI Settings Saved to Database!');
+                });
+              } else {
+                triggerNotification('✅ UPI Settings Saved to Database!');
+              }
+            });
+        });
+    } else {
+      triggerNotification('✅ UPI Settings Saved Locally!');
+    }
+  };
+
   const handleAdminAccess = () => {
     if (adminPin === '9791') {
       setViewMode('dual');
@@ -825,7 +882,7 @@ export default function App() {
           key: gatewayOrderData.keyId,
           amount: gatewayOrderData.amount * 100, // paise
           currency: gatewayOrderData.currency,
-          name: "IronCart Wallet",
+          name: "Iron Kart Wallet",
           description: "Wallet Top-up",
           order_id: gatewayOrderData.gatewayOrderId,
           handler: function (response: any) {
@@ -887,7 +944,7 @@ export default function App() {
           key: gatewayOrderData.keyId,
           amount: gatewayOrderData.amount * 100, // paise
           currency: gatewayOrderData.currency,
-          name: "IronCart Wallet",
+          name: "Iron Kart Wallet",
           description: "Wallet Top-up",
           order_id: gatewayOrderData.gatewayOrderId,
           handler: function (response: any) {
@@ -978,37 +1035,52 @@ export default function App() {
               </div>
             </div>
             
-            <div className="relative">
-              <button 
-                onClick={() => setShowNotifications(!showNotifications)}
-                className="bg-gray-50 border border-gray-200 p-2 rounded-full relative"
-              >
-                <Bell className="size-4 text-gray-700" />
-                {orders.some(o => o.customerPhone === currentCustomer.phone && o.status !== 'Placed') && (
-                  <div className="absolute top-0 right-0 size-2.5 bg-rose-500 rounded-full border-2 border-slate-950"></div>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <button 
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="bg-gray-50 border border-gray-200 p-2 rounded-full relative flex items-center justify-center"
+                >
+                  <Bell className="size-4 text-gray-700" />
+                  {orders.some(o => o.customerPhone === currentCustomer.phone && o.status !== 'Placed') && (
+                    <div className="absolute top-0 right-0 size-2 bg-rose-500 rounded-full border border-white animate-pulse"></div>
+                  )}
+                </button>
+                
+                {showNotifications && (
+                  <div className="absolute top-12 right-0 w-64 bg-gray-50 border border-gray-200 rounded-2xl shadow-2xl z-50 overflow-hidden">
+                    <div className="p-3 border-b border-gray-200 flex justify-between items-center bg-white">
+                      <span className="text-xs font-bold text-gray-900 uppercase tracking-widest">Notifications</span>
+                      <button onClick={() => setShowNotifications(false)}><X className="size-3 text-gray-400" /></button>
+                    </div>
+                    <div className="max-h-60 overflow-y-auto">
+                      {orders.filter(o => o.customerPhone === currentCustomer.phone).length === 0 ? (
+                        <div className="p-4 text-center text-xs text-gray-400">No notifications yet.</div>
+                      ) : (
+                        orders.filter(o => o.customerPhone === currentCustomer.phone).slice(0, 5).map(o => (
+                          <div key={o.id} className="p-3 border-b border-gray-200/80 hover:bg-gray-100 cursor-default">
+                            <div className="text-[10px] text-gray-500 mb-0.5">Order {o.id.split('-')[0]}</div>
+                            <div className="text-xs font-medium text-gray-900">Status updated to: <span className="text-rose-400">{o.status}</span></div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
                 )}
+              </div>
+              <button 
+                onClick={() => {
+                  if (confirm('Are you sure you want to log out?')) {
+                    setCurrentCustomer(null);
+                    localStorage.removeItem('iron_current_user');
+                    setCustomerActiveTab('home');
+                  }
+                }}
+                className="bg-gray-50 border border-gray-200 p-2 rounded-full text-rose-500 hover:bg-rose-50 hover:border-rose-350 transition-all flex items-center justify-center"
+                title="Logout"
+              >
+                <LogOut className="size-4" strokeWidth={2.5} />
               </button>
-              
-              {showNotifications && (
-                <div className="absolute top-12 right-0 w-64 bg-gray-50 border border-gray-200 rounded-2xl shadow-2xl z-50 overflow-hidden">
-                  <div className="p-3 border-b border-gray-200 flex justify-between items-center bg-white">
-                    <span className="text-xs font-bold text-gray-900 uppercase tracking-widest">Notifications</span>
-                    <button onClick={() => setShowNotifications(false)}><X className="size-3 text-gray-400" /></button>
-                  </div>
-                  <div className="max-h-60 overflow-y-auto">
-                    {orders.filter(o => o.customerPhone === currentCustomer.phone).length === 0 ? (
-                      <div className="p-4 text-center text-xs text-gray-400">No notifications yet.</div>
-                    ) : (
-                      orders.filter(o => o.customerPhone === currentCustomer.phone).slice(0, 5).map(o => (
-                        <div key={o.id} className="p-3 border-b border-gray-200/80 hover:bg-gray-100 cursor-default">
-                          <div className="text-[10px] text-gray-500 mb-0.5">Order {o.id.split('-')[0]}</div>
-                          <div className="text-xs font-medium text-gray-900">Status updated to: <span className="text-rose-400">{o.status}</span></div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
           </>
         ) : (
@@ -1017,7 +1089,7 @@ export default function App() {
               <span className="font-extrabold text-gray-900 text-lg tracking-wider">IC</span>
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight text-gray-900 m-0 p-0 text-left">IronCart</h1>
+              <h1 className="text-xl font-bold tracking-tight text-gray-900 m-0 p-0 text-left">Iron Kart</h1>
               <p className="text-xs text-gray-500 text-left">Professional Ironing & Pickup Service</p>
             </div>
           </div>
@@ -1132,11 +1204,14 @@ export default function App() {
                 ) : !currentCustomer ? (
                   <div className="flex-1 flex flex-col justify-center gap-6">
                     <div className="text-center flex flex-col items-center gap-2">
-                      <div className="size-16 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 shadow-md">
-                        <ShoppingBag className="size-8" />
+                      <div className="size-20 bg-gradient-to-tr from-rose-500 to-amber-500 rounded-3xl flex items-center justify-center shadow-lg relative overflow-hidden mb-3 animate-pulse">
+                        <span className="text-white font-black text-2xl tracking-wider select-none">IK</span>
+                        <div className="absolute -bottom-2 -right-2 size-8 bg-white/20 rounded-full blur-md"></div>
                       </div>
-                      <h2 className="text-xl font-bold text-gray-900">IronCart Delivery</h2>
-                      <p className="text-xs text-gray-500">Bringing Crispness to Your Doorstep</p>
+                      <h2 className="text-2xl font-black text-gray-900 tracking-tight">Iron Kart</h2>
+                      <p className="text-xs font-bold text-rose-500 bg-gradient-to-r from-rose-500 to-amber-500 bg-clip-text text-transparent mt-1">
+                        Perfect Creases, Zero Effort. Freshness Delivered.
+                      </p>
                     </div>
 
                     {authStep === 'login' && (
@@ -1318,12 +1393,23 @@ export default function App() {
                       {customerActiveTab === 'home' && (
                         <div className="flex flex-col gap-4">
                           
+                          {/* Top Scrolling Marquee */}
+                          <div className="bg-gradient-to-r from-rose-500 to-amber-500 text-white text-[9px] font-extrabold py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 shadow-sm">
+                            <span className="animate-pulse">⚡ FLASH OFFER: Get 35% off on Gold Prime subscription this week!</span>
+                          </div>
+
+                          {/* Welcome User Greeting */}
+                          <div className="text-left mt-1">
+                            <h3 className="text-sm font-extrabold text-gray-900">Hello, {currentCustomer?.name || 'Friend'}! 👋</h3>
+                            <p className="text-[10px] text-gray-500 mt-0.5">Ready to make your wardrobe look fresh and perfectly pressed? ✨</p>
+                          </div>
+                          
                           {/* Promotional Slide Banner */}
                           <div className="bg-gradient-to-r from-rose-600 to-amber-500 rounded-2xl p-0 text-left shadow-lg relative overflow-hidden h-32 flex items-center justify-center">
-                            <img src="/ironing_hero_banner_1785298412643.png" alt="Hero Banner" className="w-full h-full object-cover opacity-90 mix-blend-overlay absolute inset-0" />
+                            <img src="https://images.unsplash.com/photo-1517677129300-07b130802f46?w=800&h=400&fit=crop" alt="Hero Banner" className="w-full h-full object-cover opacity-90 mix-blend-overlay absolute inset-0" />
                             <div className="relative z-10 px-4 w-full">
-                              <h4 className="font-extrabold text-sm text-gray-900 drop-shadow-md">Premium Garment Care</h4>
-                              <p className="text-[10px] text-gray-900/90 mt-1 max-w-[200px] drop-shadow-md">Get 50% off on your first order. Standard delivery starts at just ₹12/item.</p>
+                              <h4 className="font-extrabold text-sm text-gray-900 drop-shadow-md">Premium Garment Pressing</h4>
+                              <p className="text-[10px] text-gray-900/90 mt-1 max-w-[200px] drop-shadow-md">Get 50% off on your first order. Professional steam care starts at just ₹12/item.</p>
                               <span className="inline-block bg-white text-rose-600 text-[9px] font-bold px-2 py-0.5 rounded-full mt-2.5 shadow-sm">Code: WELCOME50</span>
                             </div>
                           </div>
@@ -1333,7 +1419,7 @@ export default function App() {
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <span className="text-lg">💳</span>
-                                <span className="text-sm font-bold text-gray-900">IronCart Wallet</span>
+                                <span className="text-sm font-bold text-gray-900">Iron Kart Wallet</span>
                               </div>
                               <span className="text-lg font-black text-emerald-400">₹{currentCustomer?.walletBalance || 0}</span>
                             </div>
@@ -1469,71 +1555,7 @@ export default function App() {
                         </div>
                       )}
 
-                      {/* REWARDS TAB */}
-                      {customerActiveTab === 'rewards' && (
-                        <div className="flex flex-col gap-4 text-left max-h-[500px] overflow-y-auto pb-6 pr-1">
-                          
-                          <div className="flex items-center gap-2 mb-1">
-                            <button onClick={() => setCustomerActiveTab('home')} className="p-1 hover:bg-gray-200 rounded-lg">
-                              <ArrowLeft className="size-4 text-gray-500" />
-                            </button>
-                            <h3 className="text-sm font-bold text-gray-900">Refer & Earn</h3>
-                          </div>
-                          
-                          {/* Header Graphic */}
-                          <div className="bg-gradient-to-tr from-slate-900 to-slate-800 rounded-[24px] p-6 border border-gray-300/50 shadow-xl flex flex-col items-center justify-center text-center mt-1 relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 rounded-full blur-3xl"></div>
-                            <div className="absolute bottom-0 left-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl"></div>
-                            
-                            <div className="size-16 bg-gradient-to-tr from-rose-500 to-amber-500 rounded-full flex items-center justify-center shadow-lg shadow-rose-500/20 mb-3 relative z-10">
-                              <Gift className="size-8 text-gray-900" />
-                            </div>
-                            <h2 className="text-xl font-black text-gray-900 relative z-10 tracking-tight">Refer & Earn ₹50</h2>
-                            <p className="text-xs text-gray-500 mt-2 relative z-10 max-w-[250px] leading-relaxed">
-                              Invite your friends to IronCart. When they complete their first order, you <strong className="text-rose-400">both get ₹50</strong> added to your wallets!
-                            </p>
-                          </div>
 
-                          {/* Code Display */}
-                          <div className="bg-white border border-gray-200 rounded-2xl p-5 mt-2 flex flex-col items-center shadow-sm">
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Your Unique Code</span>
-                            <div className="bg-gray-50 border-2 border-dashed border-rose-500/30 text-rose-500 font-mono text-2xl font-black px-6 py-3 rounded-xl tracking-[0.2em] w-full text-center select-all">
-                              {currentCustomer.referralCode || 'IRON-NEW'}
-                            </div>
-                            
-                            <button 
-                              onClick={() => {
-                                const text = `Hey! Use my code ${currentCustomer.referralCode || 'IRON-NEW'} to get ₹50 off your first IronCart ironing & laundry order! 🧺✨\nDownload the app and sign up now!`;
-                                const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
-                                window.open(whatsappUrl, '_blank');
-                              }}
-                              className="w-full bg-\[#25D366\] hover:bg-[#1ebd5a] text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 mt-4 shadow-md transition-all"
-                            >
-                              Share via WhatsApp
-                            </button>
-                          </div>
-                          
-                          {/* How it works */}
-                          <div className="mt-2">
-                            <h3 className="text-xs font-bold text-gray-700 mb-3 ml-1">How it works</h3>
-                            <div className="flex flex-col gap-3">
-                              <div className="flex items-center gap-3 bg-gray-50/50 p-3 rounded-xl border border-gray-200/80">
-                                <div className="size-8 rounded-full bg-gray-200 flex items-center justify-center font-black text-xs text-gray-500">1</div>
-                                <p className="text-[11px] text-gray-500 leading-snug flex-1">Share your unique code with friends.</p>
-                              </div>
-                              <div className="flex items-center gap-3 bg-gray-50/50 p-3 rounded-xl border border-gray-200/80">
-                                <div className="size-8 rounded-full bg-gray-200 flex items-center justify-center font-black text-xs text-gray-500">2</div>
-                                <p className="text-[11px] text-gray-500 leading-snug flex-1">They sign up and enter your code during registration.</p>
-                              </div>
-                              <div className="flex items-center gap-3 bg-gray-50/50 p-3 rounded-xl border border-gray-200/80">
-                                <div className="size-8 rounded-full bg-emerald-500/10 flex items-center justify-center font-black text-xs text-emerald-500">3</div>
-                                <p className="text-[11px] text-gray-700 leading-snug flex-1">You <strong className="text-emerald-400">both get ₹50</strong> in your wallet when their first order is delivered!</p>
-                              </div>
-                            </div>
-                          </div>
-
-                        </div>
-                      )}
 
                       {/* REWARDS TAB */}
                       {customerActiveTab === 'rewards' && (
@@ -1556,7 +1578,7 @@ export default function App() {
                             </div>
                             <h2 className="text-xl font-black text-gray-900 relative z-10 tracking-tight">Refer & Earn ₹50</h2>
                             <p className="text-xs text-gray-500 mt-2 relative z-10 max-w-[250px] leading-relaxed">
-                              Invite your friends to IronCart. When they complete their first order, you <strong className="text-rose-400">both get ₹50</strong> added to your wallets!
+                              Invite your friends to Iron Kart. When they complete their first order, you <strong className="text-rose-400">both get ₹50</strong> added to your wallets!
                             </p>
                           </div>
 
@@ -1569,7 +1591,7 @@ export default function App() {
                             
                             <button 
                               onClick={() => {
-                                const text = `Hey! Use my code ${currentCustomer.referralCode || 'IRON-NEW'} to get ₹50 off your first IronCart ironing & laundry order! 🧺✨\nDownload the app and sign up now!`;
+                                const text = `Hey! Use my code ${currentCustomer.referralCode || 'IRON-NEW'} to get ₹50 off your first Iron Kart ironing & laundry order! 🧺✨\nDownload the app and sign up now!`;
                                 const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
                                 window.open(whatsappUrl, '_blank');
                               }}
@@ -1623,7 +1645,7 @@ export default function App() {
                                     </div>
                                     <p className="text-[11px] text-gray-500">
                                       Status updated to <strong className="text-rose-400">{order.status}</strong>. 
-                                      {order.status === 'Delivered' ? ' Thank you for choosing IronCart!' : ' We are working on it.'}
+                                      {order.status === 'Delivered' ? ' Thank you for choosing Iron Kart!' : ' We are working on it.'}
                                     </p>
                                   </div>
                                 </div>
@@ -1752,27 +1774,6 @@ export default function App() {
                             </div>
                           </div>
 
-                          {/* Speed Selection */}
-                          <div className="flex flex-col gap-1.5">
-                            <label className="text-[9px] font-bold text-gray-500 uppercase">Delivery Speed</label>
-                            <div className="grid grid-cols-3 gap-2">
-                              {['Normal', 'Express', 'Urgent'].map(sp => (
-                                <button 
-                                  key={sp}
-                                  onClick={() => setOrderSpeed(sp as any)}
-                                  className={`py-2 rounded-xl text-xs font-semibold border transition-all text-center ${orderSpeed === sp ? 'bg-rose-500/10 border-rose-500 text-rose-500' : 'bg-white border-gray-200 text-gray-500'}`}
-                                >
-                                  {sp}
-                                  <div className="text-[8px] opacity-80">
-                                    {sp === 'Normal' && 'Standard'}
-                                    {sp === 'Express' && '+50% (24h)'}
-                                    {sp === 'Urgent' && '+100% (4h)'}
-                                  </div>
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
                           {/* Iztri-Style Pickup schedule */}
                           <div className="flex flex-col gap-3 mt-4">
                             <label className="text-[11px] font-bold text-gray-900 tracking-wide">Select Pickup Date</label>
@@ -1821,10 +1822,10 @@ export default function App() {
 
                             <div className="flex overflow-x-auto scrollbar-hide pb-3 -mx-2 px-2 gap-3 border-b border-gray-200">
                               {[
-                                { name: 'Light Weight', img: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=200&h=150&fit=crop' },
-                                { name: 'Medium/Heavy', img: 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=200&h=150&fit=crop' },
-                                { name: 'Premium', img: 'https://images.unsplash.com/photo-1610030469983-98e550d61dc0?w=200&h=150&fit=crop' },
-                                { name: 'Household', img: 'https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?w=200&h=150&fit=crop' }
+                                { name: 'Light Weight', img: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=400&h=300&fit=crop' },
+                                { name: 'Medium/Heavy', img: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=400&h=300&fit=crop' },
+                                { name: 'Premium', img: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=400&h=300&fit=crop' },
+                                { name: 'Household', img: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=400&h=300&fit=crop' }
                               ].map(cat => (
                                 <button
                                   key={cat.name}
@@ -2066,6 +2067,24 @@ export default function App() {
                                   <FileText className="size-3.5 text-rose-500" /> View Digital Invoice
                                 </button>
                               )}
+
+                              {(selectedOrderForTracking.status === 'Cancelled' || selectedOrderForTracking.status === 'Delivered') && (
+                                <button 
+                                  onClick={() => {
+                                    const itemsToLoad: { [key: string]: number } = {};
+                                    selectedOrderForTracking.items.forEach((item: any) => {
+                                      itemsToLoad[item.name] = item.qty;
+                                    });
+                                    setSelectedItems(itemsToLoad);
+                                    setCustomerActiveTab('order');
+                                    setSelectedOrderForTracking(null);
+                                    triggerNotification('🛒 Items from previous order loaded! Ready to checkout.');
+                                  }}
+                                  className="w-full bg-rose-500 hover:bg-rose-600 text-white py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 mt-2 shadow-sm transition-all"
+                                >
+                                  <RefreshCw className="size-3.5" /> Reorder this Basket
+                                </button>
+                              )}
                               
                               {selectedOrderForTracking.status === 'Placed' && (
                                 <div className="grid grid-cols-2 gap-2 mt-2">
@@ -2147,6 +2166,34 @@ export default function App() {
                               </a>
                             </div>
 
+                            {/* FAQ Section */}
+                            <div className="border-t border-gray-200 pt-3">
+                              <h4 className="text-xs font-bold text-gray-950 mb-2">❓ Frequently Asked Questions</h4>
+                              <div className="flex flex-col gap-2">
+                                {[
+                                  { q: "How long does ironing take?", a: "Standard turnaround time is 24 to 48 hours depending on your pickup schedule." },
+                                  { q: "How do I top up my wallet?", a: "Go to the Home tab and tap '+ Add Money to Wallet'. You can pay securely using UPI, Credit/Debit cards, or NetBanking." },
+                                  { q: "Can I reschedule my pickup?", a: "Yes, go to 'My Orders' tab, select your active order, and tap the 'Reschedule' button to select a new slot." },
+                                  { q: "Do you iron designer sarees?", a: "Yes! Designer sarees, silk garments, and wedding sets fall under our Premium category and are ironed with special low-temperature steam care." }
+                                ].map((faq, idx) => (
+                                  <div key={idx} className="border border-gray-200 rounded-lg overflow-hidden">
+                                    <button 
+                                      onClick={() => setExpandedFaq(expandedFaq === idx ? null : idx)}
+                                      className="w-full text-left bg-gray-50 hover:bg-gray-100 p-2.5 flex justify-between items-center text-[10px] font-bold text-gray-700"
+                                    >
+                                      <span>{faq.q}</span>
+                                      <ChevronRight className={`size-3 text-gray-400 transition-all ${expandedFaq === idx ? 'rotate-90' : ''}`} />
+                                    </button>
+                                    {expandedFaq === idx && (
+                                      <div className="p-2.5 bg-white text-[9px] text-gray-500 leading-relaxed border-t border-gray-100">
+                                        {faq.a}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
                             {/* Owner Admin Gateway Switcher */}
                             <div className="border-t border-gray-200 pt-3 bg-white/60 p-2.5 rounded-xl border border-dashed border-gray-200">
                               <h4 className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
@@ -2181,7 +2228,7 @@ export default function App() {
                             <button onClick={() => setCustomerActiveTab('home')} className="p-1 hover:bg-gray-200 rounded-lg">
                               <ArrowLeft className="size-4 text-gray-500" />
                             </button>
-                            <h3 className="text-sm font-bold text-gray-900">IronCart Prime Plans</h3>
+                            <h3 className="text-sm font-bold text-gray-900">Iron Kart Prime Plans</h3>
                           </div>
                           
                           <div className="w-full h-32 rounded-2xl overflow-hidden relative shadow-lg">
@@ -2231,6 +2278,156 @@ export default function App() {
                         </div>
                       )}
 
+                      {customerActiveTab === 'profile' && currentCustomer && (
+                        <div className="flex flex-col gap-4 text-left max-h-[500px] overflow-y-auto pb-6 pr-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <button onClick={() => setCustomerActiveTab('home')} className="p-1 hover:bg-gray-200 rounded-lg">
+                              <ArrowLeft className="size-4 text-gray-500" />
+                            </button>
+                            <h3 className="text-sm font-bold text-gray-900 font-sans">My Profile</h3>
+                          </div>
+
+                          {/* Profile Card Info */}
+                          <div className="bg-gradient-to-tr from-slate-900 to-slate-800 rounded-2xl p-5 text-white flex flex-col gap-3 shadow-lg relative overflow-hidden">
+                            <div className="absolute top-0 right-0 size-24 bg-white/5 rounded-full blur-xl"></div>
+                            <div className="flex items-center gap-3 relative z-10">
+                              <div className="size-12 bg-white/20 rounded-full flex items-center justify-center text-white text-lg font-bold shadow-inner">
+                                {currentCustomer.name.slice(0, 2).toUpperCase()}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-extrabold text-sm truncate">{currentCustomer.name}</h4>
+                                <p className="text-[10px] text-gray-300 font-medium truncate mt-0.5">{currentCustomer.phone}</p>
+                              </div>
+                            </div>
+                            <div className="border-t border-white/10 pt-2 text-[10px] text-gray-400 flex justify-between">
+                              <span>Membership</span>
+                              <span className="font-bold text-amber-300">{currentCustomer.activePlan ? `${currentCustomer.activePlan} Prime` : 'Standard Customer'}</span>
+                            </div>
+                          </div>
+
+                          {/* Manage Addresses Section */}
+                          <div className="bg-white border border-gray-200 rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
+                            <h4 className="text-xs font-bold text-gray-950 flex items-center gap-1">
+                              <MapPin className="size-4 text-rose-500" /> Saved Addresses
+                            </h4>
+                            <div className="flex flex-col gap-2 max-h-36 overflow-y-auto">
+                              {(!currentCustomer.addresses || currentCustomer.addresses.length === 0) ? (
+                                <p className="text-[10px] text-gray-400">No addresses saved yet.</p>
+                              ) : (
+                                currentCustomer.addresses?.map((addr: any) => (
+                                  <div key={addr.id} className="p-2.5 bg-gray-50 rounded-xl border border-gray-250 flex items-start justify-between">
+                                    <div className="flex-1 min-w-0 pr-2">
+                                      <span className="text-[9px] font-extrabold uppercase bg-gray-200 text-gray-700 px-1 rounded">{addr.label}</span>
+                                      <p className="text-[10px] text-gray-500 leading-snug mt-1 truncate">{addr.fullAddress}</p>
+                                    </div>
+                                    <button 
+                                      onClick={() => {
+                                        if (confirm('Delete this address?')) {
+                                          const addresses = (currentCustomer.addresses || []).filter((a: any) => a.id !== addr.id);
+                                          const updated = { ...currentCustomer, addresses };
+                                          setCurrentCustomer(updated);
+                                          fetch(`${API_URL}/customers/${currentCustomer.phone}`, {
+                                            method: 'PUT',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify(updated)
+                                          });
+                                        }
+                                      }}
+                                      className="text-rose-500 hover:text-rose-600 text-[10px] font-bold shrink-0 self-center"
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+
+                            {/* Add Address Inside Profile */}
+                            {showAddAddress ? (
+                              <div className="flex flex-col gap-2 border-t border-gray-150 pt-2">
+                                <div className="flex gap-2">
+                                  {['Home', 'Office', 'Other'].map(lbl => (
+                                    <button 
+                                      key={lbl}
+                                      onClick={() => setNewAddressLabel(lbl)}
+                                      className={`px-2.5 py-1 text-[9px] font-bold rounded-lg ${newAddressLabel === lbl ? 'bg-rose-500 text-white' : 'bg-gray-100 text-gray-500'}`}
+                                    >
+                                      {lbl}
+                                    </button>
+                                  ))}
+                                </div>
+                                <input 
+                                  type="text" 
+                                  placeholder="Enter complete address details"
+                                  value={newAddressText}
+                                  onChange={e => setNewAddressText(e.target.value)}
+                                  className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-[10px] text-gray-900 outline-none"
+                                />
+                                <div className="flex gap-2">
+                                  <button onClick={handleAddAddress} className="flex-1 bg-rose-500 hover:bg-rose-600 text-white py-1 rounded text-[10px] font-bold">Save</button>
+                                  <button onClick={() => setShowAddAddress(false)} className="flex-1 bg-gray-200 text-gray-700 py-1 rounded text-[10px] font-bold">Cancel</button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button onClick={() => setShowAddAddress(true)} className="text-left text-[10px] font-bold text-rose-500 hover:underline">
+                                + Add New Address
+                              </button>
+                            )}
+                          </div>
+
+                          {/* App Settings / Information & Legal */}
+                          <div className="bg-white border border-gray-200 rounded-2xl p-4 flex flex-col gap-2.5 shadow-sm">
+                            <h4 className="text-xs font-bold text-gray-950 flex items-center gap-1">
+                              <Settings className="size-4 text-gray-500" /> Settings & Policies
+                            </h4>
+                            <div className="flex flex-col gap-1 text-[10px]">
+                              <button onClick={() => alert('Terms & Conditions:\n\n1. All garments are ironed standard steam settings.\n2. In case of garment damage, maximum liability is limited to 5x the service cost.\n3. Orders must be cancelled at least 2 hours prior to pickup time.')} className="w-full text-left p-2 hover:bg-gray-50 rounded-lg text-gray-700 flex justify-between items-center border border-gray-100">
+                                <span>Terms & Conditions</span>
+                                <ChevronRight className="size-3.5 text-gray-400" />
+                              </button>
+                              <button onClick={() => alert('Privacy Policy:\n\n1. We gather name, mobile number and address details solely to deliver services.\n2. Your details are secure and never sold or shared with external parties.\n3. Payment operations are securely routed through certified gateways.')} className="w-full text-left p-2 hover:bg-gray-50 rounded-lg text-gray-700 flex justify-between items-center border border-gray-100">
+                                <span>Privacy & Policy</span>
+                                <ChevronRight className="size-3.5 text-gray-400" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Danger Zone: Delete Account */}
+                          <div className="bg-rose-50/50 border border-rose-200 rounded-2xl p-4 flex flex-col gap-2 shadow-sm">
+                            <h4 className="text-xs font-bold text-rose-800">Danger Zone</h4>
+                            <p className="text-[10px] text-gray-500 leading-relaxed">Permanently delete your profile and account information. This action is irreversible.</p>
+                            <button 
+                              onClick={() => {
+                                if (confirm('⚠️ WARNING: Deleting your account will remove your address list, purchase logs, and remaining wallet balance. Are you sure you want to proceed?')) {
+                                  if (confirm('Are you absolutely certain? This cannot be undone.')) {
+                                    const client = supabase;
+                                    if (client) {
+                                      client.from('customers')
+                                        .delete()
+                                        .eq('phone', currentCustomer.phone)
+                                        .then(() => {
+                                          setCurrentCustomer(null);
+                                          localStorage.removeItem('iron_current_user');
+                                          setCustomerActiveTab('home');
+                                          alert('Your profile has been deleted successfully. We hope to see you again! ❤️');
+                                        });
+                                    } else {
+                                      setCurrentCustomer(null);
+                                      localStorage.removeItem('iron_current_user');
+                                      setCustomerActiveTab('home');
+                                      alert('Your profile has been deleted locally successfully.');
+                                    }
+                                  }
+                                }
+                              }}
+                              className="w-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-2 rounded-xl mt-1 shadow-sm transition-all"
+                            >
+                              Delete My Account Permanently
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
                     </div>
 
                     {/* Premium Iztri-Style Bottom Navigation Bar */}
@@ -2239,7 +2436,8 @@ export default function App() {
                         { tab: 'home', label: 'Home', icon: Smartphone },
                         { tab: 'order', label: 'Book', icon: Plus },
                         { tab: 'subscriptions', label: 'Prime', icon: Star },
-                        { tab: 'history', label: 'Orders', icon: ShoppingBag }
+                        { tab: 'history', label: 'Orders', icon: ShoppingBag },
+                        { tab: 'profile', label: 'Profile', icon: User }
                       ].map(item => {
                         const Icon = item.icon
                         const isActive = customerActiveTab === item.tab
@@ -2283,7 +2481,7 @@ export default function App() {
                   {/* Checkout Header */}
                   <div className="flex items-center justify-between pb-3 border-b border-gray-200">
                     <div>
-                      <h4 className="text-xs font-bold text-gray-500">IronCart Checkout</h4>
+                      <h4 className="text-xs font-bold text-gray-500">Iron Kart Checkout</h4>
                       <h3 className="text-sm font-extrabold text-gray-900 mt-0.5">Pay ₹{calculateTotals().total}</h3>
                     </div>
                     <button onClick={() => setShowCheckoutModal(false)} className="text-xs text-gray-400 hover:text-gray-900">Cancel</button>
@@ -2310,7 +2508,7 @@ export default function App() {
                     >
                       <Wallet className="size-4 text-emerald-400" />
                       <div className="text-xs font-semibold text-left">
-                        <span>IronCart Wallet</span>
+                        <span>Iron Kart Wallet</span>
                         <div className="text-[8px] opacity-75">Pay using your prepaid balance</div>
                       </div>
                     </button>
@@ -2359,7 +2557,7 @@ export default function App() {
                         {upiDetails.id && (
                           <div className="bg-white p-1 rounded shrink-0">
                             <img 
-                              src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=upi://pay?pa=${upiDetails.id}&pn=IronCart&cu=INR`} 
+                              src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=upi://pay?pa=${upiDetails.id}&pn=Iron Kart&cu=INR`} 
                               alt="UPI QR Code" 
                               className="w-16 h-16 object-contain"
                             />
@@ -2378,7 +2576,7 @@ export default function App() {
                       </div>
 
                       <a 
-                        href={`upi://pay?pa=${upiDetails.id}&pn=IronCart&cu=INR`} 
+                        href={`upi://pay?pa=${upiDetails.id}&pn=Iron Kart&cu=INR`} 
                         className="w-full bg-gray-50 hover:bg-gray-200 text-center text-gray-900 py-2 rounded-lg font-bold border border-gray-200 transition-colors mt-2"
                       >
                         Click to Open UPI App
@@ -2393,7 +2591,7 @@ export default function App() {
                   {paymentMethod === 'Wallet' && (
                     <div className="bg-white border border-gray-200 p-3 rounded-xl flex flex-col gap-2 mt-1 text-left text-xs animate-fade-in">
                       <div className="font-bold text-gray-900 flex items-center justify-between">
-                        <span>💳 IronCart Wallet Balance</span>
+                        <span>💳 Iron Kart Wallet Balance</span>
                         <span className="text-emerald-500">₹{currentCustomer?.walletBalance || 0}</span>
                       </div>
                       
@@ -2815,7 +3013,7 @@ export default function App() {
                       <div className="mt-2 flex gap-4 items-start">
                         <div className="bg-white p-2 rounded-lg">
                           <img 
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=upi://pay?pa=${upiDetails.id}&pn=IronCart&cu=INR`} 
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=upi://pay?pa=${upiDetails.id}&pn=Iron Kart&cu=INR`} 
                             alt="Live QR Preview" 
                             className="w-[100px] h-[100px]"
                           />
@@ -2827,7 +3025,7 @@ export default function App() {
                       </div>
 
                       <button 
-                        onClick={() => triggerNotification('✅ UPI Settings Saved Successfully!')}
+                        onClick={saveUpiSettings}
                         className="bg-rose-500 hover:bg-rose-600 text-white py-2.5 rounded-xl text-xs font-semibold self-start px-6 shadow-md mt-2"
                       >
                         Save Settings
@@ -2852,7 +3050,7 @@ export default function App() {
             {/* Invoice Header */}
             <div className="flex justify-between items-start border-b border-slate-200 pb-4">
               <div>
-                <h3 className="text-lg font-black tracking-tight text-slate-900">IronCart Invoice</h3>
+                <h3 className="text-lg font-black tracking-tight text-slate-900">Iron Kart Invoice</h3>
                 <span className="text-[10px] text-gray-400 font-mono">No. {selectedInvoice.invoiceNo}</span>
               </div>
               <button 
@@ -3031,7 +3229,7 @@ export default function App() {
 
       {/* Simulation Dashboard Footer */}
       <footer className="border-t border-gray-200 bg-white px-6 py-4 text-center text-xs text-gray-400">
-        <p>© 2026 IronCart Ironing Service Inc. All systems simulated. Workflows are fully responsive and digital ready.</p>
+        <p>© 2026 Iron Kart Ironing Service Inc. All systems simulated. Workflows are fully responsive and digital ready.</p>
       </footer>
 
     </div>
