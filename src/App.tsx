@@ -1698,17 +1698,16 @@ export default function App() {
                             </button>
                           </div>
 
-                          {/* Prime Subscription Banner */}
+                          {/* Refer & Earn Banner */}
                           <div 
-                            onClick={() => setCustomerActiveTab('subscriptions')}
-                            className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-xl p-4 cursor-pointer text-left relative overflow-hidden shadow-lg mt-1"
+                            onClick={() => setCustomerActiveTab('rewards')}
+                            className="bg-gradient-to-r from-rose-500 to-amber-500 rounded-xl p-4 cursor-pointer text-left relative overflow-hidden shadow-lg mt-1"
                           >
                             <div className="relative z-10">
-                              <h3 className="text-amber-400 font-black text-sm tracking-wide leading-tight break-words whitespace-normal">IRON KART PRIME</h3>
-                              <p className="text-gray-300 text-[10px] mt-0.5 font-medium">Join now for 10% OFF & Free Delivery on all orders!</p>
+                              <h3 className="text-white font-black text-base tracking-wide leading-tight break-words whitespace-normal drop-shadow-md">REFER & EARN ₹50</h3>
                             </div>
                             <div className="absolute right-[-10px] bottom-[-10px] opacity-20">
-                              <Star className="size-20 text-amber-400" />
+                              <Gift className="size-20 text-white" />
                             </div>
                           </div>
 
@@ -2539,7 +2538,8 @@ export default function App() {
                           <div className="w-full h-32 rounded-2xl overflow-hidden relative shadow-lg">
                             <img src="/subscription_banner_1785298423353.png" alt="Prime Subscription" className="w-full h-full object-cover opacity-80 mix-blend-screen" />
                             <div className="absolute inset-0 flex flex-col justify-end p-4 bg-gradient-to-t from-slate-950 to-transparent">
-                              <h4 className="font-extrabold text-gray-900 text-lg drop-shadow-md">Subscribe & Save</h4>
+                              <h4 className="font-extrabold text-white text-xl drop-shadow-md">Iron Kart Prime</h4>
+                              <p className="text-amber-300 text-xs font-bold mt-0.5 drop-shadow-md">Subscribe & Save</p>
                             </div>
                           </div>
 
@@ -2557,7 +2557,7 @@ export default function App() {
                                   </h4>
                                   <span className="text-gray-900 font-extrabold">₹{plan.price}<span className="text-[9px] text-gray-400 font-normal">/mo</span></span>
                                 </div>
-                                <p className="text-[10px] text-gray-500">Gets flat {plan.discount}% discount on all orders placed (includes Light, Medium, Premium & Household categories).</p>
+                                <p className="text-[10px] text-gray-500">Gets flat {plan.discount}% discount on all orders placed. Plus free delivery on orders near to your location!</p>
                                 <button 
                                   onClick={() => {
                                       if (!currentCustomer) return;
