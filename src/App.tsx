@@ -1209,6 +1209,17 @@ export default function App() {
                         <span className="text-white font-black text-2xl tracking-wider select-none">IK</span>
                         <div className="absolute -bottom-2 -right-2 size-8 bg-white/20 rounded-full blur-md"></div>
                       </div>
+                      {/* Steam Iron Icon badge under the IK logo */}
+                      <div className="flex justify-center -mt-1 mb-1 text-rose-500 bg-rose-50 px-2 py-1 rounded-full border border-rose-100 items-center gap-1.5 shadow-sm scale-90 select-none">
+                        <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M2 16h20" />
+                          <path d="M6 16a4 4 0 0 1-4-4V6h15a5 5 0 0 1 5 5v5" />
+                          <path d="M9 6v10" />
+                          <path d="M14 6v10" />
+                          <path d="M18 10h4" />
+                        </svg>
+                        <span className="text-[9px] font-black tracking-wider uppercase">Premium Steam Care</span>
+                      </div>
                       <h2 className="text-2xl font-black text-gray-900 tracking-tight">Iron Kart</h2>
                       <p className="text-xs font-bold text-rose-500 bg-gradient-to-r from-rose-500 to-amber-500 bg-clip-text text-transparent mt-1">
                         Perfect Creases, Zero Effort. Freshness Delivered.
@@ -1407,10 +1418,10 @@ export default function App() {
                           
                           {/* Promotional Slide Banner */}
                           <div className="bg-gradient-to-r from-rose-600 to-amber-500 rounded-2xl p-0 text-left shadow-lg relative overflow-hidden h-32 flex items-center justify-center">
-                            <img src="https://images.unsplash.com/photo-1517677129300-07b130802f46?w=800&h=400&fit=crop" alt="Hero Banner" className="w-full h-full object-cover opacity-90 mix-blend-overlay absolute inset-0" />
+                            <img src="/hero_banner.png" alt="Hero Banner" className="w-full h-full object-cover opacity-45 absolute inset-0" />
                             <div className="relative z-10 px-4 w-full">
-                              <h4 className="font-extrabold text-sm text-gray-900 drop-shadow-md">Premium Garment Pressing</h4>
-                              <p className="text-[10px] text-gray-900/90 mt-1 max-w-[200px] drop-shadow-md">Get 50% off on your first order. Professional steam care starts at just ₹12/item.</p>
+                              <h4 className="font-extrabold text-sm text-white drop-shadow-md">Premium Garment Pressing</h4>
+                              <p className="text-[10px] text-white/95 mt-1 max-w-[200px] drop-shadow-md">Get 50% off on your first order. Professional steam care starts at just ₹12/item.</p>
                               <span className="inline-block bg-white text-rose-600 text-[9px] font-bold px-2 py-0.5 rounded-full mt-2.5 shadow-sm">Code: WELCOME50</span>
                             </div>
                           </div>
@@ -1558,6 +1569,22 @@ export default function App() {
                             </div>
                             <div className="absolute right-[-10px] bottom-[-10px] opacity-20">
                               <Gift className="size-20" />
+                            </div>
+                          </div>
+
+                          {/* Steam Press Feature Banner */}
+                          <div 
+                            onClick={() => setCustomerActiveTab('order')}
+                            className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-md flex items-center gap-3 cursor-pointer p-3 hover:border-rose-350 transition-all mt-1"
+                          >
+                            <img 
+                              src="/hero_banner.png" 
+                              alt="Steam Ironing" 
+                              className="size-16 rounded-xl object-cover shrink-0" 
+                            />
+                            <div className="text-left flex-1 min-w-0">
+                              <h4 className="text-xs font-black text-gray-950 uppercase tracking-wider">Professional Steam Press</h4>
+                              <p className="text-[9px] text-gray-500 leading-normal mt-0.5">We use high-temperature steam vacuum tables for premium garment care.</p>
                             </div>
                           </div>
 
@@ -1862,7 +1889,7 @@ export default function App() {
 
                             <div className="flex overflow-x-auto scrollbar-hide pb-3 -mx-2 px-2 gap-3 border-b border-gray-200">
                               {[
-                                { name: 'Light Weight', img: 'https://images.unsplash.com/photo-1517677129300-07b130802f46?w=400&h=300&fit=crop' },
+                                { name: 'Light Weight', img: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=400&h=300&fit=crop' },
                                 { name: 'Medium/Heavy', img: 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=400&h=300&fit=crop' },
                                 { name: 'Premium', img: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=400&h=300&fit=crop' },
                                 { name: 'Household', img: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=400&h=300&fit=crop' }
