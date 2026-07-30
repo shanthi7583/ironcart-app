@@ -1698,17 +1698,17 @@ export default function App() {
                             </button>
                           </div>
 
-                          {/* Refer & Earn Banner */}
+                          {/* Prime Subscription Banner */}
                           <div 
-                            onClick={() => setCustomerActiveTab('rewards')}
-                            className="bg-gradient-to-r from-rose-500 to-amber-500 rounded-xl p-4 cursor-pointer text-left relative overflow-hidden shadow-lg mt-1"
+                            onClick={() => setCustomerActiveTab('subscriptions')}
+                            className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-xl p-4 cursor-pointer text-left relative overflow-hidden shadow-lg mt-1"
                           >
                             <div className="relative z-10">
-                              <h3 className="text-gray-900 font-black text-sm tracking-wide leading-tight break-words whitespace-normal">REFER & EARN ₹50</h3>
-                              <p className="text-gray-900/80 text-[10px] mt-0.5">Invite friends and you both get ₹50 off!</p>
+                              <h3 className="text-amber-400 font-black text-sm tracking-wide leading-tight break-words whitespace-normal">IRON KART PRIME</h3>
+                              <p className="text-gray-300 text-[10px] mt-0.5 font-medium">Join now for 10% OFF & Free Delivery on all orders!</p>
                             </div>
                             <div className="absolute right-[-10px] bottom-[-10px] opacity-20">
-                              <Gift className="size-20" />
+                              <Star className="size-20 text-amber-400" />
                             </div>
                           </div>
 
