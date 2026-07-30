@@ -356,7 +356,12 @@ export default function App() {
             triggerNotification(`💬 WhatsApp OTP Sent to +91 ${authPhone}! Check backend terminal log for PIN.`);
           }
         })
-        .catch(err => alert('Failed to send verification code: ' + err.message));
+        .catch(err => {
+          console.warn('Backend API connection failed, enabling local mock OTP bypass:', err.message);
+          setSentOTP('1234');
+          setAuthStep('otp');
+          triggerNotification('⚠️ Offline Demo Mode: Enter OTP 1234 to proceed.');
+        });
     };
 
     if (auth) {
@@ -394,6 +399,7 @@ export default function App() {
           if (res.ok) {
             return res.json().then(data => {
               setCurrentCustomer(data);
+              localStorage.setItem('iron_current_user', JSON.stringify(data));
               setCustomerActiveTab('home');
             });
           } else if (res.status === 404) {
@@ -402,7 +408,20 @@ export default function App() {
             throw new Error('Unexpected API error');
           }
         })
-        .catch(err => alert('API Connection Error: ' + err.message));
+        .catch(err => {
+          console.warn('API Connection Error, logging in with offline mock customer profile:', err.message);
+          const mockData = {
+            name: "Demo User",
+            phone: authPhone,
+            apartmentNo: "Apt 101, Block A",
+            address: "Offline Demo Address, Bengaluru",
+            walletBalance: 250
+          };
+          setCurrentCustomer(mockData);
+          localStorage.setItem('iron_current_user', JSON.stringify(mockData));
+          setCustomerActiveTab('home');
+          triggerNotification(`👋 Offline Demo Mode: Welcome back, ${mockData.name}!`);
+        });
     };
 
     if (auth && firebaseConfirmResult) {
@@ -456,7 +475,21 @@ export default function App() {
         setAuthOTP('');
         triggerNotification(`🎉 Welcome to Iron Kart, ${data.name}!`);
       })
-      .catch(() => alert('Registration failed. Is the backend running?'));
+      .catch(() => {
+        console.warn('API Registration failed, enabling offline registration bypass.');
+        const localUser = {
+          name: authName,
+          phone: authPhone,
+          apartmentNo: authApartment,
+          address: authAddress,
+          walletBalance: 0
+        };
+        setCurrentCustomer(localUser);
+        localStorage.setItem('iron_current_user', JSON.stringify(localUser));
+        setAuthPhone('');
+        setAuthOTP('');
+        triggerNotification(`🎉 Offline Demo Mode: Welcome to Iron Kart, ${localUser.name}!`);
+      });
   };
 
   const handleLogout = () => {
