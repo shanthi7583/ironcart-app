@@ -489,6 +489,23 @@ app.get('/api/prices', async (req, res) => {
   if (supabase) {
     const { data, error } = await supabase.from('prices').select('*').order('id', { ascending: true });
     if (!error && data && data.length > 0) return res.json(data);
+
+    // The catalog is empty — seed it from the built-in defaults instead of quietly
+    // falling back to a response that isn't actually in the database. That fallback
+    // is exactly what let a genuinely empty prices table go unnoticed: any other
+    // write to the "system" category (e.g. saving UPI settings) makes data.length
+    // no longer 0, silently switching the app over to the empty real table.
+    if (!error) {
+      const seedRows = DEFAULT_PRICE_LIST.map(item => ({
+        category: item.category, item_name: item.name, price: item.price, service_type: item.serviceType
+      }));
+      const { data: seeded, error: seedError } = await supabase.from('prices').insert(seedRows).select();
+      if (!seedError && seeded && seeded.length > 0) {
+        console.log(`Seeded ${seeded.length} default price rows — the prices table was empty.`);
+        return res.json(seeded);
+      }
+      if (seedError) console.error('Failed to seed default prices:', seedError.message);
+    }
   }
   res.json(DEFAULT_PRICE_LIST);
 });
