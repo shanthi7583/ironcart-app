@@ -1210,7 +1210,7 @@ export default function App() {
           </div>
         </div>
       )}
-\n      {/* Simulation Banner Notification */}
+      {/* Simulation Banner Notification */}
       {notification && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4 animate-bounce">
           <div className="bg-emerald-600 text-white rounded-xl shadow-2xl p-4 border border-emerald-400 flex items-start gap-3">
@@ -1639,24 +1639,7 @@ export default function App() {
                           </div>
                           
                           
-                          {/* Eco-Impact Tracker */}
-                          <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-200 rounded-2xl p-4 flex flex-col gap-2 mt-2 shadow-sm relative overflow-hidden">
-                            <div className="absolute top-0 right-0 size-24 bg-emerald-500/10 rounded-full blur-2xl"></div>
-                            <div className="flex items-center gap-2 relative z-10">
-                              <span className="text-lg">🌿</span>
-                              <h4 className="text-xs font-black text-emerald-900">Your Eco Impact</h4>
-                            </div>
-                            <div className="flex justify-between items-center bg-white/70 backdrop-blur-sm p-3 rounded-xl border border-white/50 relative z-10 shadow-sm">
-                              <div className="text-center w-1/2 border-r border-gray-200/60">
-                                <div className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Water Saved</div>
-                                <div className="font-black text-emerald-600 mt-1">{(orders.filter(o => o.customerPhone === currentCustomer?.phone).length * 15)}L</div>
-                              </div>
-                              <div className="text-center w-1/2">
-                                <div className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Carbon Offset</div>
-                                <div className="font-black text-teal-600 mt-1">{(orders.filter(o => o.customerPhone === currentCustomer?.phone).length * 2.5)}kg</div>
-                              </div>
-                            </div>
-                          </div>\n\n                          {/* Promotional Slide Banner */}
+                          {/* Promotional Slide Banner */}
                           <div className="bg-gradient-to-r from-rose-600 to-amber-500 rounded-2xl p-0 text-left shadow-lg relative overflow-hidden h-32 flex items-center justify-center group">
                             <div className="absolute inset-0 flex transition-transform duration-1000 ease-in-out" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
                               {slideImages.map((src, index) => (
