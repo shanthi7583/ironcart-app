@@ -382,7 +382,9 @@ app.post('/api/auth/send-otp', async (req, res) => {
       useSupabaseOtpStore = false;
     } else if (lookupError) {
       console.error('OTP rate-limit lookup failed:', lookupError.message);
-      return res.status(503).json({ error: 'Could not send OTP right now. Please try again.' });
+      // TEMPORARY: surfacing the raw error to diagnose a live production issue —
+      // remove _debug once resolved, this is not something to ship long-term.
+      return res.status(503).json({ error: 'Could not send OTP right now. Please try again.', _debug: { code: lookupError.code, message: lookupError.message, hint: lookupError.hint } });
     } else if (existing && now.getTime() - new Date(existing.last_sent_at).getTime() < 30 * 1000) {
       return res.status(429).json({ error: 'Please wait a bit before requesting another OTP' });
     }
@@ -394,7 +396,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
     }]);
     if (writeError) {
       console.error('OTP store failed:', writeError.message);
-      return res.status(503).json({ error: 'Could not send OTP right now. Please try again.' });
+      return res.status(503).json({ error: 'Could not send OTP right now. Please try again.', _debug: { code: writeError.code, message: writeError.message, hint: writeError.hint } });
     }
   } else {
     const lastSent = otpRateLimit.get(phone);
