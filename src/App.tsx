@@ -406,6 +406,8 @@ export default function App() {
   const [selectedInvoice, setSelectedInvoice] = useState<Order | null>(null);
   const [gatewayOrderData, setGatewayOrderData] = useState<any>(null);
   const [confirmedQuote, setConfirmedQuote] = useState<{ subtotal: number, discount: number, tax: number, total: number, couponApplied: string } | null>(null);
+  const [isCreatingCheckout, setIsCreatingCheckout] = useState(false);
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const [modalConfig, setModalConfig] = useState<{title: string, message: string, type: 'alert'|'confirm', onConfirm?: ()=>void} | null>(null);
   const [toastMessage, setToastMessage] = useState<{message: string, type: 'success'|'error'|'info'} | null>(null);
@@ -590,6 +592,7 @@ export default function App() {
     .filter((x): x is { serviceType: string, name: string, qty: number } => x !== null);
 
   const handlePlaceOrder = () => {
+    if (isCreatingCheckout) return; // guard against double-tap creating duplicate gateway sessions
     const { subtotal } = calculateTotals();
     const cartItems = buildCartItems();
 
@@ -607,6 +610,7 @@ export default function App() {
       return;
     }
 
+    setIsCreatingCheckout(true);
     // Ask the server for a real, priced quote and create the payment gateway session
     // against that — never against whatever total the browser computed.
     fetch(`${API_URL}/payments/create-order`, {
@@ -624,10 +628,13 @@ export default function App() {
       })
       .catch(err => {
         customAlert('Failed to connect to checkout gateway: ' + err.message);
-      });
+      })
+      .finally(() => setIsCreatingCheckout(false));
   };
 
   const confirmOrderPayment = (razorpayDetails?: { orderId: string, paymentId: string, signature: string }) => {
+    // isSubmittingOrder is already set by handleCheckoutSubmit before this runs (immediately
+    // for COD/Wallet, or later from the Razorpay success callback) — just clear it when done.
     const cartItems = buildCartItems();
 
     const newOrder: any = {
@@ -679,14 +686,19 @@ export default function App() {
           fetchWalletTransactions();
         }
       })
-      .catch(err => customAlert(err.message || 'API Connection Error, please try again.'));
+      .catch(err => customAlert(err.message || 'API Connection Error, please try again.'))
+      .finally(() => setIsSubmittingOrder(false));
   };
 
   const handleCheckoutSubmit = () => {
+    if (isSubmittingOrder) return; // guard against double-tap while a submission is already in flight
+    setIsSubmittingOrder(true);
+
     if (paymentMethod === 'Wallet') {
       const total = confirmedQuote?.total ?? calculateTotals().total;
       if (!currentCustomer || (currentCustomer.walletBalance || 0) < total) {
         customAlert('Insufficient wallet balance! Please add funds or choose another payment method.');
+        setIsSubmittingOrder(false);
         return;
       }
       // The wallet is checked and debited server-side inside order creation itself,
@@ -710,6 +722,11 @@ export default function App() {
             paymentId: response.razorpay_payment_id,
             signature: response.razorpay_signature
           });
+        },
+        modal: {
+          // Without this, cancelling the Razorpay popup would leave the submit
+          // button disabled forever (nothing else clears isSubmittingOrder).
+          ondismiss: () => setIsSubmittingOrder(false)
         },
         prefill: {
           name: orderName || '',
@@ -2187,11 +2204,12 @@ export default function App() {
                             </div>
                           </div>
 
-                          <button 
+                          <button
                             onClick={handlePlaceOrder}
-                            className="w-full bg-rose-500 hover:bg-rose-600 text-white py-2.5 rounded-xl text-xs font-semibold shadow-md active:translate-y-0.5 text-center"
+                            disabled={isCreatingCheckout}
+                            className="w-full bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 disabled:pointer-events-none text-white py-2.5 rounded-xl text-xs font-semibold shadow-md active:translate-y-0.5 text-center"
                           >
-                            Proceed to Digital Payment
+                            {isCreatingCheckout ? 'Preparing checkout…' : 'Proceed to Digital Payment'}
                           </button>
                         </div>
                       )}
@@ -2806,7 +2824,7 @@ export default function App() {
                       <h4 className="text-xs font-bold text-gray-500">Vastra Care Checkout</h4>
                       <h3 className="text-sm font-extrabold text-gray-900 mt-0.5">Pay ₹{confirmedQuote?.total ?? calculateTotals().total}</h3>
                     </div>
-                    <button onClick={() => { setShowCheckoutModal(false); setConfirmedQuote(null); }} className="text-xs text-gray-500 hover:text-gray-900">Cancel</button>
+                    <button onClick={() => { setShowCheckoutModal(false); setConfirmedQuote(null); setIsSubmittingOrder(false); }} className="text-xs text-gray-500 hover:text-gray-900">Cancel</button>
                   </div>
 
                   {/* Payment Options */}
@@ -2988,11 +3006,12 @@ export default function App() {
                     </div>
                   )}
 
-                  <button 
+                  <button
                     onClick={handleCheckoutSubmit}
-                    className="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-3 rounded-xl text-xs tracking-wider uppercase text-center mt-2 shadow-md active:translate-y-0.5"
+                    disabled={isSubmittingOrder}
+                    className="w-full bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 disabled:pointer-events-none text-white font-bold py-3 rounded-xl text-xs tracking-wider uppercase text-center mt-2 shadow-md active:translate-y-0.5"
                   >
-                    Confirm & Submit Order
+                    {isSubmittingOrder ? 'Processing…' : 'Confirm & Submit Order'}
                   </button>
                 </div>
               </div>

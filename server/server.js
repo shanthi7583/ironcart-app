@@ -538,7 +538,14 @@ app.post('/api/orders', authMiddleware, requireRole('customer', 'admin', 'rider'
       cancel_reason: null,
       delivery_timeline: []
     };
-    await supabase.from('orders').insert([orderData]);
+    const { error: insertError } = await supabase.from('orders').insert([orderData]);
+    if (insertError) {
+      // Never tell the customer "order placed" when it wasn't actually saved —
+      // this previously happened silently whenever the total had a fractional
+      // amount (which 5% GST produces almost every time).
+      console.error('Order insert failed:', insertError.message);
+      return res.status(500).json({ error: 'We could not save your order. Please try again — you have not been charged.' });
+    }
   }
 
   const responseOrder = {
