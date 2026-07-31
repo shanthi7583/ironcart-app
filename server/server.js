@@ -475,42 +475,6 @@ app.post('/api/auth/admin-login', (req, res) => {
 
 // --- API ROUTES ---
 
-// TEMPORARY: diagnosing why real SMS delivery still fails after the Fast2SMS key
-// rotation — checks whatever key is actually configured in this environment right
-// now, without needing it pasted into chat again. Reports balance/validity only,
-// never the key itself. Remove once the delivery issue is confirmed fixed.
-app.get('/api/_debug/fast2sms-status', (req, res) => {
-  const key = process.env.FAST2SMS_API_KEY;
-  if (!key) return res.json({ configured: false });
-  https.get({ hostname: 'www.fast2sms.com', path: '/dev/wallet', headers: { authorization: key } }, (fsRes) => {
-    let body = '';
-    fsRes.on('data', c => body += c);
-    fsRes.on('end', () => {
-      res.json({ configured: true, keyPrefix: key.slice(0, 6), fast2smsStatus: fsRes.statusCode, fast2smsResponse: body });
-    });
-  }).on('error', (e) => res.json({ configured: true, keyPrefix: key.slice(0, 6), error: e.message }));
-});
-
-// TEMPORARY: same investigation, but hits the actual send endpoint (/dev/bulkV2)
-// used for real OTPs, to check for a delivery-specific rejection (e.g. DND route
-// blocking) that a balance check alone wouldn't reveal. Sends one real test SMS.
-app.get('/api/_debug/fast2sms-send-test', (req, res) => {
-  const key = process.env.FAST2SMS_API_KEY;
-  if (!key) return res.json({ configured: false });
-  const postData = JSON.stringify({ route: 'q', message: 'Vastra Care delivery test - please ignore', language: 'english', flash: 0, numbers: '9791019505' });
-  const fsReq = https.request({
-    hostname: 'www.fast2sms.com', path: '/dev/bulkV2', method: 'POST',
-    headers: { authorization: key, 'Content-Type': 'application/json', 'Content-Length': postData.length }
-  }, (fsRes) => {
-    let body = '';
-    fsRes.on('data', c => body += c);
-    fsRes.on('end', () => res.json({ fast2smsStatus: fsRes.statusCode, fast2smsResponse: body }));
-  });
-  fsReq.on('error', (e) => res.json({ error: e.message }));
-  fsReq.write(postData);
-  fsReq.end();
-});
-
 // 1. Get prices (public catalog, safe to expose — also carries system rows for upi/offers)
 app.get('/api/prices', async (req, res) => {
   if (supabase) {
