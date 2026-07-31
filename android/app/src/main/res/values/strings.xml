@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Istrix</string>
-    <string name="title_activity_main">Istrix</string>
-    <string name="package_name">com.istrix.app</string>
-    <string name="custom_url_scheme">com.istrix.app</string>
+    <string name="app_name">Vastra Care</string>
+    <string name="title_activity_main">Vastra Care</string>
+    <string name="package_name">com.vastracare.app</string>
+    <string name="custom_url_scheme">com.vastracare.app</string>
 </resources>

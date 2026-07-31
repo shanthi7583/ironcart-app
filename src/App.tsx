@@ -1,14 +1,11 @@
 import { useState, useEffect } from 'react'
-import { 
+import {
   Plus, Minus, Clock, Check, MapPin,
-  TrendingUp, Users, Smartphone, 
-  ChevronRight, ShoppingBag, 
-  FileText, CreditCard, ArrowLeft, Settings, 
+  TrendingUp, Users, Smartphone,
+  ChevronRight, ShoppingBag,
+  FileText, CreditCard, ArrowLeft, Settings,
   Bell, HelpCircle, LogOut, Eye, RefreshCw, Key, Star, Navigation, Wallet, X, Phone, Gift, Landmark, Truck, User, Shirt, Sparkles
 } from 'lucide-react'
-import { supabase } from './supabaseClient'
-import { auth, RecaptchaVerifier } from './firebaseConfig'
-import { signInWithPhoneNumber } from 'firebase/auth'
 
 // Define interfaces
 interface GarmentItem {
@@ -126,9 +123,39 @@ BASE_GARMENTS.forEach(item => {
   DEFAULT_PRICE_LIST.push({ ...item, price: Math.round(item.price * 1.5), serviceType: 'Laundry' });
 });
 
+// Category picker thumbnails. Deliberately covers both taxonomies that have existed in
+// this codebase (the newer Light Weight/Medium-Heavy/Premium/Household set, and the
+// older Apparel/Outerwear/Bedding set some deployments' databases were seeded with) so
+// the picker never silently shows an empty item list just because a category name
+// wasn't in a hardcoded list — anything unrecognized still gets a sensible fallback image.
+const CATEGORY_IMAGES: Record<string, string> = {
+  'Light Weight': 'https://images.unsplash.com/photo-1544441893-675973e31985?w=400&h=300&fit=crop',
+  'Medium/Heavy': 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=400&h=300&fit=crop',
+  'Premium': 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&h=300&fit=crop',
+  'Household': 'https://images.unsplash.com/photo-1616627561950-9f746e330187?w=400&h=300&fit=crop',
+  'Apparel': 'https://images.unsplash.com/photo-1544441893-675973e31985?w=400&h=300&fit=crop',
+  'Outerwear': 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=400&h=300&fit=crop',
+  'Bedding': 'https://images.unsplash.com/photo-1616627561950-9f746e330187?w=400&h=300&fit=crop'
+};
+const FALLBACK_CATEGORY_IMAGE = 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&h=300&fit=crop';
+
 export default function App() {
   // --- Persistent State using Backend API & LocalStorage ---
   const API_URL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL || 'http://localhost:5000/api');
+
+  // Signed session token issued by the backend after OTP or admin-PIN verification.
+  // Sent as a Bearer token on every authenticated request instead of trusting the client.
+  const [sessionToken, setSessionToken] = useState<string | null>(() => localStorage.getItem('iron_session_token'));
+  const authHeaders = (extra?: Record<string, string>) => ({
+    'Content-Type': 'application/json',
+    ...(sessionToken ? { 'Authorization': `Bearer ${sessionToken}` } : {}),
+    ...extra
+  });
+  const setSession = (token: string | null) => {
+    setSessionToken(token);
+    if (token) localStorage.setItem('iron_session_token', token);
+    else localStorage.removeItem('iron_session_token');
+  };
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [priceList, setPriceList] = useState<GarmentItem[]>(DEFAULT_PRICE_LIST);
@@ -158,141 +185,70 @@ export default function App() {
     return saved ? JSON.parse(saved) : null;
   });
 
-  // Fetch initial data and listen to live changes from Supabase if active
+  // Everything now goes through the Express API instead of talking to Supabase directly
+  // from the browser. The old direct-to-Supabase path shipped a working read/write
+  // client (URL + anon key) inside the public JS bundle, which meant anyone could read
+  // or delete the entire orders/customers tables from devtools regardless of any RLS
+  // that may or may not have been configured. The API now checks a signed session
+  // token on every request instead.
+  const fetchMyOrders = (token: string) => {
+    fetch(`${API_URL}/orders/mine`, { headers: { 'Authorization': `Bearer ${token}` } })
+      .then(res => res.ok ? res.json() : [])
+      .then(data => setOrders(data))
+      .catch(err => console.error('Failed to fetch orders:', err));
+  };
+
+  const fetchAllOrdersAndCustomers = (token: string) => {
+    fetch(`${API_URL}/orders`, { headers: { 'Authorization': `Bearer ${token}` } })
+      .then(res => res.ok ? res.json() : [])
+      .then(data => setOrders(data))
+      .catch(err => console.error('Failed to fetch orders:', err));
+
+    fetch(`${API_URL}/customers`, { headers: { 'Authorization': `Bearer ${token}` } })
+      .then(res => res.ok ? res.json() : [])
+      .then(data => setCustomers(data))
+      .catch(err => console.error('Failed to fetch customers:', err));
+  };
+
+  // Fetch the public price/offers catalog (no auth needed — it's meant to be seen by anyone)
   useEffect(() => {
-    const client = supabase;
-    if (client) {
-      // 1. Fetch from Supabase tables
-      client.from('prices').select('*')
-        .then(({ data, error }) => {
-          if (error) console.error(error);
-          else if (data && data.length > 0) {
-            const upiRow = data.find((p: any) => p.category === 'system' && p.item_name === 'upi_details');
-            if (upiRow && upiRow.icon) {
-              const [phone, id] = upiRow.icon.split('|');
-              setUpiDetails({ phone, id });
-            }
-            const offersRow = data.find((p: any) => p.category === 'system' && p.item_name === 'flash_offers');
-            if (offersRow && offersRow.icon) {
-              try { 
-                const parsed = JSON.parse(offersRow.icon);
-                setFlashOffers(parsed);
-                setEditingOffers(parsed);
-              } catch(e) {}
-            }
-            const festiveRow = data.find((p: any) => p.category === 'system' && p.item_name === 'festive_offer');
-            if (festiveRow && festiveRow.icon) {
-              try { 
-                const parsed = JSON.parse(festiveRow.icon);
-                setFestiveOffer(parsed);
-                setEditingFestive(parsed);
-              } catch(e) {}
-            }
-            const garments = data.filter((p: any) => p.category !== 'system');
-            const mapped = garments.map((p: any) => ({
-              name: p.item_name,
-              price: p.price,
-              category: p.category,
-              icon: p.icon || '👕',
-              serviceType: p.service_type || 'Ironing'
-            }));
-            setPriceList(mapped);
-          } else {
-            // Seed database prices table if empty
-            const seedData = DEFAULT_PRICE_LIST.map(item => ({
-              category: item.category,
-              item_name: item.name,
-              price: item.price,
-              icon: item.icon || '👕',
-              service_type: item.serviceType
-            }));
-            client.from('prices').insert(seedData).then(() => {
-              console.log('Seeded prices table in database.');
-            });
+    fetch(`${API_URL}/prices`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.length > 0) {
+          const upiRow = data.find((p: any) => p.category === 'system' && (p.item_name === 'upi_details' || p.name === 'upi_details'));
+          if (upiRow && upiRow.icon) {
+            const [phone, id] = upiRow.icon.split('|');
+            setUpiDetails({ phone, id });
           }
-        });
-
-      client.from('orders').select('*').order('created_at', { ascending: false })
-        .then(({ data, error }) => {
-          if (error) console.error(error);
-          else if (data) {
-            setOrders(data.map((o: any) => ({ ...o, customerName: o.customer_name || o.customerName, customerPhone: o.customer_phone || o.customerPhone, apartmentNo: o.apartment_no || o.apartmentNo, paymentStatus: o.payment_status || o.paymentStatus, paymentMethod: o.payment_method || o.paymentMethod })));
+          const offersRow = data.find((p: any) => p.category === 'system' && (p.item_name === 'flash_offers' || p.name === 'flash_offers'));
+          if (offersRow && offersRow.icon) {
+            try {
+              const parsed = JSON.parse(offersRow.icon);
+              setFlashOffers(parsed);
+              setEditingOffers(parsed);
+            } catch(e) {}
           }
-        });
-
-      client.from('customers').select('*')
-        .then(({ data, error }) => {
-          if (error) console.error(error);
-          else if (data) setCustomers(data);
-        });
-
-      // 2. Real-time Subscription to DB modifications
-      const ordersSubscription = client
-        .channel('orders-realtime')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
-          console.log('Realtime Order Event received:', payload);
-          client.from('orders').select('*').order('created_at', { ascending: false })
-            .then(({ data, error }) => {
-              if (!error && data) {
-                setOrders(data.map((o: any) => ({ ...o, customerName: o.customer_name || o.customerName, customerPhone: o.customer_phone || o.customerPhone, apartmentNo: o.apartment_no || o.apartmentNo, paymentStatus: o.payment_status || o.paymentStatus, paymentMethod: o.payment_method || o.paymentMethod })));
-              }
-            });
-        })
-        .subscribe();
-
-      return () => {
-        client.removeChannel(ordersSubscription);
-      };
-    } else {
-      // Fallback: Local Server REST API
-      fetch(`${API_URL}/prices`)
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.length > 0) {
-            const upiRow = data.find((p: any) => p.category === 'system' && (p.item_name === 'upi_details' || p.name === 'upi_details'));
-            if (upiRow && upiRow.icon) {
-              const [phone, id] = upiRow.icon.split('|');
-              setUpiDetails({ phone, id });
-            }
-            const offersRow = data.find((p: any) => p.category === 'system' && (p.item_name === 'flash_offers' || p.name === 'flash_offers'));
-            if (offersRow && offersRow.icon) {
-              try { 
-                const parsed = JSON.parse(offersRow.icon);
-                setFlashOffers(parsed);
-                setEditingOffers(parsed);
-              } catch(e) {}
-            }
-            const festiveRow = data.find((p: any) => p.category === 'system' && (p.item_name === 'festive_offer' || p.name === 'festive_offer'));
-            if (festiveRow && festiveRow.icon) {
-              try { 
-                const parsed = JSON.parse(festiveRow.icon);
-                setFestiveOffer(parsed);
-                setEditingFestive(parsed);
-              } catch(e) {}
-            }
-            const garments = data.filter((p: any) => p.category !== 'system');
-            const mapped = garments.map((p: any) => ({
-              name: p.item_name || p.name,
-              price: p.price,
-              category: p.category,
-              icon: p.icon || '👕',
-              serviceType: p.service_type || p.serviceType || 'Ironing'
-            }));
-            setPriceList(mapped);
+          const festiveRow = data.find((p: any) => p.category === 'system' && (p.item_name === 'festive_offer' || p.name === 'festive_offer'));
+          if (festiveRow && festiveRow.icon) {
+            try {
+              const parsed = JSON.parse(festiveRow.icon);
+              setFestiveOffer(parsed);
+              setEditingFestive(parsed);
+            } catch(e) {}
           }
-        })
-        .catch(err => console.error('Failed to fetch prices:', err));
-
-      fetch(`${API_URL}/orders`)
-        .then(res => res.json())
-        .then(data => setOrders(data))
-        .catch(err => console.error('Failed to fetch orders:', err));
-
-      fetch(`${API_URL}/customers`)
-        .then(res => res.json())
-        .then(data => setCustomers(data))
-        .catch(err => console.error('Failed to fetch customers:', err));
-    }
+          const garments = data.filter((p: any) => p.category !== 'system');
+          const mapped = garments.map((p: any) => ({
+            name: p.item_name || p.name,
+            price: p.price,
+            category: p.category,
+            icon: p.icon || '👕',
+            serviceType: p.service_type || p.serviceType || 'Ironing'
+          }));
+          setPriceList(mapped);
+        }
+      })
+      .catch(err => console.error('Failed to fetch prices:', err));
   }, []);
 
   // Sync user session to LocalStorage
@@ -307,6 +263,18 @@ export default function App() {
   // --- Layout and Navigation State ---
   // Default to 'customer' view ONLY, so the customer app is used alone!
   const [viewMode, setViewMode] = useState<'customer' | 'admin' | 'dual' | 'rider'>('customer');
+
+  // Load whichever order/customer data this session is entitled to see, once we know
+  // who's logged in (and again whenever the role changes, e.g. customer -> admin).
+  useEffect(() => {
+    if (!sessionToken) return;
+    if (viewMode === 'dual' || viewMode === 'rider' || viewMode === 'admin') {
+      fetchAllOrdersAndCustomers(sessionToken);
+    } else if (currentCustomer) {
+      fetchMyOrders(sessionToken);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionToken, viewMode]);
   const [customerActiveTab, setCustomerActiveTab] = useState<'home' | 'order' | 'prices' | 'history' | 'support' | 'subscriptions' | 'rewards' | 'notifications' | 'profile'>('home');
   const [adminActiveTab, setAdminActiveTab] = useState<'overview' | 'orders' | 'prices' | 'customers' | 'settings' | 'offers'>('overview');
   const userSubscription = currentCustomer?.activePlan || 'None';
@@ -343,7 +311,6 @@ export default function App() {
   const [authAddress, setAuthAddress] = useState('');
   const [authReferredBy, setAuthReferredBy] = useState('');
   const [authOTP, setAuthOTP] = useState('');
-  const [sentOTP, setSentOTP] = useState('');
   const [notification, setNotification] = useState<string | null>(null);
 
   // Admin access state
@@ -359,6 +326,17 @@ export default function App() {
   const [pickupTime, setPickupTime] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>('Light Weight');
+
+  // Whatever categories actually exist in the loaded price catalog for the selected
+  // service — jump to a real one whenever the current selection doesn't exist there
+  // (first load, or after switching service type), instead of silently showing nothing.
+  useEffect(() => {
+    const categoriesForService = Array.from(new Set(priceList.filter(p => p.serviceType === selectedService).map(p => p.category)));
+    if (categoriesForService.length > 0 && !categoriesForService.includes(activeCategory)) {
+      setActiveCategory(categoriesForService[0]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [priceList, selectedService]);
   const [showConsoleInput, setShowConsoleInput] = useState(false);
 
   // Cancel & Reschedule Modal State
@@ -427,7 +405,7 @@ export default function App() {
   // Active modal invoice state
   const [selectedInvoice, setSelectedInvoice] = useState<Order | null>(null);
   const [gatewayOrderData, setGatewayOrderData] = useState<any>(null);
-  const [firebaseConfirmResult, setFirebaseConfirmResult] = useState<any>(null);
+  const [confirmedQuote, setConfirmedQuote] = useState<{ subtotal: number, discount: number, tax: number, total: number, couponApplied: string } | null>(null);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const [modalConfig, setModalConfig] = useState<{title: string, message: string, type: 'alert'|'confirm', onConfirm?: ()=>void} | null>(null);
   const [toastMessage, setToastMessage] = useState<{message: string, type: 'success'|'error'|'info'} | null>(null);
@@ -450,110 +428,51 @@ export default function App() {
   };
 
   // --- Auth Handlers ---
+  // The OTP itself never comes back to the browser — it's only ever dispatched via the
+  // SMS/WhatsApp gateway server-side. Verification happens against the server's OTP
+  // store, which then issues a signed session token; there is no client-side bypass.
   const handleSendOTP = () => {
     if (!authPhone || authPhone.length < 10) {
       customAlert('Please enter a valid 10-digit mobile number');
       return;
     }
 
-    const sendLocalOTP = () => {
-      fetch(`${API_URL}/auth/send-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: authPhone })
+    fetch(`${API_URL}/auth/send-otp`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ phone: authPhone })
+    })
+      .then(async res => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
+        setAuthStep('otp');
+        triggerNotification(`💬 OTP sent to +91 ${authPhone}!`);
       })
-        .then(res => res.json())
-        .then(data => {
-          if (data.otp) {
-            setSentOTP(data.otp);
-            setAuthStep('otp');
-            triggerNotification(`💬 WhatsApp OTP Sent to +91 ${authPhone}! Check backend terminal log for PIN.`);
-          }
-        })
-        .catch(err => {
-          console.warn('Backend API connection failed, enabling local mock OTP bypass:', err.message);
-          setSentOTP('1234');
-          setAuthStep('otp');
-          triggerNotification('⚠️ Offline Demo Mode: Enter OTP 1234 to proceed.');
-        });
-    };
-
-    if (auth) {
-      try {
-        const appVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-          size: 'invisible'
-        });
-        signInWithPhoneNumber(auth, '+91' + authPhone, appVerifier)
-          .then((confirmationResult) => {
-            setFirebaseConfirmResult(confirmationResult);
-            setAuthStep('otp');
-            triggerNotification(`💬 Real SMS OTP Sent to +91 ${authPhone}!`);
-          })
-          .catch((err) => {
-            customAlert('Firebase Phone Auth Error: ' + err.message);
-            console.warn('Firebase Phone Auth Error, falling back to local:', err.message);
-            sendLocalOTP();
-          });
-      } catch (err: any) {
-        customAlert('Failed to initialize SMS gateway: ' + err.message);
-        console.warn('Failed to initialize SMS gateway, falling back to local:', err.message);
-        sendLocalOTP();
-      }
-      return;
-    }
-
-    // Fallback if no auth object
-    sendLocalOTP();
+      .catch(err => {
+        customAlert('Could not send OTP: ' + err.message + '. Please check your connection and try again.');
+      });
   };
 
   const handleVerifyOTP = () => {
-    const processLogin = () => {
-      fetch(`${API_URL}/customers/${authPhone}`)
-        .then(res => {
-          if (res.ok) {
-            return res.json().then(data => {
-              setCurrentCustomer(data);
-              localStorage.setItem('iron_current_user', JSON.stringify(data));
-              setCustomerActiveTab('home');
-            });
-          } else if (res.status === 404) {
-            setAuthStep('register');
-          } else {
-            throw new Error('Unexpected API error');
-          }
-        })
-        .catch(err => {
-          console.warn('API Connection Error, logging in with offline mock customer profile:', err.message);
-          const mockData = {
-            name: "Demo User",
-            phone: authPhone,
-            apartmentNo: "Apt 101, Block A",
-            address: "Offline Demo Address, Bengaluru",
-            walletBalance: 250
-          };
-          setCurrentCustomer(mockData);
-          localStorage.setItem('iron_current_user', JSON.stringify(mockData));
+    fetch(`${API_URL}/auth/verify-otp`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ phone: authPhone, otp: authOTP })
+    })
+      .then(async res => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Invalid OTP');
+        setSession(data.token);
+        if (data.exists && data.customer) {
+          setCurrentCustomer(data.customer);
           setCustomerActiveTab('home');
-          triggerNotification(`👋 Offline Demo Mode: Welcome back, ${mockData.name}!`);
-        });
-    };
-
-    if (auth && firebaseConfirmResult) {
-      firebaseConfirmResult.confirm(authOTP)
-        .then(() => {
-          processLogin();
-        })
-        .catch((err: any) => {
-          customAlert('Invalid verification code: ' + err.message);
-        });
-      return;
-    }
-
-    if (authOTP === sentOTP || authOTP === '1234') { // Fallback bypass
-      processLogin();
-    } else {
-      customAlert('Invalid OTP. Please try again or use 1234');
-    }
+        } else {
+          setAuthStep('register');
+        }
+      })
+      .catch(err => {
+        customAlert(err.message || 'Invalid OTP. Please try again.');
+      });
   };
 
   const handleRegister = () => {
@@ -561,53 +480,35 @@ export default function App() {
       customAlert('Please enter a valid name, apartment number, and full street address (at least 5 characters).');
       return;
     }
-    const newProfile: CustomerProfile = {
+    const newProfile = {
       name: authName,
-      phone: authPhone,
       apartmentNo: authApartment,
       address: authAddress,
       referredBy: authReferredBy.trim() ? authReferredBy.trim().toUpperCase() : undefined
     };
 
-    // Direct Supabase call removed to enforce routing through Express API (/api/customers)
-    // where backend safely maps camelCase keys to snake_case SQL columns.
-
     fetch(`${API_URL}/customers`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify(newProfile)
     })
-      .then(res => {
-        if (!res.ok) throw new Error('API Error');
-        return res.json();
-      })
-      .then(data => {
+      .then(async res => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Registration failed');
         setCustomers(prev => [...prev, data]);
         setCurrentCustomer(data);
-        localStorage.setItem('iron_current_user', JSON.stringify(data));
         setAuthPhone('');
         setAuthOTP('');
-        triggerNotification(`🎉 Welcome to Iron Kart, ${data.name}!`);
+        triggerNotification(`🎉 Welcome to Vastra Care, ${data.name}!`);
       })
-      .catch(() => {
-        console.warn('API Registration failed, enabling offline registration bypass.');
-        const localUser = {
-          name: authName,
-          phone: authPhone,
-          apartmentNo: authApartment,
-          address: authAddress,
-          walletBalance: 0
-        };
-        setCurrentCustomer(localUser);
-        localStorage.setItem('iron_current_user', JSON.stringify(localUser));
-        setAuthPhone('');
-        setAuthOTP('');
-        triggerNotification(`🎉 Offline Demo Mode: Welcome to Iron Kart, ${localUser.name}!`);
+      .catch(err => {
+        customAlert('Could not complete registration: ' + err.message + '. Please try again.');
       });
   };
 
   const handleLogout = () => {
     localStorage.removeItem('iron_current_user');
+    setSession(null);
     setCurrentCustomer(null);
     setAuthStep('login');
     setAuthPhone('');
@@ -638,8 +539,8 @@ export default function App() {
     let discount = 0;
     
     if (userSubscription !== 'None') {
-      Object.entries(selectedItems).forEach(([name, qty]) => {
-        const item = priceList.find(i => i.name === name);
+      Object.entries(selectedItems).forEach(([key, qty]) => {
+        const item = priceList.find(p => `${p.serviceType}-${p.name}` === key);
         if (item && qty > 0) {
           let catDiscountPercent = 0;
           if (userSubscription === 'Bronze') {
@@ -678,15 +579,26 @@ export default function App() {
   };
 
   // --- Order Submission ---
+  // Raw {serviceType, name, qty} identifiers only — never a price. The server looks up
+  // its own authoritative price for each and computes the total; that's the whole point.
+  const buildCartItems = () => Object.entries(selectedItems)
+    .filter(([_, qty]) => qty > 0)
+    .map(([key, qty]) => {
+      const pItem = priceList.find(p => `${p.serviceType}-${p.name}` === key);
+      return pItem ? { serviceType: pItem.serviceType, name: pItem.name, qty } : null;
+    })
+    .filter((x): x is { serviceType: string, name: string, qty: number } => x !== null);
+
   const handlePlaceOrder = () => {
-    const { subtotal, total } = calculateTotals();
+    const { subtotal } = calculateTotals();
+    const cartItems = buildCartItems();
 
     if (!orderName.trim() || !orderPhone.trim() || orderAddress.trim().length < 5) {
       customAlert('Please fill out all pickup details (Name, Phone, and Full Address) correctly.');
       return;
     }
 
-    if (subtotal === 0) {
+    if (subtotal === 0 || cartItems.length === 0) {
       customAlert('Please add at least one garment to your basket');
       return;
     }
@@ -695,15 +607,18 @@ export default function App() {
       return;
     }
 
-    // Call payment gateway simulation API to generate a transaction session ID
+    // Ask the server for a real, priced quote and create the payment gateway session
+    // against that — never against whatever total the browser computed.
     fetch(`${API_URL}/payments/create-order`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount: total })
+      headers: authHeaders(),
+      body: JSON.stringify({ cartItems, couponCode: appliedCoupon })
     })
-      .then(res => res.json())
-      .then(data => {
+      .then(async res => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Failed to start checkout');
         setGatewayOrderData(data);
+        setConfirmedQuote(data.quote || null);
         triggerNotification(`🏦 Payment Gateway Session: ${data.gatewayOrderId} created!`);
         setShowCheckoutModal(true);
       })
@@ -712,20 +627,10 @@ export default function App() {
       });
   };
 
-  const confirmOrderPayment = (transactionId: string = 'Simulated') => {
-    const { subtotal, discount, markup, tax, total } = calculateTotals();
-    const orderItems: OrderItem[] = Object.entries(selectedItems)
-      .filter(([_, qty]) => qty > 0)
-      .map(([key, qty]) => {
-        const pItem = priceList.find(p => `${p.serviceType}-${p.name}` === key);
-        return {
-          name: pItem ? `${pItem.serviceType} - ${pItem.name}` : key,
-          qty,
-          price: pItem ? pItem.price : 0
-        };
-      });
+  const confirmOrderPayment = (razorpayDetails?: { orderId: string, paymentId: string, signature: string }) => {
+    const cartItems = buildCartItems();
 
-    const newOrder: Order = {
+    const newOrder: any = {
       id: `ORD-${Math.floor(100000 + Math.random() * 900000)}`,
       invoiceNo: `IC-${Math.floor(1000 + Math.random() * 9000)}`,
       customerName: orderName || 'Walk-in Customer',
@@ -736,56 +641,56 @@ export default function App() {
       pickupTime,
       speed: orderSpeed,
       service: selectedService,
-      items: orderItems,
-      subtotal,
-      discount,
-      markup,
-      tax,
-      total,
-      couponApplied: appliedCoupon,
+      cartItems,
+      couponCode: appliedCoupon,
       status: 'Placed',
-      paymentStatus: paymentMethod === 'COD' ? 'Pending' : 'Paid',
-      paymentMethod: transactionId !== 'Simulated' ? `${paymentMethod} (Txn: ${transactionId})` : paymentMethod,
+      paymentMethod: razorpayDetails ? `${paymentMethod} (Txn: ${razorpayDetails.paymentId})` : paymentMethod,
       specialInstructions,
       createdAt: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     };
-
-    // Direct Supabase call removed. We MUST route through Express API (/api/orders)
-    // so the backend can map camelCase to snake_case and trigger notifications.
+    // The server independently decides the real paymentStatus (verifying the Razorpay
+    // signature, or deducting the wallet balance itself) — these are just its inputs.
+    if (razorpayDetails) {
+      newOrder.razorpayOrderId = razorpayDetails.orderId;
+      newOrder.razorpayPaymentId = razorpayDetails.paymentId;
+      newOrder.razorpaySignature = razorpayDetails.signature;
+    }
 
     fetch(`${API_URL}/orders`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify(newOrder)
     })
-      .then(res => res.json())
-      .then(data => {
+      .then(async res => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Failed to place order');
         setOrders(prev => [data, ...prev]);
         setSelectedItems({});
         setSpecialInstructions('');
         setShowCheckoutModal(false);
+        setConfirmedQuote(null);
         setSelectedOrderForTracking(data);
         setCustomerActiveTab('history');
         triggerNotification(`🎉 Order Placed Successfully! We care for your clothes as much as you do! ❤️`);
+        if (paymentMethod === 'Wallet' && currentCustomer) {
+          fetch(`${API_URL}/customers/${currentCustomer.phone}`, { headers: authHeaders() })
+            .then(res => res.ok ? res.json() : null)
+            .then(refreshed => { if (refreshed) setCurrentCustomer(refreshed); });
+          fetchWalletTransactions();
+        }
       })
-      .catch(err => customAlert('API Connection Error: ' + err.message));
+      .catch(err => customAlert(err.message || 'API Connection Error, please try again.'));
   };
 
   const handleCheckoutSubmit = () => {
     if (paymentMethod === 'Wallet') {
-      const { total } = calculateTotals();
+      const total = confirmedQuote?.total ?? calculateTotals().total;
       if (!currentCustomer || (currentCustomer.walletBalance || 0) < total) {
         customAlert('Insufficient wallet balance! Please add funds or choose another payment method.');
         return;
       }
-      const newBalance = currentCustomer.walletBalance! - total;
-      const updated = { ...currentCustomer, walletBalance: newBalance };
-      setCurrentCustomer(updated);
-      fetch(`${API_URL}/customers/${currentCustomer.phone}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated)
-      });
+      // The wallet is checked and debited server-side inside order creation itself,
+      // so there's nothing to do here but place the order.
       confirmOrderPayment();
       return;
     }
@@ -796,12 +701,15 @@ export default function App() {
         key: gatewayOrderData.keyId,
         amount: gatewayOrderData.amount * 100, // paise
         currency: gatewayOrderData.currency,
-        name: "Iron Kart Service",
+        name: "Vastra Care Service",
         description: "Ironing Booking Service Payment",
         order_id: gatewayOrderData.gatewayOrderId,
         handler: function (response: any) {
-          console.log("Razorpay Success Transaction ID:", response.razorpay_payment_id);
-          confirmOrderPayment(response.razorpay_payment_id);
+          confirmOrderPayment({
+            orderId: response.razorpay_order_id,
+            paymentId: response.razorpay_payment_id,
+            signature: response.razorpay_signature
+          });
         },
         prefill: {
           name: orderName || '',
@@ -840,7 +748,7 @@ export default function App() {
 
     fetch(`${API_URL}/orders/${orderId}/status`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify(payload)
     })
       .then(res => res.json())
@@ -854,7 +762,7 @@ export default function App() {
   const markOrderPaid = (orderId: string) => {
     fetch(`${API_URL}/orders/${orderId}/payment`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ paymentStatus: 'Paid' })
     })
       .then(res => res.json())
@@ -867,7 +775,12 @@ export default function App() {
 
   const deleteOrder = (orderId: string) => {
     customConfirm('Delete this order record?', () => {
-      setOrders(prev => prev.filter(o => o.id !== orderId));
+      fetch(`${API_URL}/orders/${orderId}`, { method: 'DELETE', headers: authHeaders() })
+        .then(res => {
+          if (!res.ok) throw new Error('Failed to delete order');
+          setOrders(prev => prev.filter(o => o.id !== orderId));
+        })
+        .catch(err => customAlert('Could not delete order: ' + err.message));
     });
   };
 
@@ -880,30 +793,9 @@ export default function App() {
       return item;
     });
 
-    const client = supabase;
-    if (client) {
-      Promise.all(
-        updated.map(item => {
-          const key = `${item.serviceType}-${item.name}`;
-          if (editingPrices[key] !== undefined) {
-            return client.from('prices')
-              .update({ price: item.price })
-              .eq('item_name', item.name)
-              .eq('service_type', item.serviceType);
-          }
-          return Promise.resolve();
-        })
-      ).then(() => {
-        setPriceList(updated);
-        setEditingPrices({});
-        triggerNotification(`⚙️ Price rates updated successfully!`);
-      });
-      return;
-    }
-
     fetch(`${API_URL}/prices`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify(updated)
     })
       .then(res => res.json())
@@ -916,52 +808,39 @@ export default function App() {
   };
 
   const saveUpiSettings = () => {
-    const client = supabase;
-    const packed = `${upiDetails.phone}|${upiDetails.id}`;
-    if (client) {
-      client.from('prices')
-        .update({ icon: packed })
-        .eq('category', 'system')
-        .eq('item_name', 'upi_details')
-        .then(() => {
-          // If we had no row to update, we'll try to upsert
-          client.from('prices')
-            .select('id')
-            .eq('category', 'system')
-            .eq('item_name', 'upi_details')
-            .then(({ data: existData }) => {
-              if (!existData || existData.length === 0) {
-                client.from('prices').insert([{
-                  category: 'system',
-                  item_name: 'upi_details',
-                  price: 0,
-                  icon: packed,
-                  service_type: 'system'
-                }]).then(() => {
-                  triggerNotification('✅ UPI Settings Saved to Database!');
-                });
-              } else {
-                triggerNotification('✅ UPI Settings Saved to Database!');
-              }
-            });
-        });
-    } else {
-      triggerNotification('✅ UPI Settings Saved Locally!');
-    }
+    fetch(`${API_URL}/settings/upi`, {
+      method: 'PUT',
+      headers: authHeaders(),
+      body: JSON.stringify(upiDetails)
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to save');
+        triggerNotification('✅ UPI Settings Saved to Database!');
+      })
+      .catch(err => customAlert('API Connection Error: ' + err.message));
   };
 
   const handleAdminAccess = () => {
-    if (adminPin === '9791') {
-      setViewMode('dual');
-      setAdminPin('');
-      triggerNotification('🔓 Admin mode activated successfully!');
-    } else if (adminPin === '8888') {
-      setViewMode('rider');
-      setAdminPin('');
-      triggerNotification('🏍️ Rider mode activated successfully!');
-    } else {
-      customAlert('Invalid PIN. Use default PIN 9791 (Admin) or 8888 (Rider).');
-    }
+    fetch(`${API_URL}/auth/admin-login`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ pin: adminPin })
+    })
+      .then(async res => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Invalid PIN');
+        setSession(data.token);
+        setAdminPin('');
+        setShowConsoleInput(false);
+        if (data.role === 'admin') {
+          setViewMode('dual');
+          triggerNotification('🔓 Admin mode activated successfully!');
+        } else {
+          setViewMode('rider');
+          triggerNotification('🏍️ Rider mode activated successfully!');
+        }
+      })
+      .catch(err => customAlert(err.message || 'Invalid PIN.'));
   };
 
   // Metrics calculations
@@ -970,6 +849,15 @@ export default function App() {
 
   const [showAddMoney, setShowAddMoney] = useState(false);
   const [addMoneyAmount, setAddMoneyAmount] = useState('');
+  const [showWalletHistory, setShowWalletHistory] = useState(false);
+  const [walletTransactions, setWalletTransactions] = useState<{ id: string, type: 'credit' | 'debit', amount: number, description: string, createdAt: string }[]>([]);
+
+  const fetchWalletTransactions = () => {
+    fetch(`${API_URL}/wallet/transactions`, { headers: authHeaders() })
+      .then(res => res.ok ? res.json() : [])
+      .then(data => setWalletTransactions(data))
+      .catch(() => {});
+  };
 
   const handleRescheduleOrder = () => {
     if (!selectedOrderForTracking) return;
@@ -980,7 +868,7 @@ export default function App() {
 
     fetch(`${API_URL}/orders/${selectedOrderForTracking.id}/reschedule`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ pickupDate: rescheduleDate, pickupTime: rescheduleTime })
     })
       .then(res => res.json())
@@ -1003,7 +891,7 @@ export default function App() {
     const paymentStatusUpdate = selectedOrderForTracking.paymentStatus === 'Pending' ? 'Cancelled' : selectedOrderForTracking.paymentStatus;
     fetch(`${API_URL}/orders/${selectedOrderForTracking.id}/status`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ 
         status: 'Cancelled', 
         cancelReason: cancelReasonInput,
@@ -1028,40 +916,58 @@ export default function App() {
 
   const [checkoutAddAmount, setCheckoutAddAmount] = useState('');
 
-  const handleAddFunds = async () => {
-    if (!currentCustomer) return;
-    const amount = parseInt(addMoneyAmount);
-    if (!amount || amount <= 0) return;
+  // Shared by the "Add Money" and in-checkout top-up buttons: creates a Razorpay order,
+  // then hands the resulting payment (or nothing, in demo mode) to the server, which is
+  // the only party that actually credits the wallet — the client can no longer just
+  // tell the API what the new balance should be.
+  const topUpWallet = async (amount: number, onDone: () => void) => {
+    if (!currentCustomer || !amount || amount <= 0) return;
 
     try {
       const res = await fetch(`${API_URL}/payments/create-order`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         body: JSON.stringify({ amount, currency: 'INR' })
       });
       const gatewayOrderData = await res.json();
-      
+
+      const creditWallet = async (razorpayDetails?: { orderId: string, paymentId: string, signature: string }) => {
+        const payload: any = { amount };
+        if (razorpayDetails) {
+          payload.razorpayOrderId = razorpayDetails.orderId;
+          payload.razorpayPaymentId = razorpayDetails.paymentId;
+          payload.razorpaySignature = razorpayDetails.signature;
+        }
+        const verifyRes = await fetch(`${API_URL}/payments/verify-wallet-topup`, {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify(payload)
+        });
+        const updated = await verifyRes.json().catch(() => ({}));
+        if (!verifyRes.ok) {
+          customAlert(updated.error || 'Could not verify payment.');
+          return;
+        }
+        setCurrentCustomer(updated);
+        fetchWalletTransactions();
+        customAlert(`₹${amount} added to wallet successfully!`);
+        onDone();
+      };
+
       if (gatewayOrderData.liveMode) {
         const options = {
           key: gatewayOrderData.keyId,
           amount: gatewayOrderData.amount * 100, // paise
           currency: gatewayOrderData.currency,
-          name: "Iron Kart Wallet",
+          name: "Vastra Care Wallet",
           description: "Wallet Top-up",
           order_id: gatewayOrderData.gatewayOrderId,
           handler: function (response: any) {
-            console.log("Razorpay Success Transaction ID:", response.razorpay_payment_id);
-            const newBalance = (currentCustomer.walletBalance || 0) + amount;
-            const updated = { ...currentCustomer, walletBalance: newBalance };
-            setCurrentCustomer(updated);
-            fetch(`${API_URL}/customers/${currentCustomer.phone}`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(updated)
+            creditWallet({
+              orderId: response.razorpay_order_id,
+              paymentId: response.razorpay_payment_id,
+              signature: response.razorpay_signature
             });
-            customAlert(`₹${amount} added to wallet successfully!`);
-            setShowAddMoney(false);
-            setAddMoneyAmount('');
           },
           prefill: {
             name: currentCustomer.name || '',
@@ -1072,17 +978,7 @@ export default function App() {
         const rzp = new (window as any).Razorpay(options);
         rzp.open();
       } else {
-        const newBalance = (currentCustomer.walletBalance || 0) + amount;
-        const updated = { ...currentCustomer, walletBalance: newBalance };
-        setCurrentCustomer(updated);
-        fetch(`${API_URL}/customers/${currentCustomer.phone}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updated)
-        });
-        customAlert(`Demo Mode: ₹${amount} added to wallet!`);
-        setShowAddMoney(false);
-        setAddMoneyAmount('');
+        await creditWallet();
       }
     } catch (e) {
       console.error(e);
@@ -1090,59 +986,73 @@ export default function App() {
     }
   };
 
+  const handleAddFunds = async () => {
+    const amount = parseInt(addMoneyAmount);
+    await topUpWallet(amount, () => { setShowAddMoney(false); setAddMoneyAmount(''); });
+  };
+
   const handleCheckoutAddFunds = async () => {
-    if (!currentCustomer) return;
     const amount = parseInt(checkoutAddAmount);
-    if (!amount || amount <= 0) return;
+    await topUpWallet(amount, () => setCheckoutAddAmount(''));
+  };
+
+  // Activating a Prime plan used to just PUT the plan name onto the customer record —
+  // meaning anyone could grant themselves a permanent order discount for free. Now it
+  // goes through the same pay-then-verify flow as everything else.
+  const handleSubscribe = async (planName: string) => {
+    if (!currentCustomer) return;
 
     try {
       const res = await fetch(`${API_URL}/payments/create-order`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount, currency: 'INR' })
+        headers: authHeaders(),
+        body: JSON.stringify({ planName, currency: 'INR' })
       });
       const gatewayOrderData = await res.json();
-      
+
+      const activatePlan = async (razorpayDetails?: { orderId: string, paymentId: string, signature: string }) => {
+        const payload: any = { planName };
+        if (razorpayDetails) {
+          payload.razorpayOrderId = razorpayDetails.orderId;
+          payload.razorpayPaymentId = razorpayDetails.paymentId;
+          payload.razorpaySignature = razorpayDetails.signature;
+        }
+        const activateRes = await fetch(`${API_URL}/subscriptions/activate`, {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify(payload)
+        });
+        const updated = await activateRes.json().catch(() => ({}));
+        if (!activateRes.ok) {
+          customAlert(updated.error || 'Could not activate plan.');
+          return;
+        }
+        setCurrentCustomer(updated);
+        triggerNotification(`🎉 ${planName} Subscription Activated!`);
+      };
+
       if (gatewayOrderData.liveMode) {
         const options = {
           key: gatewayOrderData.keyId,
-          amount: gatewayOrderData.amount * 100, // paise
+          amount: gatewayOrderData.amount * 100,
           currency: gatewayOrderData.currency,
-          name: "Iron Kart Wallet",
-          description: "Wallet Top-up",
+          name: "Vastra Care Prime",
+          description: `${planName} Plan Subscription`,
           order_id: gatewayOrderData.gatewayOrderId,
           handler: function (response: any) {
-            console.log("Razorpay Success Transaction ID:", response.razorpay_payment_id);
-            const newBalance = (currentCustomer.walletBalance || 0) + amount;
-            const updated = { ...currentCustomer, walletBalance: newBalance };
-            setCurrentCustomer(updated);
-            fetch(`${API_URL}/customers/${currentCustomer.phone}`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(updated)
+            activatePlan({
+              orderId: response.razorpay_order_id,
+              paymentId: response.razorpay_payment_id,
+              signature: response.razorpay_signature
             });
-            customAlert(`₹${amount} added to wallet successfully!`);
-            setCheckoutAddAmount('');
           },
-          prefill: {
-            name: currentCustomer.name || '',
-            contact: currentCustomer.phone || ''
-          },
+          prefill: { name: currentCustomer.name || '', contact: currentCustomer.phone || '' },
           theme: { color: "#F43F5E" }
         };
         const rzp = new (window as any).Razorpay(options);
         rzp.open();
       } else {
-        const newBalance = (currentCustomer.walletBalance || 0) + amount;
-        const updated = { ...currentCustomer, walletBalance: newBalance };
-        setCurrentCustomer(updated);
-        fetch(`${API_URL}/customers/${currentCustomer.phone}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updated)
-        });
-        customAlert(`Demo Mode: ₹${amount} added to wallet!`);
-        setCheckoutAddAmount('');
+        await activatePlan();
       }
     } catch (e) {
       console.error(e);
@@ -1159,7 +1069,7 @@ export default function App() {
     
     fetch(`${API_URL}/customers/${currentCustomer.phone}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify(updated)
     });
     setNewAddressLabel('Home');
@@ -1230,7 +1140,7 @@ export default function App() {
               </div>
               <div className="flex flex-col">
                 <span className="text-xs font-bold text-gray-900 uppercase tracking-wider flex items-center gap-1">
-                  Home <ChevronRight className="size-3 text-gray-400" />
+                  Home <ChevronRight className="size-3 text-gray-500" />
                 </span>
                 <span className="text-[11px] text-gray-500 truncate mt-0.5">
                   {currentCustomer.apartmentNo}, {currentCustomer.address}
@@ -1254,15 +1164,15 @@ export default function App() {
                   <div className="absolute top-12 right-0 w-64 bg-gray-50 border border-gray-200 rounded-2xl shadow-2xl z-50 overflow-hidden">
                     <div className="p-3 border-b border-gray-200 flex justify-between items-center bg-white">
                       <span className="text-xs font-bold text-gray-900 uppercase tracking-widest">Notifications</span>
-                      <button onClick={() => setShowNotifications(false)}><X className="size-3 text-gray-400" /></button>
+                      <button onClick={() => setShowNotifications(false)}><X className="size-3 text-gray-500" /></button>
                     </div>
                     <div className="max-h-60 overflow-y-auto">
                       {orders.filter(o => o.customerPhone === currentCustomer.phone).length === 0 ? (
-                        <div className="p-4 text-center text-xs text-gray-400">No notifications yet.</div>
+                        <div className="p-4 text-center text-xs text-gray-500">No notifications yet.</div>
                       ) : (
                         orders.filter(o => o.customerPhone === currentCustomer.phone).slice(0, 5).map(o => (
                           <div key={o.id} className="p-3 border-b border-gray-200/80 hover:bg-gray-100 cursor-default">
-                            <div className="text-[10px] text-gray-500 mb-0.5">Order {o.id.split('-')[0]}</div>
+                            <div className="text-[12px] text-gray-500 mb-0.5">Order {o.id.split('-')[0]}</div>
                             <div className="text-xs font-medium text-gray-900">Status updated to: <span className="text-rose-400">{o.status}</span></div>
                           </div>
                         ))
@@ -1294,7 +1204,7 @@ export default function App() {
               <Sparkles className="size-3 text-amber-200 absolute top-1 right-1" />
             </div>
             <div>
-              <h1 className="text-xl font-black tracking-tight m-0 p-0 text-left bg-clip-text text-transparent bg-gradient-to-r from-purple-600 via-rose-500 to-amber-500">Iron Kart</h1>
+              <h1 className="text-xl font-black tracking-tight m-0 p-0 text-left bg-clip-text text-transparent bg-gradient-to-r from-rose-500 to-amber-500">Vastra Care</h1>
               <p className="text-xs text-gray-500 text-left font-medium">Premium Ironing & Care</p>
             </div>
           </div>
@@ -1345,20 +1255,20 @@ export default function App() {
 
                     <div className="flex-1 overflow-y-auto space-y-4 pb-10">
                       {orders.filter(o => !['Delivered', 'Cancelled'].includes(o.status)).length === 0 ? (
-                        <div className="text-center text-gray-400 py-10 text-sm">No active tasks today. Relax!</div>
+                        <div className="text-center text-gray-500 py-10 text-sm">No active tasks today. Relax!</div>
                       ) : (
                         orders.filter(o => !['Delivered', 'Cancelled'].includes(o.status)).map(order => (
                           <div key={order.id} className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm flex flex-col gap-3">
                             <div className="flex justify-between items-start">
                               <div>
-                                <span className="text-[10px] bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full font-bold">{order.id}</span>
+                                <span className="text-[12px] bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full font-bold">{order.id}</span>
                                 <h4 className="font-semibold text-sm mt-1">{order.customerName}</h4>
                                 <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                                   <Phone className="size-3" /> {order.customerPhone}
                                 </div>
                               </div>
                               <div className="text-right">
-                                <span className="text-[10px] bg-gray-200 text-gray-700 px-2 py-0.5 rounded font-bold">{order.status}</span>
+                                <span className="text-[12px] bg-gray-200 text-gray-700 px-2 py-0.5 rounded font-bold">{order.status}</span>
                                 <div className="text-xs font-bold mt-1 text-emerald-400">₹{order.total}</div>
                               </div>
                             </div>
@@ -1389,14 +1299,14 @@ export default function App() {
                               <button 
                                 onClick={() => updateOrderStatus(order.id, 'Picked Up')}
                                 disabled={['Picked Up', 'In Progress', 'Out for Delivery'].includes(order.status)}
-                                className="bg-amber-600 hover:bg-amber-700 disabled:opacity-30 disabled:pointer-events-none text-white text-[10px] font-bold py-2 rounded-xl uppercase tracking-wide"
+                                className="bg-amber-600 hover:bg-amber-700 disabled:opacity-30 disabled:pointer-events-none text-white text-[12px] font-bold py-2 rounded-xl uppercase tracking-wide"
                               >
                                 Mark Picked
                               </button>
                               <button 
                                 onClick={() => updateOrderStatus(order.id, 'Delivered')}
                                 disabled={order.status === 'Delivered'}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold py-2 rounded-xl uppercase tracking-wide"
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-bold py-2 rounded-xl uppercase tracking-wide"
                               >
                                 Mark Delivered
                               </button>
@@ -1415,7 +1325,7 @@ export default function App() {
                         <Sparkles className="size-5 text-amber-200 absolute top-3 right-3" />
                       </div>
                       {/* Steam Iron Icon badge under the IK logo */}
-                      <div className="flex justify-center -mt-1 mb-1 text-rose-500 bg-rose-50 px-2 py-1 rounded-full border border-rose-100 items-center gap-1.5 shadow-sm scale-90 select-none">
+                      <div className="flex justify-center -mt-1 mb-1 text-rose-500 bg-rose-50 px-2 py-1.5 rounded-full border border-rose-100 items-center gap-1.5 shadow-sm scale-90 select-none">
                         <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M2 16h20" />
                           <path d="M6 16a4 4 0 0 1-4-4V6h15a5 5 0 0 1 5 5v5" />
@@ -1423,20 +1333,20 @@ export default function App() {
                           <path d="M14 6v10" />
                           <path d="M18 10h4" />
                         </svg>
-                        <span className="text-[9px] font-black tracking-wider uppercase">Premium Steam Care</span>
+                        <span className="text-[11px] font-black tracking-wider uppercase">Premium Steam Care</span>
                       </div>
-                      <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-rose-500 to-amber-500 tracking-tight drop-shadow-sm pb-1">Iron Kart</h2>
+                      <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-amber-500 tracking-tight drop-shadow-sm pb-1">Vastra Care</h2>
                       <p className="text-xs font-extrabold bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 bg-clip-text text-transparent mt-1 max-w-[260px] mx-auto leading-relaxed animate-pulse drop-shadow-sm">
-                        Your Trusted Care Partner. Crisp, Clean & Perfectly Delivered.
+                        Pressed to perfection, picked up at your door.
                       </p>
                     </div>
 
                     {authStep === 'login' && (
                       <div className="flex flex-col gap-4">
                         <div className="flex flex-col gap-1.5 text-left">
-                          <label className="text-[10px] font-bold text-gray-500 uppercase">Mobile Number</label>
+                          <label className="text-[12px] font-bold text-gray-500 uppercase">Mobile Number</label>
                           <div className="flex gap-2 items-center bg-white border border-gray-200 rounded-xl px-3 py-2">
-                            <span className="text-gray-400 text-sm font-semibold">+91</span>
+                            <span className="text-gray-500 text-sm font-semibold">+91</span>
                             <input 
                               type="tel"
                               value={authPhone}
@@ -1452,8 +1362,7 @@ export default function App() {
                         >
                           Send OTP Verification
                         </button>
-                        <div id="recaptcha-container"></div>
-                        
+
                         {/* Admin Login Gateway Switcher */}
                         <div className="mt-8 pt-4 flex flex-col items-center gap-2 pb-2">
                           {showConsoleInput ? (
@@ -1466,18 +1375,15 @@ export default function App() {
                                 onChange={e => setAdminPin(e.target.value.replace(/\D/g, ''))}
                                 className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-900 w-20 text-center outline-none focus:border-rose-500"
                               />
-                              <button 
-                                onClick={() => {
-                                  handleAdminAccess();
-                                  setShowConsoleInput(false);
-                                }}
-                                className="bg-rose-500 hover:bg-rose-600 text-white font-bold text-[10px] px-3.5 py-1.5 rounded-lg transition-colors"
+                              <button
+                                onClick={handleAdminAccess}
+                                className="bg-rose-500 hover:bg-rose-600 text-white font-bold text-[12px] px-3.5 py-1.5 rounded-lg transition-colors"
                               >
                                 Go
                               </button>
                               <button 
                                 onClick={() => setShowConsoleInput(false)}
-                                className="text-gray-400 hover:text-gray-600 text-xs px-1"
+                                className="text-gray-500 hover:text-gray-600 text-xs px-1"
                               >
                                 ✕
                               </button>
@@ -1485,7 +1391,7 @@ export default function App() {
                           ) : (
                             <button 
                               onClick={() => setShowConsoleInput(true)}
-                              className="text-[10px] font-bold text-gray-400 hover:text-rose-500 transition-colors uppercase tracking-wider"
+                              className="text-[12px] font-bold text-gray-500 hover:text-rose-500 transition-colors uppercase tracking-wider"
                             >
                               Admin Login
                             </button>
@@ -1497,7 +1403,7 @@ export default function App() {
                     {authStep === 'otp' && (
                       <div className="flex flex-col gap-4">
                         <div className="flex flex-col gap-1.5 text-left">
-                          <label className="text-[10px] font-bold text-gray-500 uppercase">Enter Verification OTP</label>
+                          <label className="text-[12px] font-bold text-gray-500 uppercase">Enter Verification OTP</label>
                           <input 
                             type="password"
                             maxLength={6}
@@ -1523,7 +1429,7 @@ export default function App() {
                       <div className="flex flex-col gap-3 max-h-[380px] overflow-y-auto pr-1">
                         <h3 className="text-sm font-bold text-gray-900 text-left">Setup New Account</h3>
                         <div className="flex flex-col gap-1 text-left mt-1">
-                          <label className="text-[9px] font-semibold text-gray-500 uppercase">Full Name</label>
+                          <label className="text-[11px] font-semibold text-gray-500 uppercase">Full Name</label>
                           <input 
                             type="text"
                             value={authName}
@@ -1533,7 +1439,7 @@ export default function App() {
                           />
                         </div>
                         <div className="flex flex-col gap-1 text-left">
-                          <label className="text-[9px] font-semibold text-gray-500 uppercase">Apartment / Flat Number</label>
+                          <label className="text-[11px] font-semibold text-gray-500 uppercase">Apartment / Flat Number</label>
                           <input 
                             type="text"
                             value={authApartment}
@@ -1543,7 +1449,7 @@ export default function App() {
                           />
                         </div>
                         <div className="flex flex-col gap-1 text-left">
-                          <label className="text-[9px] font-semibold text-gray-500 uppercase">Street Address / Landmark</label>
+                          <label className="text-[11px] font-semibold text-gray-500 uppercase">Street Address / Landmark</label>
                           <textarea 
                             value={authAddress}
                             onChange={e => setAuthAddress(e.target.value)}
@@ -1553,7 +1459,7 @@ export default function App() {
                           />
                         </div>
                         <div className="flex flex-col gap-1 text-left">
-                          <label className="text-[9px] font-semibold text-gray-500 uppercase">Referral Code (Optional)</label>
+                          <label className="text-[11px] font-semibold text-gray-500 uppercase">Referral Code (Optional)</label>
                           <input 
                             type="text"
                             value={authReferredBy}
@@ -1584,7 +1490,7 @@ export default function App() {
                             {currentCustomer.name.charAt(0).toUpperCase()}
                           </div>
                           <div className="text-left">
-                            <div className="text-[10px] text-rose-300 font-bold tracking-wide uppercase">Warm Welcome Back</div>
+                            <div className="text-[12px] text-rose-300 font-bold tracking-wide uppercase">Warm Welcome Back</div>
                             <div className="text-sm font-black text-gray-900 max-w-[160px] truncate">{currentCustomer.name}</div>
                           </div>
                         </div>
@@ -1608,13 +1514,13 @@ export default function App() {
                         </div>
                       )}
                       <div className="flex items-center gap-2">
-                        <button onClick={() => setCustomerActiveTab('notifications')} className="text-gray-400 hover:text-rose-500 p-2 rounded-lg bg-gray-50 border border-gray-200 relative">
+                        <button onClick={() => setCustomerActiveTab('notifications')} className="text-gray-500 hover:text-rose-500 p-2 rounded-lg bg-gray-50 border border-gray-200 relative">
                           <Bell className="size-4" />
                           {orders.filter(o => o.customerPhone === currentCustomer?.phone && o.status !== 'Delivered').length > 0 && (
                             <span className="absolute top-1.5 right-1.5 size-2 bg-rose-500 rounded-full animate-pulse"></span>
                           )}
                         </button>
-                        <button onClick={handleLogout} className="text-gray-400 hover:text-rose-500 p-2 rounded-lg bg-gray-50 border border-gray-200">
+                        <button onClick={handleLogout} className="text-gray-500 hover:text-rose-500 p-2 rounded-lg bg-gray-50 border border-gray-200">
                           <LogOut className="size-4" />
                         </button>
                       </div>
@@ -1628,14 +1534,14 @@ export default function App() {
                         <div className="flex flex-col gap-4">
                           
                           {/* Top Scrolling Marquee */}
-                          <div className="bg-gradient-to-r from-rose-500 to-amber-500 text-white text-[9px] font-extrabold py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 shadow-sm">
+                          <div className="bg-gradient-to-r from-rose-500 to-amber-500 text-white text-[11px] font-extrabold py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 shadow-sm">
                             <span className="animate-pulse">⚡ FLASH OFFER: Get 35% off on Gold Prime subscription this week!</span>
                           </div>
 
                           {/* Welcome User Greeting */}
                           <div className="text-left mt-1">
                             <h3 className="text-sm font-extrabold text-gray-900">Hello, {currentCustomer?.name || 'Friend'}! 👋</h3>
-                            <p className="text-[10px] text-purple-600 font-medium mt-0.5">Experience premium fabric care tailored just for you. ✨</p>
+                            <p className="text-[12px] text-rose-500 font-medium mt-0.5">Experience premium fabric care tailored just for you.</p>
                           </div>
                           
                           
@@ -1653,8 +1559,8 @@ export default function App() {
                             </div>
                             <div className="relative z-10 px-4 w-full">
                               <h4 className="font-extrabold text-sm text-white drop-shadow-md">Premium Garment Pressing</h4>
-                              <p className="text-[10px] text-white/95 mt-1 max-w-[200px] drop-shadow-md">Get 50% off on your first order. Professional steam care starts at just ₹12/item.</p>
-                              <span className="inline-block bg-white text-rose-600 text-[9px] font-bold px-2 py-0.5 rounded-full mt-2.5 shadow-sm">Code: WELCOME50</span>
+                              <p className="text-[12px] text-white/95 mt-1 max-w-[200px] drop-shadow-md">Get 50% off on your first order. Professional steam care starts at just ₹12/item.</p>
+                              <span className="inline-block bg-white text-rose-600 text-[11px] font-bold px-2 py-0.5 rounded-full mt-2.5 shadow-sm">Code: WELCOME50</span>
                             </div>
                           </div>
 
@@ -1663,14 +1569,14 @@ export default function App() {
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2 transform transition-transform hover:scale-105">
                                 <span className="text-lg">💳</span>
-                                <span className="text-sm font-bold text-gray-900">Iron Kart Wallet</span>
+                                <span className="text-sm font-bold text-gray-900">Vastra Care Wallet</span>
                               </div>
                               <span className="text-lg font-black text-emerald-400">₹{currentCustomer?.walletBalance || 0}</span>
                             </div>
                             
                             {showAddMoney ? (
                               <div className="flex gap-2">
-                                <input 
+                                <input
                                   type="number"
                                   value={addMoneyAmount}
                                   onChange={e => setAddMoneyAmount(e.target.value)}
@@ -1684,6 +1590,38 @@ export default function App() {
                               <button onClick={() => setShowAddMoney(true)} className="w-full bg-gray-50 hover:bg-gray-200 border border-gray-200 text-emerald-400 text-xs font-bold py-2 rounded-lg transition-colors">
                                 + Add Money to Wallet
                               </button>
+                            )}
+
+                            <button
+                              onClick={() => {
+                                const next = !showWalletHistory;
+                                setShowWalletHistory(next);
+                                if (next && walletTransactions.length === 0) fetchWalletTransactions();
+                              }}
+                              className="text-left text-[12px] font-bold text-gray-500 hover:text-gray-600 flex items-center gap-1"
+                            >
+                              {showWalletHistory ? 'Hide' : 'View'} transaction history
+                              <ChevronRight className={`size-3 transition-transform ${showWalletHistory ? 'rotate-90' : ''}`} />
+                            </button>
+
+                            {showWalletHistory && (
+                              <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto border-t border-gray-100 pt-2">
+                                {walletTransactions.length === 0 ? (
+                                  <p className="text-[12px] text-gray-500 text-center py-3">No transactions yet.</p>
+                                ) : (
+                                  walletTransactions.map(t => (
+                                    <div key={t.id} className="flex items-center justify-between text-[12px] py-1">
+                                      <div className="min-w-0 pr-2">
+                                        <p className="text-gray-700 font-semibold truncate">{t.description}</p>
+                                        <p className="text-gray-500">{new Date(t.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                                      </div>
+                                      <span className={`font-bold shrink-0 ${t.type === 'credit' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                        {t.type === 'credit' ? '+' : '−'}₹{t.amount}
+                                      </span>
+                                    </div>
+                                  ))
+                                )}
+                              </div>
                             )}
                           </div>
 
@@ -1699,7 +1637,7 @@ export default function App() {
                               <div className="size-8 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 group-hover:scale-110 transition-transform">
                                 <Plus className="size-4" />
                               </div>
-                              <span className="text-[10px] font-semibold text-gray-900">Ironing</span>
+                              <span className="text-[12px] font-semibold text-gray-900">Ironing</span>
                             </button>
                             <button 
                               onClick={() => setCustomerActiveTab('order')}
@@ -1709,7 +1647,7 @@ export default function App() {
                               <div className="size-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
                                 <Star className="size-4" />
                               </div>
-                              <span className="text-[10px] font-semibold text-gray-700">Dry Clean</span>
+                              <span className="text-[12px] font-semibold text-gray-700">Dry Clean</span>
                             </button>
                             <button 
                               onClick={() => setCustomerActiveTab('order')}
@@ -1719,7 +1657,7 @@ export default function App() {
                               <div className="size-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
                                 <RefreshCw className="size-4" />
                               </div>
-                              <span className="text-[10px] font-semibold text-gray-700">Laundry</span>
+                              <span className="text-[12px] font-semibold text-gray-700">Laundry</span>
                             </button>
                           </div>
 
@@ -1732,7 +1670,7 @@ export default function App() {
                               <div className="size-8 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform">
                                 <ShoppingBag className="size-4" />
                               </div>
-                              <span className="text-[10px] font-semibold text-gray-900">My Orders</span>
+                              <span className="text-[12px] font-semibold text-gray-900">My Orders</span>
                             </button>
                             <button 
                               onClick={() => setCustomerActiveTab('prices')}
@@ -1741,7 +1679,7 @@ export default function App() {
                               <div className="size-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
                                 <FileText className="size-4" />
                               </div>
-                              <span className="text-[10px] font-semibold text-gray-900">Price List</span>
+                              <span className="text-[12px] font-semibold text-gray-900">Price List</span>
                             </button>
                             <button 
                               onClick={() => setCustomerActiveTab('support')}
@@ -1750,7 +1688,7 @@ export default function App() {
                               <div className="size-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500">
                                 <HelpCircle className="size-4" />
                               </div>
-                              <span className="text-[10px] font-semibold text-gray-900">Support</span>
+                              <span className="text-[12px] font-semibold text-gray-900">Support</span>
                             </button>
                           </div>
 
@@ -1793,7 +1731,7 @@ export default function App() {
                             />
                             <div className="text-left flex-1 min-w-0">
                               <h4 className="text-xs font-black text-gray-950 uppercase tracking-wider">Professional Steam Press</h4>
-                              <p className="text-[9px] text-gray-500 leading-normal mt-0.5">We use high-temperature steam vacuum tables for premium garment care.</p>
+                              <p className="text-[11px] text-gray-500 leading-normal mt-0.5">We use high-temperature steam vacuum tables for premium garment care.</p>
                             </div>
                           </div>
 
@@ -1809,7 +1747,7 @@ export default function App() {
                                 >
                                   <img src={f.img} className="w-full h-full object-cover" />
                                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                                    <span className="text-[10px] font-bold text-white tracking-wider">{f.name}</span>
+                                    <span className="text-[12px] font-bold text-white tracking-wider">{f.name}</span>
                                   </div>
                                 </button>
                               ))}
@@ -1821,7 +1759,7 @@ export default function App() {
                             <div className="bg-white border border-gray-200 rounded-2xl p-4 text-left">
                               <div className="flex justify-between items-center pb-2 border-b border-gray-200 mb-3">
                                 <span className="text-xs font-bold text-gray-900">Active Order</span>
-                                <span className="text-[10px] text-gray-400">
+                                <span className="text-[12px] text-gray-500">
                                   {orders.filter(o => o.customerPhone === currentCustomer.phone)[0].id}
                                 </span>
                               </div>
@@ -1830,7 +1768,7 @@ export default function App() {
                                   <div className="text-xs font-bold text-rose-500">
                                     Status: {orders.filter(o => o.customerPhone === currentCustomer.phone)[0].status}
                                   </div>
-                                  <div className="text-[10px] text-gray-500 mt-1">
+                                  <div className="text-[12px] text-gray-500 mt-1">
                                     Pickup: {orders.filter(o => o.customerPhone === currentCustomer.phone)[0].pickupDate}
                                   </div>
                                 </div>
@@ -1839,7 +1777,7 @@ export default function App() {
                                     setSelectedOrderForTracking(orders.filter(o => o.customerPhone === currentCustomer.phone)[0]);
                                     setCustomerActiveTab('history');
                                   }}
-                                  className="text-xs bg-gray-200 hover:bg-gray-300 text-gray-900 px-2.5 py-1 rounded-lg flex items-center gap-1 font-semibold"
+                                  className="text-xs bg-gray-200 hover:bg-gray-300 text-gray-900 px-2.5 py-1.5 rounded-lg flex items-center gap-1 font-semibold"
                                 >
                                   Track <ChevronRight className="size-3" />
                                 </button>
@@ -1875,20 +1813,20 @@ export default function App() {
                             </div>
                             <h2 className="text-base font-black text-white relative z-10 tracking-tight leading-tight break-words whitespace-normal">Refer & Earn ₹50</h2>
                             <p className="text-xs text-gray-300 mt-2 relative z-10 max-w-[250px] leading-relaxed">
-                              Invite your friends to Iron Kart. When they complete their first order, you <strong className="text-amber-300">both get ₹50</strong> added to your wallets!
+                              Invite your friends to Vastra Care. When they complete their first order, you <strong className="text-amber-300">both get ₹50</strong> added to your wallets!
                             </p>
                           </div>
 
                           {/* Code Display */}
                           <div className="bg-white border border-gray-200 rounded-2xl p-5 mt-2 flex flex-col items-center shadow-sm">
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Your Unique Code</span>
+                            <span className="text-[12px] font-bold text-gray-500 uppercase tracking-wider mb-2">Your Unique Code</span>
                             <div className="bg-gray-50 border-2 border-dashed border-rose-500/30 text-rose-500 font-mono text-2xl font-black px-6 py-3 rounded-xl tracking-[0.2em] w-full text-center select-all">
-                              {currentCustomer.referralCode || 'IRON-NEW'}
+                              {currentCustomer.referralCode || 'VASTRA-NEW'}
                             </div>
                             
-                            <button 
+                            <button
                               onClick={() => {
-                                const text = `Hey! Use my code ${currentCustomer.referralCode || 'IRON-NEW'} to get ₹50 off your first Iron Kart ironing & laundry order! 🧺✨\nDownload the app and sign up now!`;
+                                const text = `Hey! Use my code ${currentCustomer.referralCode || 'VASTRA-NEW'} to get ₹50 off your first Vastra Care ironing & laundry order! 🧺✨\nDownload the app and sign up now!`;
                                 const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
                                 window.open(whatsappUrl, '_blank');
                               }}
@@ -1896,6 +1834,15 @@ export default function App() {
                             >
                               Share via WhatsApp
                             </button>
+
+                            <div className="flex flex-col items-center mt-4 pt-4 border-t border-gray-100 w-full">
+                              <img
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(currentCustomer.referralCode || 'VASTRA-NEW')}`}
+                                alt="Referral code QR"
+                                className="size-[110px] rounded-lg border border-gray-200"
+                              />
+                              <span className="text-[11px] text-gray-500 mt-2">Let a friend scan this to grab your code</span>
+                            </div>
                           </div>
                           
                           {/* How it works */}
@@ -1938,11 +1885,11 @@ export default function App() {
                                   <div className="flex-1">
                                     <div className="flex justify-between items-center mb-1">
                                       <span className="text-xs font-bold text-gray-900">Order {order.id}</span>
-                                      <span className="text-[9px] text-gray-400">{order.createdAt}</span>
+                                      <span className="text-[11px] text-gray-500">{order.createdAt}</span>
                                     </div>
                                     <p className="text-[11px] text-gray-500">
                                       Status updated to <strong className="text-rose-400">{order.status}</strong>. 
-                                      {order.status === 'Delivered' ? ' Thank you for choosing Iron Kart!' : ' We are working on it.'}
+                                      {order.status === 'Delivered' ? ' Thank you for choosing Vastra Care!' : ' We are working on it.'}
                                     </p>
                                   </div>
                                 </div>
@@ -1966,12 +1913,12 @@ export default function App() {
                           <div className="bg-white p-3 rounded-xl border border-gray-200 text-xs flex flex-col gap-2">
                             <div className="font-bold text-gray-900 flex items-center justify-between">
                               <span className="flex items-center gap-1.5"><MapPin className="size-3.5 text-rose-500" /> Pickup Details</span>
-                              <span className="text-[9px] text-gray-400 font-normal">Editable</span>
+                              <span className="text-[11px] text-gray-500 font-normal">Editable</span>
                             </div>
                             
                             <div className="flex flex-col gap-2 mt-1">
                               <div className="flex flex-col gap-1">
-                                <label className="text-[9px] font-bold text-gray-500 uppercase">Customer Name</label>
+                                <label className="text-[11px] font-bold text-gray-500 uppercase">Customer Name</label>
                                 <input 
                                   type="text" 
                                   value={orderName} 
@@ -1980,7 +1927,7 @@ export default function App() {
                                 />
                               </div>
                               <div className="flex flex-col gap-1">
-                                <label className="text-[9px] font-bold text-gray-500 uppercase">Phone Number</label>
+                                <label className="text-[11px] font-bold text-gray-500 uppercase">Phone Number</label>
                                 <input 
                                   type="text" 
                                   value={orderPhone} 
@@ -1989,7 +1936,7 @@ export default function App() {
                                 />
                               </div>
                               <div className="flex flex-col gap-2">
-                                <label className="text-[9px] font-bold text-gray-500 uppercase">Select Address</label>
+                                <label className="text-[11px] font-bold text-gray-500 uppercase">Select Address</label>
                                 
                                 {currentCustomer?.addresses?.map(addr => (
                                   <div 
@@ -1999,7 +1946,7 @@ export default function App() {
                                   >
                                     <div>
                                       <div className="text-xs font-bold text-gray-900">{addr.label}</div>
-                                      <div className="text-[10px] text-gray-500 truncate w-48">{addr.fullAddress}</div>
+                                      <div className="text-[12px] text-gray-500 truncate w-48">{addr.fullAddress}</div>
                                     </div>
                                     {orderAddress === addr.fullAddress && <div className="size-2 rounded-full bg-rose-500" />}
                                   </div>
@@ -2012,17 +1959,17 @@ export default function App() {
                                       value={newAddressLabel}
                                       onChange={e => setNewAddressLabel(e.target.value)}
                                       placeholder="e.g. Home, Office"
-                                      className="w-full bg-white border border-gray-200 rounded px-2 py-1 mb-2 text-xs text-gray-900 outline-none focus:border-rose-500"
+                                      className="w-full bg-white border border-gray-200 rounded px-2 py-1.5 mb-2 text-xs text-gray-900 outline-none focus:border-rose-500"
                                     />
                                     <textarea 
                                       value={newAddressText}
                                       onChange={e => setNewAddressText(e.target.value)}
                                       placeholder="Full Address Details..."
-                                      className="w-full bg-white border border-gray-200 rounded px-2 py-1 mb-2 text-xs text-gray-900 outline-none focus:border-rose-500 resize-none h-16"
+                                      className="w-full bg-white border border-gray-200 rounded px-2 py-1.5 mb-2 text-xs text-gray-900 outline-none focus:border-rose-500 resize-none h-16"
                                     />
                                     <div className="flex gap-2">
-                                      <button onClick={handleAddAddress} className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-bold py-1.5 rounded transition-colors">Save Address</button>
-                                      <button onClick={() => setShowAddAddress(false)} className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 text-[10px] font-bold py-1.5 rounded transition-colors">Cancel</button>
+                                      <button onClick={handleAddAddress} className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[12px] font-bold py-1.5 rounded transition-colors">Save Address</button>
+                                      <button onClick={() => setShowAddAddress(false)} className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 text-[12px] font-bold py-1.5 rounded transition-colors">Cancel</button>
                                     </div>
                                   </div>
                                 ) : (
@@ -2058,8 +2005,8 @@ export default function App() {
                                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent"></div>
                                   </div>
                                   <div className="p-1.5 absolute bottom-0 left-0 right-0">
-                                    <h4 className="text-[10px] font-black text-white">{svc.name}</h4>
-                                    <p className="text-[7px] text-gray-300 line-clamp-1">{svc.desc}</p>
+                                    <h4 className="text-[12px] font-black text-white">{svc.name}</h4>
+                                    <p className="text-[11px] text-gray-300 line-clamp-1">{svc.desc}</p>
                                   </div>
                                   {selectedService === svc.name && (
                                     <div className="absolute top-1.5 right-1.5 bg-rose-500 rounded-full p-0.5 shadow-md flex items-center justify-center">
@@ -2085,7 +2032,7 @@ export default function App() {
                                     : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-200 hover:text-gray-900'
                                   }`}
                                 >
-                                  <span className={`text-[10px] font-medium ${pickupDate === d.value ? 'text-rose-100' : ''}`}>{d.label}</span>
+                                  <span className={`text-[12px] font-medium ${pickupDate === d.value ? 'text-rose-100' : ''}`}>{d.label}</span>
                                   <span className={`text-lg font-bold mt-0.5 ${pickupDate === d.value ? 'text-gray-900' : ''}`}>{d.dateNum}</span>
                                 </button>
                               ))}
@@ -2103,7 +2050,7 @@ export default function App() {
                                     : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-gray-300'
                                   }`}
                                 >
-                                  <Clock className={`size-3.5 mr-2 ${pickupTime === slot ? 'text-rose-400' : 'text-gray-400'}`} />
+                                  <Clock className={`size-3.5 mr-2 ${pickupTime === slot ? 'text-rose-400' : 'text-gray-500'}`} />
                                   {slot === '09:00 - 12:00' ? '09 AM - 12 PM' :
                                    slot === '12:00 - 15:00' ? '12 PM - 03 PM' :
                                    slot === '15:00 - 18:00' ? '03 PM - 06 PM' : '06 PM - 09 PM'}
@@ -2118,25 +2065,22 @@ export default function App() {
                           <div className="flex flex-col gap-2 mt-2">
 
                             <div className="flex overflow-x-auto scrollbar-hide pb-3 -mx-2 px-2 gap-3 border-b border-gray-200">
-                              {[
-                                { name: 'Light Weight', img: 'https://images.unsplash.com/photo-1544441893-675973e31985?w=400&h=300&fit=crop' },
-                                { name: 'Medium/Heavy', img: 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=400&h=300&fit=crop' },
-                                { name: 'Premium', img: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&h=300&fit=crop' },
-                                { name: 'Household', img: 'https://images.unsplash.com/photo-1616627561950-9f746e330187?w=400&h=300&fit=crop' }
-                              ].map(cat => (
+                              {Array.from(new Set(priceList.filter(p => p.serviceType === selectedService).map(p => p.category)))
+                                .map(catName => ({ name: catName, img: CATEGORY_IMAGES[catName] || FALLBACK_CATEGORY_IMAGE }))
+                                .map(cat => (
                                 <button
                                   key={cat.name}
                                   onClick={() => setActiveCategory(cat.name)}
                                   className={`relative shrink-0 w-[120px] h-[80px] rounded-2xl overflow-hidden transition-all shadow-sm ${
-                                    activeCategory === cat.name 
-                                    ? 'ring-2 ring-rose-500 ring-offset-2 scale-105 shadow-[0_4px_12px_rgba(225,29,72,0.3)]' 
+                                    activeCategory === cat.name
+                                    ? 'ring-2 ring-rose-500 ring-offset-2 scale-105 shadow-[0_4px_12px_rgba(225,29,72,0.3)]'
                                     : 'hover:border-rose-500 hover:shadow-lg transform hover:-translate-y-1 group grayscale-[40%] hover:grayscale-0'
                                   }`}
                                 >
                                   <img src={cat.img} alt={cat.name} className="w-full h-full object-cover" />
                                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
                                   <div className="absolute bottom-2 left-0 right-0 text-center">
-                                    <span className="text-[10px] font-bold text-white tracking-wide uppercase drop-shadow-md">{cat.name}</span>
+                                    <span className="text-[12px] font-bold text-white tracking-wide uppercase drop-shadow-md">{cat.name}</span>
                                   </div>
                                   {activeCategory === cat.name && (
                                     <div className="absolute top-1 right-1 bg-rose-500 rounded-full p-0.5 shadow-md">
@@ -2158,7 +2102,7 @@ export default function App() {
                                     <div key={key} className={`flex justify-between items-center bg-white p-3 rounded-xl border transition-all ${qty > 0 ? 'border-rose-500/50 shadow-[0_2px_8px_rgba(225,29,72,0.15)]' : 'border-gray-200'}`}>
                                       <div>
                                         <div className="text-xs font-bold text-gray-900">{item.name}</div>
-                                        <div className="text-[10px] text-rose-400 mt-0.5 font-semibold">₹{item.price} / pc</div>
+                                        <div className="text-[12px] text-rose-400 mt-0.5 font-semibold">₹{item.price} / pc</div>
                                       </div>
                                       <div className="flex items-center gap-3 bg-gray-50 rounded-full p-1 border border-gray-200 shadow-inner">
                                         <button 
@@ -2183,7 +2127,7 @@ export default function App() {
 
                           {/* Special Instructions */}
                           <div className="flex flex-col gap-1">
-                            <label className="text-[9px] font-bold text-gray-500 uppercase">Special Instructions</label>
+                            <label className="text-[11px] font-bold text-gray-500 uppercase">Special Instructions</label>
                             <input 
                               type="text"
                               value={specialInstructions}
@@ -2218,7 +2162,7 @@ export default function App() {
                           </div>
 
                           {/* Price calculation summary */}
-                          <div className="bg-white border border-gray-200 p-3 rounded-xl flex flex-col gap-1 text-[10px] text-gray-500">
+                          <div className="bg-white border border-gray-200 p-3 rounded-xl flex flex-col gap-1 text-[12px] text-gray-500">
                             <div className="flex justify-between">
                               <span>Subtotal</span>
                               <span className="font-bold text-gray-900">₹{calculateTotals().subtotal}</span>
@@ -2256,17 +2200,36 @@ export default function App() {
                       {customerActiveTab === 'prices' && (
                         <div className="flex flex-col gap-3 text-left">
                           <h3 className="text-sm font-bold text-gray-900">Service Price List</h3>
-                          
-                          <div className="flex flex-col gap-2 max-h-[380px] overflow-y-auto">
-                            {priceList.map(item => (
-                              <div key={item.name} className="flex justify-between items-center bg-white p-3 rounded-xl border border-gray-200">
-                                <div>
-                                  <div className="text-xs font-bold text-gray-900">{item.name}</div>
-                                  <span className="text-[9px] bg-gray-50 text-gray-500 px-2 py-0.5 rounded">{item.category}</span>
-                                </div>
-                                <div className="text-sm font-extrabold text-rose-500">₹{item.price}</div>
-                              </div>
+
+                          <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+                            {(['Ironing', 'Dry Cleaning', 'Laundry'] as const).map(svc => (
+                              <button
+                                key={svc}
+                                onClick={() => setSelectedService(svc)}
+                                className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all ${selectedService === svc ? 'bg-rose-500 border-rose-500 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}
+                              >
+                                {svc}
+                              </button>
                             ))}
+                          </div>
+
+                          <div className="flex flex-col gap-4 max-h-[380px] overflow-y-auto pr-1">
+                            {Array.from(new Set(priceList.filter(p => p.serviceType === selectedService).map(p => p.category)))
+                              .map(cat => ({ cat, items: priceList.filter(item => item.serviceType === selectedService && item.category === cat) }))
+                              .filter(group => group.items.length > 0)
+                              .map(group => (
+                                <div key={group.cat} className="flex flex-col gap-2">
+                                  <h4 className="text-[12px] font-bold text-gray-500 uppercase tracking-wider px-1">{group.cat}</h4>
+                                  <div className="flex flex-col gap-2">
+                                    {group.items.map(item => (
+                                      <div key={item.name} className="flex justify-between items-center bg-white p-3 rounded-xl border border-gray-200">
+                                        <div className="text-xs font-bold text-gray-900">{item.name}</div>
+                                        <div className="text-sm font-extrabold text-rose-500">₹{item.price}</div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
                           </div>
                         </div>
                       )}
@@ -2282,7 +2245,7 @@ export default function App() {
                                 <button onClick={() => setSelectedOrderForTracking(null)} className="text-xs text-gray-500 hover:text-gray-900 flex items-center gap-1">
                                   <ArrowLeft className="size-3" /> Back
                                 </button>
-                                <span className="text-[10px] font-bold text-rose-500">{selectedOrderForTracking.id}</span>
+                                <span className="text-[12px] font-bold text-rose-500">{selectedOrderForTracking.id}</span>
                               </div>
 
                               {/* Order Tracking Progress bar */}
@@ -2304,10 +2267,10 @@ export default function App() {
                                       {idx < 4 && (
                                         <div className={`absolute left-2.5 top-6 w-0.5 h-6 ${stepIdx < currentIdx ? 'bg-rose-500' : 'bg-gray-200'}`}></div>
                                       )}
-                                      <div className={`size-5 rounded-full flex items-center justify-center text-[10px] font-bold border-2 ${isActive ? 'bg-rose-500 border-rose-500 text-gray-900 shadow-sm' : 'border-gray-200 text-gray-400'}`}>
+                                      <div className={`size-5 rounded-full flex items-center justify-center text-[12px] font-bold border-2 ${isActive ? 'bg-rose-500 border-rose-500 text-gray-900 shadow-sm' : 'border-gray-200 text-gray-500'}`}>
                                         {isActive ? <Check className="size-2.5" /> : idx + 1}
                                       </div>
-                                      <span className={`text-xs font-semibold ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>
+                                      <span className={`text-xs font-semibold ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
                                         {step.label}
                                       </span>
                                     </div>
@@ -2335,13 +2298,13 @@ export default function App() {
                                     </div>
                                   </div>
                                   
-                                  <div className="relative z-10 mt-4 text-[10px] font-bold text-gray-700">
+                                  <div className="relative z-10 mt-4 text-[12px] font-bold text-gray-700">
                                     {selectedOrderForTracking.status === 'Delivered' ? 'Driver reached destination' : 'Driver is on the way...'}
                                   </div>
                                 </div>
                               )}
 
-                              <div className="bg-gray-50/60 p-3 rounded-xl text-[10px] text-gray-500 flex flex-col gap-1 border border-gray-200">
+                              <div className="bg-gray-50/60 p-3 rounded-xl text-[12px] text-gray-500 flex flex-col gap-1 border border-gray-200">
                                 <div className="flex justify-between">
                                   <span>Apartment No</span>
                                   <span className="font-bold text-gray-900">{selectedOrderForTracking.apartmentNo}</span>
@@ -2407,7 +2370,7 @@ export default function App() {
                           ) : (
                             <div className="flex flex-col gap-3 overflow-y-auto max-h-[380px]">
                               {orders.filter(o => o.customerPhone === currentCustomer.phone).length === 0 ? (
-                                <div className="text-center py-10 text-xs text-gray-400">No active orders placed yet.</div>
+                                <div className="text-center py-10 text-xs text-gray-500">No active orders placed yet.</div>
                               ) : (
                                 orders
                                   .filter(o => o.customerPhone === currentCustomer.phone)
@@ -2419,12 +2382,12 @@ export default function App() {
                                     >
                                       <div>
                                         <div className="text-xs font-bold text-gray-900">{o.id}</div>
-                                        <div className="text-[9px] text-gray-500 mt-0.5">{o.createdAt}</div>
-                                        <div className="text-[10px] font-semibold text-rose-500 mt-1">{o.status}</div>
+                                        <div className="text-[11px] text-gray-500 mt-0.5">{o.createdAt}</div>
+                                        <div className="text-[12px] font-semibold text-rose-500 mt-1">{o.status}</div>
                                       </div>
                                       <div className="text-right">
                                         <div className="text-xs font-extrabold text-gray-900">₹{o.total}</div>
-                                        <span className={`inline-block text-[8px] font-bold px-1.5 py-0.5 rounded mt-1 ${o.paymentStatus === 'Paid' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>
+                                        <span className={`inline-block text-[11px] font-bold px-1.5 py-0.5 rounded mt-1 ${o.paymentStatus === 'Paid' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>
                                           {o.paymentStatus}
                                         </span>
                                       </div>
@@ -2457,8 +2420,8 @@ export default function App() {
                               <div className="size-8 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-600">
                                 <Phone className="size-4" strokeWidth={2.5} />
                               </div>
-                              <span className="text-[10px] font-bold text-rose-600">Call Us Directly</span>
-                              <span className="text-[8px] text-rose-500/80 -mt-1">+91 97910 19505</span>
+                              <span className="text-[12px] font-bold text-rose-600">Call Us Directly</span>
+                              <span className="text-[11px] text-rose-500/80 -mt-1">+91 97910 19505</span>
                             </a>
                             <a 
                               href="https://wa.me/919791019505" 
@@ -2469,14 +2432,16 @@ export default function App() {
                               <div className="size-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-600">
                                 <Truck className="size-4" strokeWidth={2.5} />
                               </div>
-                              <span className="text-[10px] font-bold text-emerald-600">Chat with Us</span>
-                              <span className="text-[8px] text-emerald-500/80 -mt-1">Active on WhatsApp</span>
+                              <span className="text-[12px] font-bold text-emerald-600">Chat with Us</span>
+                              <span className="text-[11px] text-emerald-500/80 -mt-1">Active on WhatsApp</span>
                             </a>
                           </div>
 
+                          <p className="text-[12px] text-gray-500 text-center -mt-1">We're available 8 AM – 8 PM every day — call or WhatsApp us directly above.</p>
+
                           {/* Detailed Support Categories Accordion */}
                           <div className="bg-white border border-gray-200 p-4 rounded-2xl flex flex-col gap-4 shadow-sm">
-                            
+
                             {/* Garment Quality & Issues */}
                             <div>
                               <h4 className="text-xs font-black text-gray-950 mb-2 flex items-center gap-1.5">👕 Garment & Quality Issues</h4>
@@ -2490,13 +2455,13 @@ export default function App() {
                                     <div key={keyIndex} className="border border-gray-155 rounded-xl overflow-hidden">
                                       <button 
                                         onClick={() => setExpandedFaq(expandedFaq === keyIndex ? null : keyIndex)}
-                                        className="w-full text-left bg-gray-50 p-2.5 flex justify-between items-center text-[10px] font-bold text-gray-700 hover:bg-gray-100"
+                                        className="w-full text-left bg-gray-50 p-2.5 flex justify-between items-center text-[12px] font-bold text-gray-700 hover:bg-gray-100"
                                       >
                                         <span>{item.q}</span>
-                                        <ChevronRight className={`size-3 text-gray-400 transition-all ${expandedFaq === keyIndex ? 'rotate-90' : ''}`} />
+                                        <ChevronRight className={`size-3 text-gray-500 transition-all ${expandedFaq === keyIndex ? 'rotate-90' : ''}`} />
                                       </button>
                                       {expandedFaq === keyIndex && (
-                                        <div className="p-2.5 bg-white text-[9px] text-gray-500 leading-relaxed border-t border-gray-100">
+                                        <div className="p-2.5 bg-white text-[11px] text-gray-500 leading-relaxed border-t border-gray-100">
                                           {item.a}
                                         </div>
                                       )}
@@ -2512,13 +2477,13 @@ export default function App() {
                               <div className="border border-gray-155 rounded-xl overflow-hidden">
                                 <button 
                                   onClick={() => setExpandedFaq(expandedFaq === 20 ? null : 20)}
-                                  className="w-full text-left bg-gray-50 p-2.5 flex justify-between items-center text-[10px] font-bold text-gray-700 hover:bg-gray-100"
+                                  className="w-full text-left bg-gray-50 p-2.5 flex justify-between items-center text-[12px] font-bold text-gray-700 hover:bg-gray-100"
                                 >
                                   <span>Where is my active order?</span>
-                                  <ChevronRight className={`size-3 text-gray-400 transition-all ${expandedFaq === 20 ? 'rotate-90' : ''}`} />
+                                  <ChevronRight className={`size-3 text-gray-500 transition-all ${expandedFaq === 20 ? 'rotate-90' : ''}`} />
                                 </button>
                                 {expandedFaq === 20 && (
-                                  <div className="p-2.5 bg-white text-[9px] text-gray-500 leading-relaxed border-t border-gray-100">
+                                  <div className="p-2.5 bg-white text-[11px] text-gray-500 leading-relaxed border-t border-gray-100">
                                     You can track the live progress of your order by going to the "My Orders" tab on the bottom navigation bar and tapping on your active booking.
                                   </div>
                                 )}
@@ -2531,13 +2496,13 @@ export default function App() {
                               <div className="border border-gray-155 rounded-xl overflow-hidden">
                                 <button 
                                   onClick={() => setExpandedFaq(expandedFaq === 30 ? null : 30)}
-                                  className="w-full text-left bg-gray-50 p-2.5 flex justify-between items-center text-[10px] font-bold text-gray-700 hover:bg-gray-100"
+                                  className="w-full text-left bg-gray-50 p-2.5 flex justify-between items-center text-[12px] font-bold text-gray-700 hover:bg-gray-100"
                                 >
                                   <span>Transaction failed but money deducted?</span>
-                                  <ChevronRight className={`size-3 text-gray-400 transition-all ${expandedFaq === 30 ? 'rotate-90' : ''}`} />
+                                  <ChevronRight className={`size-3 text-gray-500 transition-all ${expandedFaq === 30 ? 'rotate-90' : ''}`} />
                                 </button>
                                 {expandedFaq === 30 && (
-                                  <div className="p-2.5 bg-white text-[9px] text-gray-500 leading-relaxed border-t border-gray-100">
+                                  <div className="p-2.5 bg-white text-[11px] text-gray-500 leading-relaxed border-t border-gray-100">
                                     Do not worry! In case of gateway failures, deducted funds are automatically refunded to your original payment source within 3-5 working days by Razorpay.
                                   </div>
                                 )}
@@ -2560,13 +2525,13 @@ export default function App() {
                                     <div key={keyIndex} className="border border-gray-155 rounded-xl overflow-hidden">
                                       <button 
                                         onClick={() => setExpandedFaq(expandedFaq === keyIndex ? null : keyIndex)}
-                                        className="w-full text-left bg-gray-50 p-2.5 flex justify-between items-center text-[10px] font-bold text-gray-700 hover:bg-gray-100"
+                                        className="w-full text-left bg-gray-50 p-2.5 flex justify-between items-center text-[12px] font-bold text-gray-700 hover:bg-gray-100"
                                       >
                                         <span>{item.q}</span>
-                                        <ChevronRight className={`size-3 text-gray-400 transition-all ${expandedFaq === keyIndex ? 'rotate-90' : ''}`} />
+                                        <ChevronRight className={`size-3 text-gray-500 transition-all ${expandedFaq === keyIndex ? 'rotate-90' : ''}`} />
                                       </button>
                                       {expandedFaq === keyIndex && (
-                                        <div className="p-2.5 bg-white text-[9px] text-gray-500 leading-relaxed border-t border-gray-100">
+                                        <div className="p-2.5 bg-white text-[11px] text-gray-500 leading-relaxed border-t border-gray-100">
                                           {item.a}
                                         </div>
                                       )}
@@ -2588,13 +2553,13 @@ export default function App() {
                             <button onClick={() => setCustomerActiveTab('home')} className="p-1 hover:bg-gray-200 rounded-lg">
                               <ArrowLeft className="size-4 text-gray-500" />
                             </button>
-                            <h3 className="text-sm font-bold text-gray-900">Iron Kart Prime Plans</h3>
+                            <h3 className="text-sm font-bold text-gray-900">Vastra Care Prime Plans</h3>
                           </div>
                           
                           <div className="w-full h-32 rounded-2xl overflow-hidden relative shadow-lg">
                             <img src="/subscription_banner_1785298423353.png" alt="Prime Subscription" className="w-full h-full object-cover opacity-80 mix-blend-screen" />
                             <div className="absolute inset-0 flex flex-col justify-end p-4 bg-gradient-to-t from-slate-950 to-transparent">
-                              <h4 className="font-extrabold text-white text-xl drop-shadow-md">Iron Kart Prime</h4>
+                              <h4 className="font-extrabold text-white text-xl drop-shadow-md">Vastra Care Prime</h4>
                               <p className="text-amber-300 text-xs font-bold mt-0.5 drop-shadow-md">Subscribe & Save</p>
                             </div>
                           </div>
@@ -2606,28 +2571,18 @@ export default function App() {
                               { name: 'Gold', discount: 35, price: 699, color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400' }
                             ].map(plan => (
                               <div key={plan.name} className={`border ${userSubscription === plan.name ? plan.border : 'border-gray-200'} bg-white rounded-xl p-4 relative overflow-hidden transition-all`}>
-                                {userSubscription === plan.name && <div className="absolute top-0 right-0 bg-emerald-500 text-white text-[8px] font-bold px-2 py-1 rounded-bl-lg">ACTIVE</div>}
+                                {userSubscription === plan.name && <div className="absolute top-0 right-0 bg-emerald-500 text-white text-[11px] font-bold px-2 py-1.5 rounded-bl-lg">ACTIVE</div>}
                                 <div className="flex justify-between items-center mb-2">
                                   <h4 className={`font-bold ${plan.color} text-sm flex items-center gap-1.5`}>
                                     <Star className="size-4" fill="currentColor" /> {plan.name} Plan
                                   </h4>
-                                  <span className="text-gray-900 font-extrabold">₹{plan.price}<span className="text-[9px] text-gray-400 font-normal">/mo</span></span>
+                                  <span className="text-gray-900 font-extrabold">₹{plan.price}<span className="text-[11px] text-gray-500 font-normal">/mo</span></span>
                                 </div>
-                                <p className="text-[10px] text-gray-500">Gets flat {plan.discount}% discount on all orders placed. Plus free delivery on orders near to your location!</p>
-                                <button 
-                                  onClick={() => {
-                                      if (!currentCustomer) return;
-                                      const updated = { ...currentCustomer, activePlan: plan.name };
-                                      setCurrentCustomer(updated);
-                                      fetch(`${API_URL}/customers/${currentCustomer.phone}`, {
-                                        method: 'PUT',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify(updated)
-                                      });
-                                      triggerNotification(`🎉 ${plan.name} Subscription Activated!`);
-                                  }}
+                                <p className="text-[12px] text-gray-500">Gets flat {plan.discount}% discount on all orders placed. Plus free delivery on orders near to your location!</p>
+                                <button
+                                  onClick={() => handleSubscribe(plan.name)}
                                   disabled={userSubscription === plan.name}
-                                  className={`w-full mt-3 py-2 rounded-lg text-xs font-bold ${userSubscription === plan.name ? 'bg-gray-200 text-gray-400' : 'bg-rose-500 hover:bg-rose-600 text-white shadow-sm'}`}
+                                  className={`w-full mt-3 py-2 rounded-lg text-xs font-bold ${userSubscription === plan.name ? 'bg-gray-200 text-gray-500' : 'bg-rose-500 hover:bg-rose-600 text-white shadow-sm'}`}
                                 >
                                   {userSubscription === plan.name ? `Active Plan (${plan.discount}% Discount)` : 'Subscribe Now'}
                                 </button>
@@ -2655,10 +2610,10 @@ export default function App() {
                               </div>
                               <div className="flex-1 min-w-0">
                                 <h4 className="font-extrabold text-sm truncate">{currentCustomer.name}</h4>
-                                <p className="text-[10px] text-gray-300 font-medium truncate mt-0.5">{currentCustomer.phone}</p>
+                                <p className="text-[12px] text-gray-300 font-medium truncate mt-0.5">{currentCustomer.phone}</p>
                               </div>
                             </div>
-                            <div className="border-t border-white/10 pt-2 text-[10px] text-gray-400 flex justify-between">
+                            <div className="border-t border-white/10 pt-2 text-[12px] text-gray-400 flex justify-between">
                               <span>Membership</span>
                               <span className="font-bold text-amber-300">{currentCustomer.activePlan ? `${currentCustomer.activePlan} Prime` : 'Standard Customer'}</span>
                             </div>
@@ -2671,13 +2626,13 @@ export default function App() {
                             </h4>
                             <div className="flex flex-col gap-2 max-h-36 overflow-y-auto">
                               {(!currentCustomer.addresses || currentCustomer.addresses.length === 0) ? (
-                                <p className="text-[10px] text-gray-400">No addresses saved yet.</p>
+                                <p className="text-[12px] text-gray-500">No addresses saved yet.</p>
                               ) : (
                                 currentCustomer.addresses?.map((addr: any) => (
                                   <div key={addr.id} className="p-2.5 bg-gray-50 rounded-xl border border-gray-250 flex items-start justify-between">
                                     <div className="flex-1 min-w-0 pr-2">
-                                      <span className="text-[9px] font-extrabold uppercase bg-gray-200 text-gray-700 px-1 rounded">{addr.label}</span>
-                                      <p className="text-[10px] text-gray-500 leading-snug mt-1 truncate">{addr.fullAddress}</p>
+                                      <span className="text-[11px] font-extrabold uppercase bg-gray-200 text-gray-700 px-1 rounded">{addr.label}</span>
+                                      <p className="text-[12px] text-gray-500 leading-snug mt-1 truncate">{addr.fullAddress}</p>
                                     </div>
                                     <button 
                                       onClick={() => {
@@ -2687,12 +2642,12 @@ export default function App() {
                                           setCurrentCustomer(updated);
                                           fetch(`${API_URL}/customers/${currentCustomer.phone}`, {
                                             method: 'PUT',
-                                            headers: { 'Content-Type': 'application/json' },
+                                            headers: authHeaders(),
                                             body: JSON.stringify(updated)
                                           });
                                         });
                                       }}
-                                      className="text-rose-500 hover:text-rose-600 text-[10px] font-bold shrink-0 self-center"
+                                      className="text-rose-500 hover:text-rose-600 text-[12px] font-bold shrink-0 self-center"
                                     >
                                       Remove
                                     </button>
@@ -2709,7 +2664,7 @@ export default function App() {
                                     <button 
                                       key={lbl}
                                       onClick={() => setNewAddressLabel(lbl)}
-                                      className={`px-2.5 py-1 text-[9px] font-bold rounded-lg ${newAddressLabel === lbl ? 'bg-rose-500 text-white' : 'bg-gray-100 text-gray-500'}`}
+                                      className={`px-2.5 py-1.5 text-[11px] font-bold rounded-lg ${newAddressLabel === lbl ? 'bg-rose-500 text-white' : 'bg-gray-100 text-gray-500'}`}
                                     >
                                       {lbl}
                                     </button>
@@ -2720,15 +2675,15 @@ export default function App() {
                                   placeholder="Enter complete address details"
                                   value={newAddressText}
                                   onChange={e => setNewAddressText(e.target.value)}
-                                  className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-[10px] text-gray-900 outline-none"
+                                  className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-[12px] text-gray-900 outline-none"
                                 />
                                 <div className="flex gap-2">
-                                  <button onClick={handleAddAddress} className="flex-1 bg-rose-500 hover:bg-rose-600 text-white py-1 rounded text-[10px] font-bold">Save</button>
-                                  <button onClick={() => setShowAddAddress(false)} className="flex-1 bg-gray-200 text-gray-700 py-1 rounded text-[10px] font-bold">Cancel</button>
+                                  <button onClick={handleAddAddress} className="flex-1 bg-rose-500 hover:bg-rose-600 text-white py-1.5 rounded text-[12px] font-bold">Save</button>
+                                  <button onClick={() => setShowAddAddress(false)} className="flex-1 bg-gray-200 text-gray-700 py-1.5 rounded text-[12px] font-bold">Cancel</button>
                                 </div>
                               </div>
                             ) : (
-                              <button onClick={() => setShowAddAddress(true)} className="text-left text-[10px] font-bold text-rose-500 hover:underline">
+                              <button onClick={() => setShowAddAddress(true)} className="text-left text-[12px] font-bold text-rose-500 hover:underline">
                                 + Add New Address
                               </button>
                             )}
@@ -2751,14 +2706,14 @@ export default function App() {
                             <h4 className="text-xs font-bold text-gray-950 flex items-center gap-1">
                               <Settings className="size-4 text-gray-500" /> Settings & Policies
                             </h4>
-                            <div className="flex flex-col gap-1 text-[10px]">
-                              <button onClick={() => customAlert('Terms & Conditions:\n\n1. All garments are ironed standard steam settings.\n2. In case of garment damage, maximum liability is limited to 5x the service cost.\n3. Orders must be cancelled at least 2 hours prior to pickup time.')} className="w-full text-left p-2 hover:bg-gray-50 rounded-lg text-gray-700 flex justify-between items-center border border-gray-100">
+                            <div className="flex flex-col gap-1 text-[12px]">
+                              <button onClick={() => window.open('/terms.html', '_blank')} className="w-full text-left p-2 hover:bg-gray-50 rounded-lg text-gray-700 flex justify-between items-center border border-gray-100">
                                 <span>Terms & Conditions</span>
-                                <ChevronRight className="size-3.5 text-gray-400" />
+                                <ChevronRight className="size-3.5 text-gray-500" />
                               </button>
-                              <button onClick={() => customAlert('Privacy Policy:\n\n1. We gather name, mobile number and address details solely to deliver services.\n2. Your details are secure and never sold or shared with external parties.\n3. Payment operations are securely routed through certified gateways.')} className="w-full text-left p-2 hover:bg-gray-50 rounded-lg text-gray-700 flex justify-between items-center border border-gray-100">
+                              <button onClick={() => window.open('/privacy.html', '_blank')} className="w-full text-left p-2 hover:bg-gray-50 rounded-lg text-gray-700 flex justify-between items-center border border-gray-100">
                                 <span>Privacy & Policy</span>
-                                <ChevronRight className="size-3.5 text-gray-400" />
+                                <ChevronRight className="size-3.5 text-gray-500" />
                               </button>
                             </div>
                           </div>
@@ -2766,28 +2721,24 @@ export default function App() {
                           {/* Danger Zone: Delete Account */}
                           <div className="bg-rose-50/50 border border-rose-200 rounded-2xl p-4 flex flex-col gap-2 shadow-sm">
                             <h4 className="text-xs font-bold text-rose-800">Danger Zone</h4>
-                            <p className="text-[10px] text-gray-500 leading-relaxed">Permanently delete your profile and account information. This action is irreversible.</p>
-                            <button 
+                            <p className="text-[12px] text-gray-500 leading-relaxed">Permanently delete your profile and account information. This action is irreversible.</p>
+                            <button
                               onClick={() => {
                                 customConfirm('⚠️ WARNING: Deleting your account will remove your address list, purchase logs, and remaining wallet balance. Are you sure you want to proceed?', () => {
                                   customConfirm('Are you absolutely certain? This cannot be undone.', () => {
-                                    const client = supabase;
-                                    if (client) {
-                                      client.from('customers')
-                                        .delete()
-                                        .eq('phone', currentCustomer.phone)
-                                        .then(() => {
-                                          setCurrentCustomer(null);
-                                          localStorage.removeItem('iron_current_user');
-                                          setCustomerActiveTab('home');
-                                          customAlert('Your profile has been deleted successfully. We hope to see you again! ❤️');
-                                        });
-                                    } else {
-                                      setCurrentCustomer(null);
-                                      localStorage.removeItem('iron_current_user');
-                                      setCustomerActiveTab('home');
-                                      customAlert('Your profile has been deleted locally successfully.');
-                                    }
+                                    fetch(`${API_URL}/customers/${currentCustomer.phone}`, {
+                                      method: 'DELETE',
+                                      headers: authHeaders()
+                                    })
+                                      .then(res => {
+                                        if (!res.ok) throw new Error('Failed to delete account');
+                                        setSession(null);
+                                        setCurrentCustomer(null);
+                                        localStorage.removeItem('iron_current_user');
+                                        setCustomerActiveTab('home');
+                                        customAlert('Your profile has been deleted successfully. We hope to see you again! ❤️');
+                                      })
+                                      .catch(err => customAlert('Could not delete your account: ' + err.message));
                                   });
                                 });
                               }}
@@ -2802,7 +2753,7 @@ export default function App() {
                     </div>
 
                     {/* Premium Iztri-Style Bottom Navigation Bar */}
-                    <div className="border-t border-gray-200/60 pt-3 pb-1 flex justify-around bg-white/90 backdrop-blur-md text-gray-400 -mx-4 px-2 mt-4 sticky bottom-0 z-10 shadow-[0_-4px_20px_rgba(0,0,0,0.2)]">
+                    <div className="border-t border-gray-200/60 pt-3 pb-1 flex justify-around bg-white/90 backdrop-blur-md text-gray-500 -mx-4 px-2 mt-4 sticky bottom-0 z-10 shadow-[0_-4px_20px_rgba(0,0,0,0.2)]">
                       {[
                         { tab: 'home', label: 'Home', icon: Smartphone },
                         { tab: 'order', label: 'Book', icon: Plus },
@@ -2827,7 +2778,7 @@ export default function App() {
                                 <div className="absolute -inset-1.5 bg-rose-500/10 rounded-full blur-sm" />
                               )}
                             </div>
-                            <span className={`text-[9px] font-bold tracking-wide transition-all ${isActive ? 'text-rose-500' : 'text-gray-500'}`}>
+                            <span className={`text-[11px] font-bold tracking-wide transition-all ${isActive ? 'text-rose-500' : 'text-gray-500'}`}>
                               {item.label}
                             </span>
                             {isActive && (
@@ -2852,15 +2803,15 @@ export default function App() {
                   {/* Checkout Header */}
                   <div className="flex items-center justify-between pb-3 border-b border-gray-200">
                     <div>
-                      <h4 className="text-xs font-bold text-gray-500">Iron Kart Checkout</h4>
-                      <h3 className="text-sm font-extrabold text-gray-900 mt-0.5">Pay ₹{calculateTotals().total}</h3>
+                      <h4 className="text-xs font-bold text-gray-500">Vastra Care Checkout</h4>
+                      <h3 className="text-sm font-extrabold text-gray-900 mt-0.5">Pay ₹{confirmedQuote?.total ?? calculateTotals().total}</h3>
                     </div>
-                    <button onClick={() => setShowCheckoutModal(false)} className="text-xs text-gray-400 hover:text-gray-900">Cancel</button>
+                    <button onClick={() => { setShowCheckoutModal(false); setConfirmedQuote(null); }} className="text-xs text-gray-500 hover:text-gray-900">Cancel</button>
                   </div>
 
                   {/* Payment Options */}
                   <div className="flex flex-col gap-2.5">
-                    <label className="text-[9px] font-bold text-gray-500 uppercase">Select Payment Mode</label>
+                    <label className="text-[11px] font-bold text-gray-500 uppercase">Select Payment Mode</label>
                     
                     <button 
                       onClick={() => setPaymentMethod('UPI')}
@@ -2869,7 +2820,7 @@ export default function App() {
                       <CreditCard className="size-4 text-purple-500" />
                       <div className="text-xs font-semibold text-left">
                         <span>UPI Payment (PhonePe, GPay)</span>
-                        <div className="text-[8px] opacity-75">Pay digitally using QR/UPI App</div>
+                        <div className="text-[11px] opacity-75">Pay digitally using QR/UPI App</div>
                       </div>
                     </button>
 
@@ -2879,8 +2830,8 @@ export default function App() {
                     >
                       <Wallet className="size-4 text-emerald-400" />
                       <div className="text-xs font-semibold text-left">
-                        <span>Iron Kart Wallet</span>
-                        <div className="text-[8px] opacity-75">Pay using your prepaid balance</div>
+                        <span>Vastra Care Wallet</span>
+                        <div className="text-[11px] opacity-75">Pay using your prepaid balance</div>
                       </div>
                     </button>
 
@@ -2891,7 +2842,7 @@ export default function App() {
                       <CreditCard className="size-4 text-blue-500" />
                       <div className="text-xs font-semibold text-left">
                         <span>Credit / Debit Cards</span>
-                        <div className="text-[8px] opacity-75">Pay securely via Visa, Mastercard, RuPay</div>
+                        <div className="text-[11px] opacity-75">Pay securely via Visa, Mastercard, RuPay</div>
                       </div>
                     </button>
 
@@ -2902,7 +2853,7 @@ export default function App() {
                       <Landmark className="size-4 text-amber-500" />
                       <div className="text-xs font-semibold text-left">
                         <span>NetBanking</span>
-                        <div className="text-[8px] opacity-75">Pay directly through your bank account</div>
+                        <div className="text-[11px] opacity-75">Pay directly through your bank account</div>
                       </div>
                     </button>
 
@@ -2913,7 +2864,7 @@ export default function App() {
                       <Truck className="size-4 text-rose-500" />
                       <div className="text-xs font-semibold text-left">
                         <span>Pay On Pickup</span>
-                        <div className="text-[8px] opacity-75">Pay cash or digital at pickup time</div>
+                        <div className="text-[11px] opacity-75">Pay cash or digital at pickup time</div>
                       </div>
                     </button>
                   </div>
@@ -2928,13 +2879,13 @@ export default function App() {
                         {upiDetails.id && (
                           <div className="bg-white p-1 rounded shrink-0">
                             <img 
-                              src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=upi://pay?pa=${upiDetails.id}&pn=Iron Kart&cu=INR`} 
+                              src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=upi://pay?pa=${upiDetails.id}&pn=Vastra Care&cu=INR`} 
                               alt="UPI QR Code" 
                               className="w-16 h-16 object-contain"
                             />
                           </div>
                         )}
-                        <div className="flex-1 flex flex-col gap-1 text-[10px] text-gray-500">
+                        <div className="flex-1 flex flex-col gap-1 text-[12px] text-gray-500">
                           <div className="flex justify-between border-b border-slate-900 pb-1">
                             <span>Phone Number:</span>
                             <span className="font-bold text-gray-900 select-all">{upiDetails.phone}</span>
@@ -2947,13 +2898,13 @@ export default function App() {
                       </div>
 
                       <a 
-                        href={`upi://pay?pa=${upiDetails.id}&pn=Iron Kart&cu=INR`} 
+                        href={`upi://pay?pa=${upiDetails.id}&pn=Vastra Care&cu=INR`} 
                         className="w-full bg-gray-50 hover:bg-gray-200 text-center text-gray-900 py-2 rounded-lg font-bold border border-gray-200 transition-colors mt-2"
                       >
                         Click to Open UPI App
                       </a>
 
-                      <p className="text-[8px] text-gray-400 leading-relaxed italic bg-gray-50/50 p-1.5 rounded mt-1">
+                      <p className="text-[11px] text-gray-500 leading-relaxed italic bg-gray-50/50 p-1.5 rounded mt-1">
                         *Scan QR or click link to pay, then click "Confirm & Submit Order".
                       </p>
                     </div>
@@ -3008,31 +2959,31 @@ export default function App() {
                   {paymentMethod === 'Wallet' && (
                     <div className="bg-white border border-gray-200 p-3 rounded-xl flex flex-col gap-2 mt-1 text-left text-xs animate-fade-in">
                       <div className="font-bold text-gray-900 flex items-center justify-between">
-                        <span>💳 Iron Kart Wallet Balance</span>
+                        <span>💳 Vastra Care Wallet Balance</span>
                         <span className="text-emerald-500">₹{currentCustomer?.walletBalance || 0}</span>
                       </div>
                       
-                      {(currentCustomer?.walletBalance || 0) < calculateTotals().total ? (
+                      {(currentCustomer?.walletBalance || 0) < (confirmedQuote?.total ?? calculateTotals().total) ? (
                         <div className="flex flex-col gap-1.5 mt-1 border-t border-gray-100 pt-2">
-                          <p className="text-rose-500 text-[10px] font-bold">⚠️ Insufficient Wallet Balance (Need ₹{calculateTotals().total - (currentCustomer?.walletBalance || 0)} more)</p>
+                          <p className="text-rose-500 text-[12px] font-bold">⚠️ Insufficient Wallet Balance (Need ₹{(confirmedQuote?.total ?? calculateTotals().total) - (currentCustomer?.walletBalance || 0)} more)</p>
                           <div className="flex gap-2 mt-1">
                             <input 
                               type="number"
                               placeholder="Amount to Add"
                               value={checkoutAddAmount}
                               onChange={e => setCheckoutAddAmount(e.target.value)}
-                              className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1 text-xs text-gray-900 outline-none"
+                              className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 outline-none"
                             />
                             <button 
                               onClick={handleCheckoutAddFunds}
-                              className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[10px] px-3.5 py-1 rounded-lg transition-colors"
+                              className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[12px] px-3.5 py-1.5 rounded-lg transition-colors"
                             >
                               Add & Pay
                             </button>
                           </div>
                         </div>
                       ) : (
-                        <p className="text-emerald-500 text-[10px] mt-1">Balance is sufficient for this order.</p>
+                        <p className="text-emerald-500 text-[12px] mt-1">Balance is sufficient for this order.</p>
                       )}
                     </div>
                   )}
@@ -3101,33 +3052,33 @@ export default function App() {
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                       
                       <div className="bg-gray-50 border border-gray-200 p-4 rounded-2xl flex flex-col gap-1.5">
-                        <span className="text-[10px] font-bold text-gray-500 uppercase">Total Revenue</span>
+                        <span className="text-[12px] font-bold text-gray-500 uppercase">Total Revenue</span>
                         <div className="text-2xl font-extrabold text-gray-900">₹{totalRevenue.toFixed(2)}</div>
-                        <span className="text-[9px] text-emerald-500 font-semibold">100% digital payouts</span>
+                        <span className="text-[11px] text-emerald-500 font-semibold">100% digital payouts</span>
                       </div>
 
                       <div className="bg-gray-50 border border-gray-200 p-4 rounded-2xl flex flex-col gap-1.5">
-                        <span className="text-[10px] font-bold text-gray-500 uppercase">Pending Pickups</span>
+                        <span className="text-[12px] font-bold text-gray-500 uppercase">Pending Pickups</span>
                         <div className="text-2xl font-extrabold text-rose-500">
                           {orders.filter(o => o.status === 'Placed').length}
                         </div>
-                        <span className="text-[9px] text-gray-500">Needs immediate assignment</span>
+                        <span className="text-[11px] text-gray-500">Needs immediate assignment</span>
                       </div>
 
                       <div className="bg-gray-50 border border-gray-200 p-4 rounded-2xl flex flex-col gap-1.5">
-                        <span className="text-[10px] font-bold text-gray-500 uppercase">Active In-process</span>
+                        <span className="text-[12px] font-bold text-gray-500 uppercase">Active In-process</span>
                         <div className="text-2xl font-extrabold text-amber-500">
                           {orders.filter(o => o.status === 'Picked Up' || o.status === 'Ironing').length}
                         </div>
-                        <span className="text-[9px] text-gray-500">Undergoing ironing flow</span>
+                        <span className="text-[11px] text-gray-500">Undergoing ironing flow</span>
                       </div>
 
                       <div className="bg-gray-50 border border-gray-200 p-4 rounded-2xl flex flex-col gap-1.5">
-                        <span className="text-[10px] font-bold text-gray-500 uppercase">Completed orders</span>
+                        <span className="text-[12px] font-bold text-gray-500 uppercase">Completed orders</span>
                         <div className="text-2xl font-extrabold text-emerald-500">
                           {completedOrders.length}
                         </div>
-                        <span className="text-[9px] text-emerald-500 font-semibold">Delivered & Closed</span>
+                        <span className="text-[11px] text-emerald-500 font-semibold">Delivered & Closed</span>
                       </div>
 
                     </div>
@@ -3137,11 +3088,11 @@ export default function App() {
                       <h3 className="text-sm font-bold text-gray-900">Today&apos;s Active Inbound Pickups</h3>
                       <div className="bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden">
                         {orders.length === 0 ? (
-                          <div className="p-8 text-center text-xs text-gray-400">No active ironing orders right now. Use the Customer Mobile App to place a simulated order!</div>
+                          <div className="p-8 text-center text-xs text-gray-500">No active orders right now.</div>
                         ) : (
                           <div className="overflow-x-auto">
                             <table className="w-full text-left text-xs">
-                              <thead className="bg-white text-gray-500 uppercase font-bold text-[9px] border-b border-gray-200">
+                              <thead className="bg-white text-gray-500 uppercase font-bold text-[11px] border-b border-gray-200">
                                 <tr>
                                   <th className="p-3">Order ID</th>
                                   <th className="p-3">Customer</th>
@@ -3158,26 +3109,26 @@ export default function App() {
                                     <td className="p-3 font-mono font-bold text-rose-500">{o.id}</td>
                                     <td className="p-3">
                                       <div className="font-semibold text-gray-900">{o.customerName}</div>
-                                      <div className="text-[9px] text-gray-500">{o.customerPhone}</div>
+                                      <div className="text-[11px] text-gray-500">{o.customerPhone}</div>
                                     </td>
                                     <td className="p-3">
                                       <div className="font-semibold text-gray-900 truncate max-w-[120px]">{o.apartmentNo}</div>
-                                      <div className="text-[9px] text-gray-500 truncate max-w-[120px]">{o.address}</div>
+                                      <div className="text-[11px] text-gray-500 truncate max-w-[120px]">{o.address}</div>
                                     </td>
                                     <td className="p-3">
                                       <div className="font-semibold text-gray-900">{o.pickupDate}</div>
-                                      <div className="text-[9px] text-gray-500">{o.pickupTime}</div>
+                                      <div className="text-[11px] text-gray-500">{o.pickupTime}</div>
                                     </td>
                                     <td className="p-3 font-semibold text-gray-900">₹{o.total}</td>
                                     <td className="p-3">
-                                      <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-bold ${o.status === 'Delivered' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                                      <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-bold ${o.status === 'Delivered' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
                                         {o.status}
                                       </span>
                                     </td>
                                     <td className="p-3 text-right">
                                       <button 
                                         onClick={() => setAdminActiveTab('orders')}
-                                        className="bg-gray-200 hover:bg-gray-300 text-gray-900 px-2 py-1 rounded font-bold text-[9px]"
+                                        className="bg-gray-200 hover:bg-gray-300 text-gray-900 px-2 py-1.5 rounded font-bold text-[11px]"
                                       >
                                         Manage
                                       </button>
@@ -3201,7 +3152,7 @@ export default function App() {
                     
                     <div className="flex flex-col gap-3">
                       {orders.length === 0 ? (
-                        <div className="bg-gray-50 border border-gray-200 p-8 rounded-2xl text-center text-xs text-gray-400">
+                        <div className="bg-gray-50 border border-gray-200 p-8 rounded-2xl text-center text-xs text-gray-500">
                           No order records. Try booking an order in the Customer App on the left!
                         </div>
                       ) : (
@@ -3212,7 +3163,7 @@ export default function App() {
                             <div className="flex-1 flex flex-col gap-2">
                               <div className="flex items-center gap-2">
                                 <span className="text-xs font-mono font-bold text-rose-500">{o.id}</span>
-                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${o.speed === 'Urgent' ? 'bg-red-500/20 text-red-400' : o.speed === 'Express' ? 'bg-amber-500/20 text-amber-400' : 'bg-gray-200 text-gray-500'}`}>
+                                <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${o.speed === 'Urgent' ? 'bg-red-500/20 text-red-400' : o.speed === 'Express' ? 'bg-amber-500/20 text-amber-400' : 'bg-gray-200 text-gray-500'}`}>
                                   {o.speed} Delivery
                                 </span>
                               </div>
@@ -3227,7 +3178,7 @@ export default function App() {
                               </div>
                               
                               {/* Items list */}
-                              <div className="text-[10px] text-gray-500 bg-white p-2.5 rounded-xl border border-gray-200 mt-1 max-w-sm">
+                              <div className="text-[12px] text-gray-500 bg-white p-2.5 rounded-xl border border-gray-200 mt-1 max-w-sm">
                                 <div className="font-bold text-gray-900 border-b border-gray-200 pb-1 mb-1">Basket Details:</div>
                                 {o.items.map(item => (
                                   <div key={item.name} className="flex justify-between">
@@ -3236,7 +3187,7 @@ export default function App() {
                                   </div>
                                 ))}
                                 {o.specialInstructions && (
-                                  <div className="text-[9px] text-amber-400 italic mt-2">
+                                  <div className="text-[11px] text-amber-400 italic mt-2">
                                     *Instructions: {o.specialInstructions}
                                   </div>
                                 )}
@@ -3247,7 +3198,7 @@ export default function App() {
                             <div className="flex flex-col gap-3 lg:items-end justify-between">
                               <div className="lg:text-right">
                                 <div className="text-sm font-extrabold text-gray-900">Total Value: ₹{o.total}</div>
-                                <div className="flex items-center gap-1.5 lg:justify-end mt-1 text-[10px]">
+                                <div className="flex items-center gap-1.5 lg:justify-end mt-1 text-[12px]">
                                   <span>Payment:</span>
                                   <span className={`font-bold ${o.paymentStatus === 'Paid' ? 'text-emerald-500' : 'text-amber-500'}`}>
                                     {o.paymentStatus} ({o.paymentMethod})
@@ -3255,7 +3206,7 @@ export default function App() {
                                   {o.paymentStatus === 'Pending' && (
                                     <button 
                                       onClick={() => markOrderPaid(o.id)}
-                                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-1.5 py-0.5 rounded text-[9px]"
+                                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-1.5 py-0.5 rounded text-[11px]"
                                     >
                                       Mark Paid
                                     </button>
@@ -3268,7 +3219,7 @@ export default function App() {
                                 {o.status === 'Placed' && (
                                   <button 
                                     onClick={() => updateOrderStatus(o.id, 'Picked Up')}
-                                    className="bg-rose-500 hover:bg-rose-600 text-white px-2.5 py-1 rounded-lg text-[10px] font-bold"
+                                    className="bg-rose-500 hover:bg-rose-600 text-white px-2.5 py-1.5 rounded-lg text-[12px] font-bold"
                                   >
                                     Accept & Pick Up
                                   </button>
@@ -3276,7 +3227,7 @@ export default function App() {
                                 {o.status === 'Picked Up' && (
                                   <button 
                                     onClick={() => updateOrderStatus(o.id, 'Ironing')}
-                                    className="bg-amber-500 hover:bg-amber-600 text-white px-2.5 py-1 rounded-lg text-[10px] font-bold"
+                                    className="bg-amber-500 hover:bg-amber-600 text-white px-2.5 py-1.5 rounded-lg text-[12px] font-bold"
                                   >
                                     Start Ironing
                                   </button>
@@ -3284,7 +3235,7 @@ export default function App() {
                                 {o.status === 'Ironing' && (
                                   <button 
                                     onClick={() => updateOrderStatus(o.id, 'Ready')}
-                                    className="bg-blue-500 hover:bg-blue-600 text-white px-2.5 py-1 rounded-lg text-[10px] font-bold"
+                                    className="bg-blue-500 hover:bg-blue-600 text-white px-2.5 py-1.5 rounded-lg text-[12px] font-bold"
                                   >
                                     Mark as Ready
                                   </button>
@@ -3292,7 +3243,7 @@ export default function App() {
                                 {o.status === 'Ready' && (
                                   <button 
                                     onClick={() => updateOrderStatus(o.id, 'Delivered')}
-                                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg text-[10px] font-bold"
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded-lg text-[12px] font-bold"
                                   >
                                     Mark as Delivered
                                   </button>
@@ -3300,14 +3251,14 @@ export default function App() {
                                 
                                 <button 
                                   onClick={() => setSelectedInvoice(o)}
-                                  className="bg-gray-200 hover:bg-gray-300 text-gray-900 px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1"
+                                  className="bg-gray-200 hover:bg-gray-300 text-gray-900 px-2 py-1.5 rounded-lg text-[12px] font-bold flex items-center gap-1"
                                 >
                                   <Eye className="size-3" /> Invoice
                                 </button>
                                 
                                 <button 
                                   onClick={() => deleteOrder(o.id)}
-                                  className="bg-red-500/10 hover:bg-red-500/20 text-red-500 px-2 py-1 rounded-lg text-[10px] font-bold"
+                                  className="bg-red-500/10 hover:bg-red-500/20 text-red-500 px-2 py-1.5 rounded-lg text-[12px] font-bold"
                                 >
                                   Delete
                                 </button>
@@ -3336,15 +3287,15 @@ export default function App() {
                         <label htmlFor="enableFestive" className="text-xs font-bold text-gray-900 cursor-pointer">Enable Main Banner</label>
                       </div>
                       <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-gray-500 uppercase">Banner Title</label>
+                        <label className="text-[12px] font-bold text-gray-500 uppercase">Banner Title</label>
                         <input type="text" value={editingFestive.title} onChange={e => setEditingFestive({...editingFestive, title: e.target.value})} className="px-2 py-1.5 border border-gray-300 rounded text-xs outline-none focus:border-rose-500" />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-gray-500 uppercase">Subtitle</label>
+                        <label className="text-[12px] font-bold text-gray-500 uppercase">Subtitle</label>
                         <input type="text" value={editingFestive.subtitle} onChange={e => setEditingFestive({...editingFestive, subtitle: e.target.value})} className="px-2 py-1.5 border border-gray-300 rounded text-xs outline-none focus:border-rose-500" />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-gray-500 uppercase">Image URL (Wide Format)</label>
+                        <label className="text-[12px] font-bold text-gray-500 uppercase">Image URL (Wide Format)</label>
                         <input type="text" value={editingFestive.img} onChange={e => setEditingFestive({...editingFestive, img: e.target.value})} className="px-2 py-1.5 border border-gray-300 rounded text-xs outline-none focus:border-rose-500" />
                       </div>
                     </div>
@@ -3356,17 +3307,17 @@ export default function App() {
                           <h4 className="font-bold text-xs text-gray-900">Banner #{idx + 1}</h4>
                           
                           <div className="flex flex-col gap-1">
-                            <label className="text-[10px] font-bold text-gray-500 uppercase">Banner Name</label>
+                            <label className="text-[12px] font-bold text-gray-500 uppercase">Banner Name</label>
                             <input type="text" value={offer.name} onChange={e => { const newO = [...editingOffers]; newO[idx].name = e.target.value; setEditingOffers(newO); }} className="px-2 py-1.5 border border-gray-300 rounded text-xs outline-none focus:border-rose-500" />
                           </div>
                           
                           <div className="flex flex-col gap-1">
-                            <label className="text-[10px] font-bold text-gray-500 uppercase">Image URL (Unsplash or direct link)</label>
+                            <label className="text-[12px] font-bold text-gray-500 uppercase">Image URL (Unsplash or direct link)</label>
                             <input type="text" value={offer.img} onChange={e => { const newO = [...editingOffers]; newO[idx].img = e.target.value; setEditingOffers(newO); }} className="px-2 py-1.5 border border-gray-300 rounded text-xs outline-none focus:border-rose-500" />
                           </div>
                           
                           <div className="flex flex-col gap-1">
-                            <label className="text-[10px] font-bold text-gray-500 uppercase">Target Category Filter</label>
+                            <label className="text-[12px] font-bold text-gray-500 uppercase">Target Category Filter</label>
                             <input type="text" value={offer.cat} onChange={e => { const newO = [...editingOffers]; newO[idx].cat = e.target.value; setEditingOffers(newO); }} className="px-2 py-1.5 border border-gray-300 rounded text-xs outline-none focus:border-rose-500" />
                           </div>
                         </div>
@@ -3374,38 +3325,19 @@ export default function App() {
                     </div>
                     
                     <div className="flex justify-end mt-2">
-                      <button 
+                      <button
                         onClick={async () => {
-                          if (supabase) {
-                            const { data: existing } = await supabase.from('prices').select('id').eq('category', 'system').eq('item_name', 'flash_offers').single();
-                            let err = null;
-                            if (existing) {
-                              const { error } = await supabase.from('prices').update({ icon: JSON.stringify(editingOffers) }).eq('id', existing.id);
-                              err = error;
-                            } else {
-                              const { error } = await supabase.from('prices').insert({ category: 'system', item_name: 'flash_offers', icon: JSON.stringify(editingOffers), price: 0, service_type: 'system' });
-                              err = error;
-                            }
-                            
-                            const { data: existingFestive } = await supabase.from('prices').select('id').eq('category', 'system').eq('item_name', 'festive_offer').single();
-                            if (existingFestive) {
-                              const { error } = await supabase.from('prices').update({ icon: JSON.stringify(editingFestive) }).eq('id', existingFestive.id);
-                              if (error) err = error;
-                            } else {
-                              const { error } = await supabase.from('prices').insert({ category: 'system', item_name: 'festive_offer', icon: JSON.stringify(editingFestive), price: 0, service_type: 'system' });
-                              if (error) err = error;
-                            }
-                            
-                            if (err) customAlert("Failed to save: " + err.message);
-                            else {
-                              setFlashOffers(editingOffers);
-                              setFestiveOffer(editingFestive);
-                              triggerNotification('✅ Offers updated and saved to DB!');
-                            }
-                          } else {
+                          try {
+                            const [offersRes, festiveRes] = await Promise.all([
+                              fetch(`${API_URL}/settings/flash-offers`, { method: 'PUT', headers: authHeaders(), body: JSON.stringify(editingOffers) }),
+                              fetch(`${API_URL}/settings/festive-offer`, { method: 'PUT', headers: authHeaders(), body: JSON.stringify(editingFestive) })
+                            ]);
+                            if (!offersRes.ok || !festiveRes.ok) throw new Error('Server rejected the update');
                             setFlashOffers(editingOffers);
                             setFestiveOffer(editingFestive);
-                            triggerNotification('✅ Offers updated locally (Offline Mode).');
+                            triggerNotification('✅ Offers updated and saved to DB!');
+                          } catch (err: any) {
+                            customAlert('Failed to save: ' + err.message);
                           }
                         }}
                         className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors shadow-md"
@@ -3437,15 +3369,15 @@ export default function App() {
                                   const key = `${item.serviceType}-${item.name}`;
                                   return (
                                     <div key={key} className="flex flex-col gap-1 bg-white p-2.5 rounded-xl border border-gray-200">
-                                      <label className="text-[9px] font-bold text-gray-500 flex items-center justify-between">
+                                      <label className="text-[11px] font-bold text-gray-500 flex items-center justify-between">
                                         <span>{item.name}</span>
-                                        <span className="text-[7px] bg-gray-100 text-gray-400 px-1 rounded-sm">{item.category}</span>
+                                        <span className="text-[11px] bg-gray-100 text-gray-500 px-1 rounded-sm">{item.category}</span>
                                       </label>
                                       <input 
                                         type="number"
                                         value={editingPrices[key] !== undefined ? editingPrices[key] : item.price}
                                         onChange={e => setEditingPrices(prev => ({ ...prev, [key]: parseFloat(e.target.value) || 0 }))}
-                                        className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1 text-xs text-gray-900 outline-none focus:border-rose-500"
+                                        className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 outline-none focus:border-rose-500"
                                       />
                                     </div>
                                   );
@@ -3476,9 +3408,9 @@ export default function App() {
                         <div key={c.phone} className="bg-gray-50 border border-gray-200 p-4 rounded-2xl flex flex-col gap-1">
                           <div className="flex justify-between items-center">
                             <h4 className="text-xs font-bold text-gray-900">{c.name}</h4>
-                            <span className="text-[9px] bg-white text-gray-500 px-2 py-0.5 rounded font-bold">Active Customer</span>
+                            <span className="text-[11px] bg-white text-gray-500 px-2 py-0.5 rounded font-bold">Active Customer</span>
                           </div>
-                          <div className="text-[10px] text-gray-500 mt-1 flex flex-col gap-0.5 border-t border-gray-200/80 pt-2">
+                          <div className="text-[12px] text-gray-500 mt-1 flex flex-col gap-0.5 border-t border-gray-200/80 pt-2">
                             <span>📞 Phone: +91 {c.phone}</span>
                             {c.email && <span>📧 Email: {c.email}</span>}
                             <span>🏢 Apartment: {c.apartmentNo}</span>
@@ -3502,7 +3434,7 @@ export default function App() {
                       
                       <div className="flex flex-col gap-3 max-w-sm">
                         <div className="flex flex-col gap-1">
-                          <label className="text-[10px] font-semibold text-gray-500">Merchant Phone Number</label>
+                          <label className="text-[12px] font-semibold text-gray-500">Merchant Phone Number</label>
                           <input 
                             type="text"
                             value={upiDetails.phone}
@@ -3512,7 +3444,7 @@ export default function App() {
                           />
                         </div>
                         <div className="flex flex-col gap-1">
-                          <label className="text-[10px] font-semibold text-gray-500">Merchant UPI ID</label>
+                          <label className="text-[12px] font-semibold text-gray-500">Merchant UPI ID</label>
                           <input 
                             type="text"
                             value={upiDetails.id}
@@ -3526,12 +3458,12 @@ export default function App() {
                       <div className="mt-2 flex gap-4 items-start">
                         <div className="bg-white p-2 rounded-lg">
                           <img 
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=upi://pay?pa=${upiDetails.id}&pn=Iron Kart&cu=INR`} 
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=upi://pay?pa=${upiDetails.id}&pn=Vastra Care&cu=INR`} 
                             alt="Live QR Preview" 
                             className="w-[100px] h-[100px]"
                           />
                         </div>
-                        <div className="text-[10px] text-gray-400 pt-2 flex-1">
+                        <div className="text-[12px] text-gray-500 pt-2 flex-1">
                           <strong>Live QR Preview:</strong>
                           <br />This QR code updates instantly. Customers can scan this directly to pay you on PhonePe, GPay, or Paytm.
                         </div>
@@ -3563,8 +3495,8 @@ export default function App() {
             {/* Invoice Header */}
             <div className="flex justify-between items-start border-b border-slate-200 pb-4">
               <div>
-                <h3 className="text-lg font-black tracking-tight text-slate-900">Iron Kart Invoice</h3>
-                <span className="text-[10px] text-gray-400 font-mono">No. {selectedInvoice.invoiceNo || `IK${selectedInvoice.id.split('-')[0].toUpperCase()}`}</span>
+                <h3 className="text-lg font-black tracking-tight text-slate-900">Vastra Care Invoice</h3>
+                <span className="text-[12px] text-gray-500 font-mono">No. {selectedInvoice.invoiceNo || `IK${selectedInvoice.id.split('-')[0].toUpperCase()}`}</span>
               </div>
               <button 
                 onClick={() => setSelectedInvoice(null)}
@@ -3579,12 +3511,12 @@ export default function App() {
               <div className="font-bold text-slate-800">Bill To:</div>
               <div className="mt-1 text-slate-600">{selectedInvoice.customerName}</div>
               <div className="text-slate-600">{selectedInvoice.customerPhone}</div>
-              <div className="text-[10px] text-gray-500 mt-1 font-semibold">{selectedInvoice.apartmentNo}</div>
-              <div className="text-[10px] text-gray-500 truncate">{selectedInvoice.address}</div>
+              <div className="text-[12px] text-gray-500 mt-1 font-semibold">{selectedInvoice.apartmentNo}</div>
+              <div className="text-[12px] text-gray-500 truncate">{selectedInvoice.address}</div>
             </div>
 
             {/* Date Details */}
-            <div className="grid grid-cols-2 gap-4 text-[10px] border-b border-slate-100 pb-3">
+            <div className="grid grid-cols-2 gap-4 text-[12px] border-b border-slate-100 pb-3">
               <div>
                 <span className="text-gray-500 block font-semibold">Date of Service:</span>
                 <span className="text-slate-800 font-bold">{selectedInvoice.createdAt}</span>
@@ -3597,7 +3529,7 @@ export default function App() {
 
             {/* Itemized Table */}
             <div className="flex-1 flex flex-col gap-2 max-h-[160px] overflow-y-auto">
-              <div className="grid grid-cols-12 text-[10px] font-bold uppercase text-gray-500 pb-1 border-b border-slate-100">
+              <div className="grid grid-cols-12 text-[12px] font-bold uppercase text-gray-500 pb-1 border-b border-slate-100">
                 <span className="col-span-6">Garment</span>
                 <span className="col-span-2 text-center">Qty</span>
                 <span className="col-span-2 text-right">Price</span>
@@ -3631,7 +3563,7 @@ export default function App() {
                 <span>Grand Total</span>
                 <span className="font-mono">₹{selectedInvoice.total}</span>
               </div>
-              <div className="flex justify-between text-[10px] mt-1">
+              <div className="flex justify-between text-[12px] mt-1">
                 <span>Payment Mode:</span>
                 <span className="font-bold text-slate-800">{selectedInvoice.paymentMethod} ({selectedInvoice.paymentStatus})</span>
               </div>
@@ -3649,7 +3581,7 @@ export default function App() {
             <p className="text-xs text-gray-500 mb-4">Are you sure you want to cancel this order? This action cannot be undone.</p>
             
             <div className="flex flex-col gap-1.5 mb-5 text-left">
-              <label className="text-[10px] font-bold text-gray-500 uppercase">Reason for cancellation</label>
+              <label className="text-[12px] font-bold text-gray-500 uppercase">Reason for cancellation</label>
               <textarea 
                 value={cancelReasonInput}
                 onChange={e => setCancelReasonInput(e.target.value)}
@@ -3696,7 +3628,7 @@ export default function App() {
                       : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-200 hover:text-gray-900'
                     }`}
                   >
-                    <span className={`text-[10px] font-medium ${rescheduleDate === d.value ? 'text-rose-100' : ''}`}>{d.label}</span>
+                    <span className={`text-[12px] font-medium ${rescheduleDate === d.value ? 'text-rose-100' : ''}`}>{d.label}</span>
                     <span className={`text-lg font-bold mt-0.5 ${rescheduleDate === d.value ? 'text-gray-900' : ''}`}>{d.dateNum}</span>
                   </button>
                 ))}
@@ -3710,7 +3642,7 @@ export default function App() {
                   <button
                     key={slot}
                     onClick={() => setRescheduleTime(slot)}
-                    className={`flex items-center justify-center py-2.5 rounded-xl border text-[10px] font-medium transition-all ${
+                    className={`flex items-center justify-center py-2.5 rounded-xl border text-[12px] font-medium transition-all ${
                       rescheduleTime === slot
                       ? 'bg-rose-500/20 border-rose-500 text-rose-400'
                       : 'bg-gray-50 border-gray-200 text-gray-500'
@@ -3740,9 +3672,8 @@ export default function App() {
         </div>
       )}
 
-      {/* Simulation Dashboard Footer */}
-      <footer className="border-t border-gray-200 bg-white px-6 py-4 text-center text-xs text-gray-400">
-        <p>© 2026 Iron Kart Ironing Service Inc. All systems simulated. Workflows are fully responsive and digital ready.</p>
+      <footer className="border-t border-gray-200 bg-white px-6 py-4 text-center text-xs text-gray-500">
+        <p>© 2026 Vastra Care. <a href="/terms.html" target="_blank" rel="noreferrer" className="underline hover:text-rose-500">Terms</a> · <a href="/privacy.html" target="_blank" rel="noreferrer" className="underline hover:text-rose-500">Privacy</a></p>
       </footer>
 
     </div>

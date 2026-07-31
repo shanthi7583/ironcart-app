@@ -1,4 +1,4 @@
-package com.istrix.app;
+package com.vastracare.app;
 
 import com.getcapacitor.BridgeActivity;
 
