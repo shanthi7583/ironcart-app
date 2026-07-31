@@ -355,20 +355,45 @@ async function logWalletTransaction(phone, type, amount, description) {
 
 // Send OTP: the code is only ever dispatched via the notification channel below,
 // never returned in the response — that was the whole point of having an OTP.
-app.post('/api/auth/send-otp', (req, res) => {
+//
+// OTPs are stored in Supabase, not the in-memory otpStore Map below — Vercel's
+// serverless functions don't guarantee send-otp and verify-otp land on the same
+// running instance, so a plain module-level Map would randomly "forget" a code
+// that was, from the customer's point of view, just issued a moment ago.
+app.post('/api/auth/send-otp', async (req, res) => {
   const { phone } = req.body;
   if (!phone || !/^\d{10}$/.test(phone)) {
     return res.status(400).json({ error: 'A valid 10-digit mobile number is required' });
   }
 
-  const lastSent = otpRateLimit.get(phone);
-  if (lastSent && Date.now() - lastSent < 30 * 1000) {
-    return res.status(429).json({ error: 'Please wait a bit before requesting another OTP' });
-  }
-  otpRateLimit.set(phone, Date.now());
-
   const otp = Math.floor(1000 + Math.random() * 9000).toString();
-  otpStore.set(phone, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + 5 * 60 * 1000);
+
+  if (supabase) {
+    const { data: existing, error: lookupError } = await supabase.from('otp_codes').select('last_sent_at').eq('phone', phone).maybeSingle();
+    if (lookupError) {
+      console.error('OTP rate-limit lookup failed:', lookupError.message);
+      return res.status(503).json({ error: 'Could not send OTP right now. Please try again.' });
+    }
+    if (existing && now.getTime() - new Date(existing.last_sent_at).getTime() < 30 * 1000) {
+      return res.status(429).json({ error: 'Please wait a bit before requesting another OTP' });
+    }
+    const { error: writeError } = await supabase.from('otp_codes').upsert([{
+      phone, otp, expires_at: expiresAt.toISOString(), last_sent_at: now.toISOString()
+    }]);
+    if (writeError) {
+      console.error('OTP store failed:', writeError.message);
+      return res.status(503).json({ error: 'Could not send OTP right now. Please try again.' });
+    }
+  } else {
+    const lastSent = otpRateLimit.get(phone);
+    if (lastSent && now.getTime() - lastSent < 30 * 1000) {
+      return res.status(429).json({ error: 'Please wait a bit before requesting another OTP' });
+    }
+    otpRateLimit.set(phone, now.getTime());
+    otpStore.set(phone, { otp, expiresAt: expiresAt.getTime() });
+  }
 
   sendNotification('whatsapp', phone, `Your Vastra Care verification OTP code is ${otp}. Valid for 5 minutes.`);
   res.json({ success: true });
@@ -379,17 +404,41 @@ app.post('/api/auth/verify-otp', async (req, res) => {
   const { phone, otp } = req.body;
   if (!phone || !otp) return res.status(400).json({ error: 'Phone and OTP are required' });
 
-  const entry = otpStore.get(phone);
-  if (!entry || entry.otp !== otp || Date.now() > entry.expiresAt) {
+  let validOtp = false;
+  if (supabase) {
+    const { data: entry, error } = await supabase.from('otp_codes').select('*').eq('phone', phone).maybeSingle();
+    if (error) {
+      console.error('OTP lookup failed during verification:', error.message);
+      return res.status(503).json({ error: 'Could not verify right now. Please try again.' });
+    }
+    if (entry && entry.otp === otp && Date.now() < new Date(entry.expires_at).getTime()) {
+      validOtp = true;
+      await supabase.from('otp_codes').delete().eq('phone', phone);
+    }
+  } else {
+    const entry = otpStore.get(phone);
+    if (entry && entry.otp === otp && Date.now() < entry.expiresAt) {
+      validOtp = true;
+      otpStore.delete(phone);
+    }
+  }
+  if (!validOtp) {
     return res.status(401).json({ error: 'Invalid or expired OTP' });
   }
-  otpStore.delete(phone);
 
   const token = signToken({ role: 'customer', phone }, 30 * 24 * 60 * 60);
 
   let customer = null;
   if (supabase) {
-    const { data } = await supabase.from('customers').select('*').eq('phone', phone);
+    const { data, error } = await supabase.from('customers').select('*').eq('phone', phone);
+    if (error) {
+      // A transient read failure here must never be treated as "this customer doesn't
+      // exist" — that's exactly what was silently sending already-registered people
+      // back through account setup, discarding nothing on the server but confusing
+      // them into re-entering their details into what looked like a fresh profile.
+      console.error('Customer lookup failed during OTP verification:', error.message);
+      return res.status(503).json({ error: 'Could not verify your account right now. Please try again.' });
+    }
     if (data && data.length > 0) customer = mapCustomerToFrontend(data[0]);
   } else {
     customer = DEFAULT_CUSTOMERS.find(c => c.phone === phone) || null;
@@ -709,7 +758,11 @@ app.post('/api/customers', authMiddleware, requireRole('customer'), async (req, 
   }
 
   if (supabase) {
-    const { data: existing } = await supabase.from('customers').select('*').eq('phone', phone);
+    const { data: existing, error: lookupError } = await supabase.from('customers').select('*').eq('phone', phone);
+    if (lookupError) {
+      console.error('Customer lookup failed during registration:', lookupError.message);
+      return res.status(503).json({ error: 'Could not check your account right now. Please try again.' });
+    }
     if (existing && existing.length > 0) {
       return res.json(mapCustomerToFrontend(existing[0]));
     }
@@ -728,9 +781,16 @@ app.post('/api/customers', authMiddleware, requireRole('customer'), async (req, 
       referral_code: referralCode,
       referred_by: newCustomer.referredBy || null
     };
-    const { data: inserted } = await supabase.from('customers').insert([customerData]).select();
+    const { data: inserted, error: insertError } = await supabase.from('customers').insert([customerData]).select();
+    if (insertError) {
+      // Never fabricate a success response here — that was the exact bug that made
+      // registration look like it worked while nothing was actually saved, so the
+      // customer's real profile silently never existed on their next login.
+      console.error('Customer insert failed during registration:', insertError.message);
+      return res.status(500).json({ error: 'We could not create your profile. Please try again.' });
+    }
     sendNotification('sms', phone, `Welcome to Vastra Care, ${newCustomer.name}! Your pickup profile has been created successfully.`);
-    return res.status(201).json(inserted && inserted[0] ? mapCustomerToFrontend(inserted[0]) : { ...newCustomer, phone });
+    return res.status(201).json(mapCustomerToFrontend(inserted[0]));
   }
 
   const existingIndex = DEFAULT_CUSTOMERS.findIndex(c => c.phone === phone);
