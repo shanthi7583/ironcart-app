@@ -324,13 +324,19 @@ const mapCustomerToFrontend = (c) => ({
   referredBy: c.referred_by
 });
 
+// Returns { ok, error } instead of swallowing failures — a silent failure here is
+// exactly what made UPI/offers settings look saved while never actually persisting.
 async function upsertSystemSetting(itemName, iconValue) {
-  const { data: existing } = await supabase.from('prices').select('id').eq('category', 'system').eq('item_name', itemName);
+  const { data: existing, error: lookupError } = await supabase.from('prices').select('id').eq('category', 'system').eq('item_name', itemName);
+  if (lookupError) return { ok: false, error: lookupError };
   if (existing && existing.length > 0) {
-    await supabase.from('prices').update({ icon: iconValue }).eq('id', existing[0].id);
+    const { error } = await supabase.from('prices').update({ icon: iconValue }).eq('id', existing[0].id);
+    if (error) return { ok: false, error };
   } else {
-    await supabase.from('prices').insert([{ category: 'system', item_name: itemName, price: 0, icon: iconValue, service_type: 'system' }]);
+    const { error } = await supabase.from('prices').insert([{ category: 'system', item_name: itemName, price: 0, icon: iconValue, service_type: 'system' }]);
+    if (error) return { ok: false, error };
   }
+  return { ok: true };
 }
 
 // Best-effort wallet transaction log. Swallows errors so it never breaks the wallet
@@ -512,20 +518,38 @@ app.put('/api/prices', authMiddleware, requireRole('admin'), async (req, res) =>
 app.put('/api/settings/upi', authMiddleware, requireRole('admin'), async (req, res) => {
   const { phone, id } = req.body;
   if (!phone || !id) return res.status(400).json({ error: 'phone and id are required' });
-  if (supabase) await upsertSystemSetting('upi_details', `${phone}|${id}`);
+  if (supabase) {
+    const result = await upsertSystemSetting('upi_details', `${phone}|${id}`);
+    if (!result.ok) {
+      console.error('UPI settings save failed:', result.error?.message);
+      return res.status(500).json({ error: 'Could not save UPI settings. Please try again.' });
+    }
+  }
   res.json({ success: true });
 });
 
 app.put('/api/settings/flash-offers', authMiddleware, requireRole('admin'), async (req, res) => {
   const offers = req.body;
   if (!Array.isArray(offers)) return res.status(400).json({ error: 'Body must be an array of offers' });
-  if (supabase) await upsertSystemSetting('flash_offers', JSON.stringify(offers));
+  if (supabase) {
+    const result = await upsertSystemSetting('flash_offers', JSON.stringify(offers));
+    if (!result.ok) {
+      console.error('Flash offers save failed:', result.error?.message);
+      return res.status(500).json({ error: 'Could not save flash offers. Please try again.' });
+    }
+  }
   res.json({ success: true });
 });
 
 app.put('/api/settings/festive-offer', authMiddleware, requireRole('admin'), async (req, res) => {
   const offer = req.body;
-  if (supabase) await upsertSystemSetting('festive_offer', JSON.stringify(offer));
+  if (supabase) {
+    const result = await upsertSystemSetting('festive_offer', JSON.stringify(offer));
+    if (!result.ok) {
+      console.error('Festive offer save failed:', result.error?.message);
+      return res.status(500).json({ error: 'Could not save the festive offer. Please try again.' });
+    }
+  }
   res.json({ success: true });
 });
 
