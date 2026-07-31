@@ -151,6 +151,18 @@ export default function App() {
     ...(sessionToken ? { 'Authorization': `Bearer ${sessionToken}` } : {}),
     ...extra
   });
+  // Razorpay's checkout shows every method (card, netbanking, UPI, wallets, EMI,
+  // pay-later) by default regardless of what was picked in our own UI — without this,
+  // choosing "UPI" still lands on a screen offering card/bank entry too. This locks
+  // the widget to only the method(s) that make sense for the context it's opened in.
+  const razorpayMethodRestriction = (allowed: Array<'card' | 'netbanking' | 'upi'>) => ({
+    card: allowed.includes('card'),
+    netbanking: allowed.includes('netbanking'),
+    upi: allowed.includes('upi'),
+    wallet: false,
+    paylater: false,
+    emi: false
+  });
   const setSession = (token: string | null) => {
     setSessionToken(token);
     if (token) localStorage.setItem('iron_session_token', token);
@@ -728,6 +740,9 @@ export default function App() {
           // button disabled forever (nothing else clears isSubmittingOrder).
           ondismiss: () => setIsSubmittingOrder(false)
         },
+        method: razorpayMethodRestriction([
+          paymentMethod === 'UPI' ? 'upi' : paymentMethod === 'Card' ? 'card' : 'netbanking'
+        ]),
         prefill: {
           name: orderName || '',
           contact: orderPhone || ''
@@ -986,6 +1001,7 @@ export default function App() {
               signature: response.razorpay_signature
             });
           },
+          method: razorpayMethodRestriction(['netbanking', 'card']),
           prefill: {
             name: currentCustomer.name || '',
             contact: currentCustomer.phone || ''
@@ -1063,6 +1079,7 @@ export default function App() {
               signature: response.razorpay_signature
             });
           },
+          method: razorpayMethodRestriction(['card', 'upi', 'netbanking']),
           prefill: { name: currentCustomer.name || '', contact: currentCustomer.phone || '' },
           theme: { color: "#F43F5E" }
         };
@@ -2008,24 +2025,26 @@ export default function App() {
                             </div>
                             <div className="flex gap-4 overflow-x-auto pb-4 pt-1 scrollbar-hide -mx-2 px-2 snap-x">
                               {[
-                                {name: 'Ironing', desc: 'Crisp pressing', img: '/hero_banner.png'},
-                                {name: 'Dry Cleaning', desc: 'Delicate care', img: 'https://images.unsplash.com/photo-1582719478250-c89402617688?w=400&h=300&fit=crop'},
-                                {name: 'Laundry', desc: 'Wash & fold', img: 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=400&h=300&fit=crop'}
+                                {name: 'Ironing', desc: 'Crisp pressing', img: '/hero_banner.png', comingSoon: false},
+                                {name: 'Dry Cleaning', desc: 'Delicate care', img: 'https://images.unsplash.com/photo-1489274495757-95c7c837b101?w=400&h=300&fit=crop', comingSoon: true},
+                                {name: 'Laundry', desc: 'Wash & fold', img: 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=400&h=300&fit=crop', comingSoon: true}
                               ].map(svc => (
-                                <button 
+                                <button
                                   key={svc.name}
-                                  onClick={() => setSelectedService(svc.name as any)}
-                                  className={`snap-center shrink-0 w-[105px] rounded-xl border transition-all text-left flex flex-col overflow-hidden relative ${selectedService === svc.name ? 'bg-gray-50 border-rose-500 ring-2 ring-rose-500 shadow-[0_2px_8px_rgba(225,29,72,0.3)]' : 'bg-white border-gray-200 hover:border-gray-300'}`}
+                                  onClick={() => svc.comingSoon ? customAlert(`${svc.name} is launching soon — Ironing is available to book right now!`) : setSelectedService(svc.name as any)}
+                                  className={`snap-center shrink-0 w-[105px] rounded-xl border transition-all text-left flex flex-col overflow-hidden relative ${svc.comingSoon ? 'bg-white border-gray-200 cursor-not-allowed' : selectedService === svc.name ? 'bg-gray-50 border-rose-500 ring-2 ring-rose-500 shadow-[0_2px_8px_rgba(225,29,72,0.3)]' : 'bg-white border-gray-200 hover:border-gray-300'}`}
                                 >
                                   <div className="h-[65px] w-full bg-gray-50 relative">
-                                    <img src={svc.img} alt={svc.name} className={`w-full h-full object-cover transition-all duration-500 ${selectedService === svc.name ? 'opacity-100 scale-105' : 'opacity-60 grayscale-[30%]'}`} />
+                                    <img src={svc.img} alt={svc.name} className={`w-full h-full object-cover transition-all duration-500 ${svc.comingSoon ? 'opacity-40 grayscale' : selectedService === svc.name ? 'opacity-100 scale-105' : 'opacity-60 grayscale-[30%]'}`} />
                                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent"></div>
                                   </div>
                                   <div className="p-1.5 absolute bottom-0 left-0 right-0">
                                     <h4 className="text-[12px] font-black text-white">{svc.name}</h4>
-                                    <p className="text-[11px] text-gray-300 line-clamp-1">{svc.desc}</p>
+                                    <p className="text-[11px] text-gray-300 line-clamp-1">{svc.comingSoon ? 'Coming soon' : svc.desc}</p>
                                   </div>
-                                  {selectedService === svc.name && (
+                                  {svc.comingSoon ? (
+                                    <div className="absolute top-1.5 right-1.5 bg-amber-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-md">SOON</div>
+                                  ) : selectedService === svc.name && (
                                     <div className="absolute top-1.5 right-1.5 bg-rose-500 rounded-full p-0.5 shadow-md flex items-center justify-center">
                                       <Check className="size-2 text-white" />
                                     </div>
@@ -2220,15 +2239,19 @@ export default function App() {
                           <h3 className="text-sm font-bold text-gray-900">Service Price List</h3>
 
                           <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-                            {(['Ironing', 'Dry Cleaning', 'Laundry'] as const).map(svc => (
-                              <button
-                                key={svc}
-                                onClick={() => setSelectedService(svc)}
-                                className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all ${selectedService === svc ? 'bg-rose-500 border-rose-500 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}
-                              >
-                                {svc}
-                              </button>
-                            ))}
+                            {(['Ironing', 'Dry Cleaning', 'Laundry'] as const).map(svc => {
+                              const comingSoon = svc !== 'Ironing';
+                              return (
+                                <button
+                                  key={svc}
+                                  onClick={() => comingSoon ? customAlert(`${svc} is launching soon — Ironing is available to book right now!`) : setSelectedService(svc)}
+                                  className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all flex items-center gap-1.5 ${comingSoon ? 'bg-white border-gray-200 text-gray-400 cursor-not-allowed' : selectedService === svc ? 'bg-rose-500 border-rose-500 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}
+                                >
+                                  {svc}
+                                  {comingSoon && <span className="text-[8px] bg-amber-100 text-amber-600 px-1 rounded-full font-bold">SOON</span>}
+                                </button>
+                              );
+                            })}
                           </div>
 
                           <div className="flex flex-col gap-4 max-h-[380px] overflow-y-auto pr-1">
