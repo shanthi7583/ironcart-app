@@ -1238,7 +1238,7 @@ export default function App() {
               <Sparkles className="size-3 text-amber-200 absolute top-1 right-1" />
             </div>
             <div>
-              <h1 className="text-xl font-black tracking-tight m-0 p-0 text-left bg-clip-text text-transparent bg-gradient-to-r from-rose-500 to-amber-500">Vastra Care</h1>
+              <h1 className="font-display text-xl font-semibold tracking-tight m-0 p-0 text-left bg-clip-text text-transparent bg-gradient-to-r from-rose-500 to-amber-500">Vastra Care</h1>
               <p className="text-xs text-gray-500 text-left font-medium">Premium Ironing & Care</p>
             </div>
           </div>
@@ -1269,7 +1269,7 @@ export default function App() {
               <div className="absolute top-2 left-1/2 -translate-x-1/2 w-28 h-4 bg-gray-100 rounded-full z-20"></div>
 
               {/* Inside Mobile App Viewport */}
-              <div className="flex-1 flex flex-col bg-[#FFF9F0] overflow-y-auto px-4 pt-8 pb-4">
+              <div className="flex-1 flex flex-col overflow-y-auto px-4 pt-8 pb-4" style={{ background: 'radial-gradient(circle at 15% 0%, rgba(244,63,94,0.05), transparent 45%), radial-gradient(circle at 100% 20%, rgba(245,158,11,0.06), transparent 40%), #FFF9F0' }}>
                 
                 {/* Rider Portal View */}
                 {viewMode === 'rider' ? (
@@ -1369,7 +1369,7 @@ export default function App() {
                         </svg>
                         <span className="text-[11px] font-black tracking-wider uppercase">Premium Steam Care</span>
                       </div>
-                      <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-amber-500 tracking-tight drop-shadow-sm pb-1">Vastra Care</h2>
+                      <h2 className="font-display text-4xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-amber-500 tracking-tight drop-shadow-sm pb-1">Vastra Care</h2>
                       <p className="text-xs font-extrabold bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 bg-clip-text text-transparent mt-1 max-w-[260px] mx-auto leading-relaxed animate-pulse drop-shadow-sm">
                         Pressed to perfection, picked up at your door.
                       </p>
@@ -1573,39 +1573,42 @@ export default function App() {
                           </div>
 
                           {/* Welcome User Greeting */}
-                          <div className="text-left mt-1">
-                            <h3 className="text-sm font-extrabold text-gray-900">Hello, {currentCustomer?.name || 'Friend'}! 👋</h3>
-                            <p className="text-[12px] text-rose-500 font-medium mt-0.5">Experience premium fabric care tailored just for you.</p>
+                          <div className="text-left mt-1 animate-slide-up">
+                            <h3 className="font-display text-2xl font-semibold text-gray-900 leading-tight">Hello, {currentCustomer?.name || 'Friend'} 👋</h3>
+                            <p className="text-[12px] text-rose-500 font-medium mt-1">Experience premium fabric care tailored just for you.</p>
                           </div>
-                          
-                          
+
+
                           {/* Promotional Slide Banner */}
-                          <div className="bg-gradient-to-r from-rose-600 to-amber-500 rounded-2xl p-0 text-left shadow-lg relative overflow-hidden h-32 flex items-center justify-center group">
+                          <div className="bg-gradient-to-r from-rose-600 to-amber-500 rounded-2xl p-0 text-left shadow-lg shadow-rose-500/15 relative overflow-hidden h-32 flex items-center justify-center group animate-slide-up stagger-1">
                             <div className="absolute inset-0 flex transition-transform duration-1000 ease-in-out" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
                               {slideImages.map((src, index) => (
-                                <img 
-                                  key={index} 
-                                  src={src} 
-                                  alt={`Hero Banner ${index + 1}`} 
-                                  className="w-full h-full object-cover opacity-45 shrink-0" 
-                                />
+                                <div key={index} className="relative w-full h-full shrink-0">
+                                  <img
+                                    src={src}
+                                    alt={`Hero Banner ${index + 1}`}
+                                    className="w-full h-full object-cover"
+                                    style={{ filter: 'saturate(1.15) contrast(1.05)' }}
+                                  />
+                                  <div className="absolute inset-0 bg-gradient-to-r from-rose-700/80 via-rose-600/55 to-amber-500/40"></div>
+                                </div>
                               ))}
                             </div>
                             <div className="relative z-10 px-4 w-full">
-                              <h4 className="font-extrabold text-sm text-white drop-shadow-md">Premium Garment Pressing</h4>
+                              <h4 className="font-display font-semibold text-base text-white drop-shadow-md">Premium Garment Pressing</h4>
                               <p className="text-[12px] text-white/95 mt-1 max-w-[200px] drop-shadow-md">Get 50% off on your first order. Professional steam care starts at just ₹12/item.</p>
                               <span className="inline-block bg-white text-rose-600 text-[11px] font-bold px-2 py-0.5 rounded-full mt-2.5 shadow-sm">Code: WELCOME50</span>
                             </div>
                           </div>
 
                           {/* Wallet Section */}
-                          <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col gap-3 animate-fade-in transition-all hover:shadow-md">
+                          <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col gap-3 shadow-sm animate-slide-up stagger-2 transition-all hover:shadow-md">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2 transform transition-transform hover:scale-105">
                                 <span className="text-lg">💳</span>
                                 <span className="text-sm font-bold text-gray-900">Vastra Care Wallet</span>
                               </div>
-                              <span className="text-lg font-black text-emerald-400">₹{currentCustomer?.walletBalance || 0}</span>
+                              <span className="font-display text-xl font-semibold text-emerald-500">₹{currentCustomer?.walletBalance || 0}</span>
                             </div>
                             
                             {showAddMoney ? (
@@ -1727,12 +1730,12 @@ export default function App() {
                           </div>
 
                           {/* Refer & Earn Banner */}
-                          <div 
+                          <div
                             onClick={() => setCustomerActiveTab('rewards')}
-                            className="bg-gradient-to-r from-rose-500 to-amber-500 rounded-xl p-4 cursor-pointer text-left relative overflow-hidden shadow-lg mt-1"
+                            className="bg-gradient-to-r from-rose-500 to-amber-500 rounded-xl p-4 cursor-pointer text-left relative overflow-hidden shadow-lg shadow-rose-500/15 mt-1 animate-slide-up stagger-3"
                           >
                             <div className="relative z-10">
-                              <h3 className="text-white font-black text-base tracking-wide leading-tight break-words whitespace-normal drop-shadow-md">REFER & EARN ₹50</h3>
+                              <h3 className="font-display text-white font-semibold text-lg tracking-wide leading-tight break-words whitespace-normal drop-shadow-md">Refer &amp; Earn ₹50</h3>
                             </div>
                             <div className="absolute right-[-10px] bottom-[-10px] opacity-20">
                               <Gift className="size-20 text-white" />
@@ -1754,23 +1757,24 @@ export default function App() {
                           )}
 
                           {/* Steam Press Feature Banner */}
-                          <div 
+                          <div
                             onClick={() => setCustomerActiveTab('order')}
-                            className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-md flex items-center gap-3 cursor-pointer p-3 hover:border-rose-350 transition-all mt-1"
+                            className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-md flex items-center gap-3 cursor-pointer p-3 hover:border-rose-350 transition-all mt-1 animate-slide-up stagger-4"
                           >
-                            <img 
-                              src="https://images.unsplash.com/photo-1582719508461-905c673771fd?w=400&h=300&fit=crop" 
-                              alt="Steam Ironing" 
-                              className="size-16 rounded-xl object-cover shrink-0 border border-gray-100 shadow-sm" 
+                            <img
+                              src="https://images.unsplash.com/photo-1582719508461-905c673771fd?w=400&h=300&fit=crop"
+                              alt="Steam Ironing"
+                              className="size-16 rounded-xl object-cover shrink-0 border border-gray-100 shadow-sm"
+                              style={{ filter: 'saturate(1.15) contrast(1.05)' }}
                             />
                             <div className="text-left flex-1 min-w-0">
-                              <h4 className="text-xs font-black text-gray-950 uppercase tracking-wider">Professional Steam Press</h4>
+                              <h4 className="font-display text-sm font-semibold text-gray-950 tracking-wide">Professional Steam Press</h4>
                               <p className="text-[11px] text-gray-500 leading-normal mt-0.5">We use high-temperature steam vacuum tables for premium garment care.</p>
                             </div>
                           </div>
 
                           {/* Flash Images - Quick Book */}
-                          <div className="mt-2 mb-4">
+                          <div className="mt-2 mb-4 animate-slide-up stagger-5">
                             <h4 className="text-xs font-bold text-gray-900 mb-2 pl-1">Quick Book by Category</h4>
                             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
                               {flashOffers.map(f => (
@@ -2600,7 +2604,7 @@ export default function App() {
                           <div className="w-full h-32 rounded-2xl overflow-hidden relative shadow-lg">
                             <img src="/subscription_banner_1785298423353.png" alt="Prime Subscription" className="w-full h-full object-cover opacity-80 mix-blend-screen" />
                             <div className="absolute inset-0 flex flex-col justify-end p-4 bg-gradient-to-t from-slate-950 to-transparent">
-                              <h4 className="font-extrabold text-white text-xl drop-shadow-md">Vastra Care Prime</h4>
+                              <h4 className="font-display font-semibold text-white text-2xl drop-shadow-md">Vastra Care Prime</h4>
                               <p className="text-amber-300 text-xs font-bold mt-0.5 drop-shadow-md">Subscribe & Save</p>
                             </div>
                           </div>
@@ -2845,7 +2849,7 @@ export default function App() {
                   <div className="flex items-center justify-between pb-3 border-b border-gray-200">
                     <div>
                       <h4 className="text-xs font-bold text-gray-500">Vastra Care Checkout</h4>
-                      <h3 className="text-sm font-extrabold text-gray-900 mt-0.5">Pay ₹{confirmedQuote?.total ?? calculateTotals().total}</h3>
+                      <h3 className="font-display text-lg font-semibold text-gray-900 mt-0.5">Pay ₹{confirmedQuote?.total ?? calculateTotals().total}</h3>
                     </div>
                     <button onClick={() => { setShowCheckoutModal(false); setConfirmedQuote(null); setIsSubmittingOrder(false); }} className="text-xs text-gray-500 hover:text-gray-900">Cancel</button>
                   </div>
@@ -3537,7 +3541,7 @@ export default function App() {
             {/* Invoice Header */}
             <div className="flex justify-between items-start border-b border-slate-200 pb-4">
               <div>
-                <h3 className="text-lg font-black tracking-tight text-slate-900">Vastra Care Invoice</h3>
+                <h3 className="font-display text-xl font-semibold tracking-tight text-slate-900">Vastra Care Invoice</h3>
                 <span className="text-[12px] text-gray-500 font-mono">No. {selectedInvoice.invoiceNo || `IK${selectedInvoice.id.split('-')[0].toUpperCase()}`}</span>
               </div>
               <button 
