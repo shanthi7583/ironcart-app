@@ -871,7 +871,7 @@ export default function App() {
   const deleteOrder = (orderId: string) => {
     customConfirm('Delete this order record?', () => {
       setOrders(prev => prev.filter(o => o.id !== orderId));
-    })
+    });
   };
 
   const saveAdminPrices = () => {
@@ -1280,7 +1280,7 @@ export default function App() {
                     setCurrentCustomer(null);
                     localStorage.removeItem('iron_current_user');
                     setCustomerActiveTab('home');
-                  })
+                  });
                 }}
                 className="bg-gray-50 border border-gray-200 p-2 rounded-full text-rose-500 hover:bg-rose-50 hover:border-rose-350 transition-all flex items-center justify-center"
                 title="Logout"
@@ -2703,14 +2703,14 @@ export default function App() {
                                       onClick={() => {
                                         customConfirm('Delete this address?', () => {
                                           const addresses = (currentCustomer.addresses || []).filter((a: any) => a.id !== addr.id);
-                                          const updated = { ...currentCustomer, addresses });
+                                          const updated = { ...currentCustomer, addresses };
                                           setCurrentCustomer(updated);
                                           fetch(`${API_URL}/customers/${currentCustomer.phone}`, {
                                             method: 'PUT',
                                             headers: { 'Content-Type': 'application/json' },
                                             body: JSON.stringify(updated)
                                           });
-                                        }
+                                        });
                                       }}
                                       className="text-rose-500 hover:text-rose-600 text-[10px] font-bold shrink-0 self-center"
                                     >
@@ -2790,7 +2790,7 @@ export default function App() {
                             <button 
                               onClick={() => {
                                 customConfirm('⚠️ WARNING: Deleting your account will remove your address list, purchase logs, and remaining wallet balance. Are you sure you want to proceed?', () => {
-                                  if (confirm('Are you absolutely certain? This cannot be undone.')) {
+                                  customConfirm('Are you absolutely certain? This cannot be undone.', () => {
                                     const client = supabase;
                                     if (client) {
                                       client.from('customers')
@@ -2801,15 +2801,15 @@ export default function App() {
                                           localStorage.removeItem('iron_current_user');
                                           setCustomerActiveTab('home');
                                           customAlert('Your profile has been deleted successfully. We hope to see you again! ❤️');
-                                        }));
+                                        });
                                     } else {
                                       setCurrentCustomer(null);
                                       localStorage.removeItem('iron_current_user');
                                       setCustomerActiveTab('home');
                                       customAlert('Your profile has been deleted locally successfully.');
                                     }
-                                  }
-                                }
+                                  });
+                                });
                               }}
                               className="w-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-2 rounded-xl mt-1 shadow-sm transition-all"
                             >
