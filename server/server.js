@@ -373,7 +373,10 @@ app.post('/api/auth/send-otp', async (req, res) => {
 
   const otp = Math.floor(1000 + Math.random() * 9000).toString();
   const now = new Date();
-  const expiresAt = new Date(now.getTime() + 5 * 60 * 1000);
+  // 10 minutes, not the more typical 5 — Fast2SMS's current promotional route is
+  // taking 3-4 minutes to actually deliver, so 5 left almost no real usable window.
+  // Revisit once a proper DLT-registered transactional route is in place.
+  const expiresAt = new Date(now.getTime() + 10 * 60 * 1000);
   let useSupabaseOtpStore = !!supabase;
 
   if (useSupabaseOtpStore) {
@@ -405,7 +408,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
     otpStore.set(phone, { otp, expiresAt: expiresAt.getTime() });
   }
 
-  sendNotification('whatsapp', phone, `Your Vastra Care verification OTP code is ${otp}. Valid for 5 minutes.`);
+  sendNotification('whatsapp', phone, `Your Vastra Care verification OTP code is ${otp}. Valid for 10 minutes.`);
   res.json({ success: true });
 });
 

@@ -323,7 +323,14 @@ export default function App() {
   const [authAddress, setAuthAddress] = useState('');
   const [authReferredBy, setAuthReferredBy] = useState('');
   const [authOTP, setAuthOTP] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [notification, setNotification] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => setResendCooldown(s => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown > 0]);
 
   // Admin access state
   const [adminPin, setAdminPin] = useState('');
@@ -460,7 +467,8 @@ export default function App() {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
         setAuthStep('otp');
-        triggerNotification(`💬 OTP sent to +91 ${authPhone}!`);
+        setResendCooldown(30); // matches the server's own rate-limit window
+        triggerNotification(`💬 OTP sent to +91 ${authPhone}! Delivery can take a few minutes right now.`);
       })
       .catch(err => {
         customAlert('Could not send OTP: ' + err.message + '. Please check your connection and try again.');
@@ -1256,12 +1264,16 @@ export default function App() {
       </header>
 
       {/* Main Workspace Layout */}
-      <main className="flex-1 flex p-6 gap-6 justify-center max-w-7xl mx-auto w-full">
-        
-        {/* --- 1. CUSTOMER & RIDER MOBILE APP VIEW --- */}
+      <main className="flex-1 flex flex-col lg:flex-row p-3 sm:p-6 gap-6 justify-center max-w-7xl mx-auto w-full">
+
+        {/* --- 1. CUSTOMER & RIDER MOBILE APP VIEW ---
+             Hidden on small screens while in dual (admin) mode — on an actual phone,
+             showing a shrunk customer-app preview next to the admin dashboard left no
+             usable room for either. Admin gets the full screen; "Exit Admin View"
+             still gets you back to the plain customer app. */}
         {['customer', 'dual', 'rider'].includes(viewMode) && (
-          <div className="flex-1 max-w-[400px] flex flex-col items-center">
-            
+          <div className={`flex-1 max-w-[400px] flex-col items-center ${viewMode === 'dual' ? 'hidden lg:flex' : 'flex'}`}>
+
             {/* Phone shell container */}
             <div className="w-full aspect-[9/19.5] border-8 border-gray-200 bg-slate-50 rounded-[40px] shadow-2xl flex flex-col overflow-hidden relative border-t-[12px] border-b-[12px]">
               
@@ -1453,7 +1465,15 @@ export default function App() {
                         >
                           Verify & Continue
                         </button>
-                        <div className="flex justify-end items-center text-xs text-gray-500 mt-1">
+                        <p className="text-[11px] text-gray-500 -mt-1">Delivery can take a few minutes right now — no need to request a new code unless this one expires.</p>
+                        <div className="flex justify-between items-center text-xs text-gray-500 mt-1">
+                          <button
+                            onClick={handleSendOTP}
+                            disabled={resendCooldown > 0}
+                            className="text-rose-500 hover:underline disabled:text-gray-400 disabled:no-underline disabled:cursor-not-allowed"
+                          >
+                            {resendCooldown > 0 ? `Resend OTP in ${resendCooldown}s` : 'Resend OTP'}
+                          </button>
                           <button onClick={() => setAuthStep('login')} className="text-rose-500 hover:underline">Change Number</button>
                         </div>
                       </div>
@@ -3049,12 +3069,13 @@ export default function App() {
 
         {/* --- 2. ADMIN PORTAL / WEB DASHBOARD --- */}
         {(viewMode === 'admin' || viewMode === 'dual') && (
-          <div className="flex-1 flex flex-col min-w-0">
-            <div className="flex-1 bg-white border border-gray-200 rounded-3xl p-6 shadow-2xl flex flex-col gap-6">
-              
-              {/* Admin Tabs */}
-              <div className="flex items-center justify-between border-b border-gray-200 pb-3">
-                <div className="flex gap-2">
+          <div className="flex-1 w-full flex flex-col min-w-0">
+            <div className="flex-1 bg-white border border-gray-200 rounded-3xl p-3 sm:p-6 shadow-2xl flex flex-col gap-4 sm:gap-6 min-w-0">
+
+              {/* Admin Tabs — scrolls horizontally on narrow screens instead of
+                  cramming all six tabs (plus Sync) into a row that can't fit them */}
+              <div className="flex items-center gap-2 border-b border-gray-200 pb-3 min-w-0">
+                <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
                   {[
                     { tab: 'overview', label: 'Overview', icon: TrendingUp },
                     { tab: 'orders', label: 'Manage Orders', icon: ShoppingBag },
@@ -3066,10 +3087,10 @@ export default function App() {
                     const Icon = item.icon
                     const isActive = adminActiveTab === item.tab
                     return (
-                      <button 
+                      <button
                         key={item.tab}
                         onClick={() => setAdminActiveTab(item.tab as any)}
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${isActive ? 'bg-gray-50 border border-gray-200 text-gray-900' : 'text-gray-500 hover:text-gray-800'}`}
+                        className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${isActive ? 'bg-gray-50 border border-gray-200 text-gray-900' : 'text-gray-500 hover:text-gray-800'}`}
                       >
                         <Icon className="size-3.5 text-rose-500" />
                         {item.label}
@@ -3077,13 +3098,13 @@ export default function App() {
                     );
                   })}
                 </div>
-                
+
                 {/* Simulated Refresh */}
-                <button 
+                <button
                   onClick={() => triggerNotification('🔄 Real-time data synchronized!')}
-                  className="text-xs text-gray-500 hover:text-gray-900 flex items-center gap-1"
+                  className="text-xs text-gray-500 hover:text-gray-900 flex items-center gap-1 shrink-0 ml-auto"
                 >
-                  <RefreshCw className="size-3.5" /> Sync
+                  <RefreshCw className="size-3.5" /> <span className="hidden sm:inline">Sync</span>
                 </button>
               </div>
 
