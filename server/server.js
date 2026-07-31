@@ -646,7 +646,16 @@ app.patch('/api/orders/:id/status', authMiddleware, async (req, res) => {
 
   const updatePayload = { status };
   if (cancelReason) updatePayload.cancel_reason = cancelReason;
-  if (paymentStatus && isStaff) updatePayload.payment_status = paymentStatus;
+  if (paymentStatus) {
+    if (isStaff) {
+      updatePayload.payment_status = paymentStatus;
+    } else if (isOwnerCancelling && paymentStatus === 'Cancelled') {
+      // A customer cancelling their own order may mark the payment Cancelled too
+      // (never Paid — that stays staff-only) so an unpaid cancelled order doesn't
+      // sit showing "Pending" forever.
+      updatePayload.payment_status = 'Cancelled';
+    }
+  }
 
   const { data, error } = await supabase.from('orders').update(updatePayload).eq('id', id).select();
   if (!error && data && data.length > 0) {
