@@ -170,7 +170,12 @@ async function computeQuote({ cartItems, couponCode, customerPhone }) {
 
   let activePlan = 'None';
   if (customerPhone && supabase) {
-    const { data } = await supabase.from('customers').select('active_plan').eq('phone', customerPhone).single();
+    const { data, error } = await supabase.from('customers').select('active_plan').eq('phone', customerPhone).single();
+    // Deliberately degrades to "no subscription discount" rather than failing the
+    // whole quote/checkout over a transient lookup error - worst case a subscriber
+    // pays full price once, which is recoverable, versus blocking checkout entirely.
+    // Logged so it's visible instead of silently invisible.
+    if (error) console.error(`Subscription lookup failed for ${customerPhone}, pricing without a discount:`, error.message);
     activePlan = data?.active_plan || 'None';
   }
 
@@ -519,12 +524,17 @@ app.put('/api/prices', authMiddleware, requireRole('admin'), async (req, res) =>
   }
 
   if (supabase) {
-    await Promise.all(updatedPrices.map(item =>
+    const results = await Promise.all(updatedPrices.map(item =>
       supabase.from('prices')
         .update({ price: item.price })
         .eq('item_name', item.name)
         .eq('service_type', item.serviceType)
     ));
+    const failed = results.filter(r => r.error);
+    if (failed.length > 0) {
+      console.error(`${failed.length}/${updatedPrices.length} price updates failed:`, failed[0].error.message);
+      return res.status(500).json({ error: `${failed.length} of ${updatedPrices.length} price updates failed. Please try again.` });
+    }
   }
 
   res.json({ message: 'Prices updated successfully', prices: updatedPrices });
@@ -576,6 +586,7 @@ app.get('/api/orders', authMiddleware, requireRole('admin', 'rider'), async (req
   if (supabase) {
     const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
     if (!error && data) return res.json(data.map(mapOrderToFrontend));
+    if (error) console.error('Order list fetch failed:', error.message);
   }
   res.json([]);
 });
@@ -585,6 +596,7 @@ app.get('/api/orders/mine', authMiddleware, requireRole('customer'), async (req,
   if (supabase) {
     const { data, error } = await supabase.from('orders').select('*').eq('customer_phone', req.user.phone).order('created_at', { ascending: false });
     if (!error && data) return res.json(data.map(mapOrderToFrontend));
+    if (error) console.error('Customer order list fetch failed:', error.message);
   }
   res.json([]);
 });
@@ -609,10 +621,20 @@ app.post('/api/orders', authMiddleware, requireRole('customer', 'admin', 'rider'
     paymentStatus = 'Pending';
   } else if (newOrder.paymentMethod === 'Wallet') {
     if (!supabase) return res.status(503).json({ error: 'Wallet payments require a database connection' });
-    const { data: custData } = await supabase.from('customers').select('wallet_balance').eq('phone', customerPhone).single();
+    const { data: custData, error: balanceError } = await supabase.from('customers').select('wallet_balance').eq('phone', customerPhone).single();
+    if (balanceError) {
+      console.error('Wallet balance lookup failed:', balanceError.message);
+      return res.status(503).json({ error: 'Could not check your wallet balance. Please try again.' });
+    }
     const balance = custData?.wallet_balance || 0;
     if (balance < quote.total) return res.status(400).json({ error: 'Insufficient wallet balance' });
-    await supabase.from('customers').update({ wallet_balance: balance - quote.total }).eq('phone', customerPhone);
+    // Marking the order Paid must never happen unless the debit itself is confirmed —
+    // otherwise a transient failure here would have delivered a paid order for free.
+    const { error: debitError } = await supabase.from('customers').update({ wallet_balance: balance - quote.total }).eq('phone', customerPhone);
+    if (debitError) {
+      console.error('Wallet debit failed:', debitError.message);
+      return res.status(500).json({ error: 'Could not charge your wallet. Please try again.' });
+    }
     await logWalletTransaction(customerPhone, 'debit', quote.total, `Order ${newOrder.id}`);
     paymentStatus = 'Paid';
   } else {
@@ -681,7 +703,8 @@ app.patch('/api/orders/:id/status', authMiddleware, async (req, res) => {
 
   if (!supabase) return res.json({ id, status, cancelReason, paymentStatus });
 
-  const { data: existingRows } = await supabase.from('orders').select('*').eq('id', id);
+  const { data: existingRows, error: existingError } = await supabase.from('orders').select('*').eq('id', id);
+  if (existingError) console.error('Order lookup failed:', existingError.message);
   const existing = existingRows && existingRows[0];
   if (!existing) return res.status(404).json({ error: 'Order not found' });
 
@@ -717,17 +740,27 @@ app.patch('/api/orders/:id/status', authMiddleware, async (req, res) => {
           if (!countError && count === 1) {
             const { data: cData } = await supabase.from('customers').select('referred_by, wallet_balance').eq('phone', order.customerPhone).single();
             if (cData && cData.referred_by) {
-              // Reward new customer
-              await supabase.from('customers').update({ wallet_balance: (cData.wallet_balance || 0) + 50 }).eq('phone', order.customerPhone);
-              await logWalletTransaction(order.customerPhone, 'credit', 50, 'Referral reward — your first order');
-              sendNotification('whatsapp', order.customerPhone, `🎉 Congratulations! ₹50 has been added to your Vastra Care wallet for completing your first referred order!`);
+              // Reward new customer — Supabase errors don't throw, so the outer
+              // try/catch alone can't see them; check explicitly and skip the
+              // "you got ₹50" message if the credit didn't actually happen.
+              const { error: creditError } = await supabase.from('customers').update({ wallet_balance: (cData.wallet_balance || 0) + 50 }).eq('phone', order.customerPhone);
+              if (creditError) {
+                console.error('Referral credit (new customer) failed:', creditError.message);
+              } else {
+                await logWalletTransaction(order.customerPhone, 'credit', 50, 'Referral reward — your first order');
+                sendNotification('whatsapp', order.customerPhone, `🎉 Congratulations! ₹50 has been added to your Vastra Care wallet for completing your first referred order!`);
+              }
 
               // Reward referrer
               const { data: refData } = await supabase.from('customers').select('wallet_balance, phone').eq('referral_code', cData.referred_by).single();
               if (refData) {
-                await supabase.from('customers').update({ wallet_balance: (refData.wallet_balance || 0) + 50 }).eq('phone', refData.phone);
-                await logWalletTransaction(refData.phone, 'credit', 50, `Referral reward — ${order.customerName} completed their first order`);
-                sendNotification('whatsapp', refData.phone, `🎉 Great news! Your friend ${order.customerName} completed their first order. ₹50 has been added to your wallet!`);
+                const { error: referrerCreditError } = await supabase.from('customers').update({ wallet_balance: (refData.wallet_balance || 0) + 50 }).eq('phone', refData.phone);
+                if (referrerCreditError) {
+                  console.error('Referral credit (referrer) failed:', referrerCreditError.message);
+                } else {
+                  await logWalletTransaction(refData.phone, 'credit', 50, `Referral reward — ${order.customerName} completed their first order`);
+                  sendNotification('whatsapp', refData.phone, `🎉 Great news! Your friend ${order.customerName} completed their first order. ₹50 has been added to your wallet!`);
+                }
               }
             }
           }
@@ -738,7 +771,8 @@ app.patch('/api/orders/:id/status', authMiddleware, async (req, res) => {
     }
     return res.json(order);
   }
-  res.json({ id, status, cancelReason, paymentStatus });
+  console.error('Order status update failed:', error?.message || 'no matching order row');
+  res.status(500).json({ error: 'Could not update the order. Please try again.' });
 });
 
 // 5.5 Update order schedule (staff, or the order's own customer)
@@ -748,7 +782,8 @@ app.patch('/api/orders/:id/reschedule', authMiddleware, async (req, res) => {
 
   if (!supabase) return res.json({ id, pickupDate, pickupTime });
 
-  const { data: existingRows } = await supabase.from('orders').select('*').eq('id', id);
+  const { data: existingRows, error: existingError } = await supabase.from('orders').select('*').eq('id', id);
+  if (existingError) console.error('Order lookup failed:', existingError.message);
   const existing = existingRows && existingRows[0];
   if (!existing) return res.status(404).json({ error: 'Order not found' });
 
@@ -762,7 +797,8 @@ app.patch('/api/orders/:id/reschedule', authMiddleware, async (req, res) => {
     sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your Vastra Care order ${order.id} has been RESCHEDULED to ${pickupDate} (${pickupTime}).`);
     return res.json(order);
   }
-  res.json({ id, pickupDate, pickupTime });
+  console.error('Order reschedule failed:', error?.message || 'no matching order row');
+  res.status(500).json({ error: 'Could not reschedule the order. Please try again.' });
 });
 
 // 6. Update payment status (Admin/Rider control only — e.g. marking a COD order paid on delivery)
@@ -777,6 +813,8 @@ app.patch('/api/orders/:id/payment', authMiddleware, requireRole('admin', 'rider
       sendNotification('sms', order.customerPhone, `Vastra Care: Payment of ₹${order.total} for order ${order.id} is confirmed [Paid].`);
       return res.json(order);
     }
+    console.error('Order payment status update failed:', error?.message || 'no matching order row');
+    return res.status(500).json({ error: 'Could not update the payment status. Please try again.' });
   }
   res.json({ id, paymentStatus });
 });
@@ -784,7 +822,13 @@ app.patch('/api/orders/:id/payment', authMiddleware, requireRole('admin', 'rider
 // 6.5 Delete an order record (Admin only)
 app.delete('/api/orders/:id', authMiddleware, requireRole('admin'), async (req, res) => {
   const { id } = req.params;
-  if (supabase) await supabase.from('orders').delete().eq('id', id);
+  if (supabase) {
+    const { error } = await supabase.from('orders').delete().eq('id', id);
+    if (error) {
+      console.error('Order delete failed:', error.message);
+      return res.status(500).json({ error: 'Could not delete the order. Please try again.' });
+    }
+  }
   res.json({ success: true });
 });
 
@@ -793,6 +837,7 @@ app.get('/api/customers', authMiddleware, requireRole('admin'), async (req, res)
   if (supabase) {
     const { data, error } = await supabase.from('customers').select('*').order('created_at', { ascending: false });
     if (!error && data) return res.json(data.map(mapCustomerToFrontend));
+    if (error) console.error('Customer list fetch failed:', error.message);
   }
   res.json(DEFAULT_CUSTOMERS);
 });
@@ -911,6 +956,8 @@ app.put('/api/customers/:phone', authMiddleware, async (req, res) => {
     if (!error && data && data.length > 0) {
       return res.json(mapCustomerToFrontend(data[0]));
     }
+    console.error('Customer profile update failed:', error?.message || 'no matching customer row');
+    return res.status(500).json({ error: 'Could not save your changes. Please try again.' });
   } else {
     const existingIndex = DEFAULT_CUSTOMERS.findIndex(c => c.phone === phone);
     if (existingIndex !== -1) {
@@ -928,7 +975,16 @@ app.delete('/api/customers/:phone', authMiddleware, async (req, res) => {
   const isAdmin = req.user.role === 'admin';
   if (!isSelf && !isAdmin) return res.status(403).json({ error: 'Forbidden' });
 
-  if (supabase) await supabase.from('customers').delete().eq('phone', phone);
+  if (supabase) {
+    const { error } = await supabase.from('customers').delete().eq('phone', phone);
+    if (error) {
+      // A customer asking to delete their account must never be told it worked
+      // when it didn't - that's a real data-protection compliance concern, not
+      // just a UX bug.
+      console.error('Customer delete failed:', error.message);
+      return res.status(500).json({ error: 'Could not delete your account. Please try again.' });
+    }
+  }
   res.json({ success: true });
 });
 
@@ -1014,13 +1070,15 @@ app.post('/api/payments/verify-wallet-topup', authMiddleware, requireRole('custo
   }
 
   if (!supabase) return res.status(503).json({ error: 'Database unavailable' });
-  const { data: custData } = await supabase.from('customers').select('wallet_balance').eq('phone', req.user.phone).single();
+  const { data: custData, error: lookupError } = await supabase.from('customers').select('wallet_balance').eq('phone', req.user.phone).single();
+  if (lookupError) console.error('Wallet top-up balance lookup failed:', lookupError.message);
   const newBalance = (custData?.wallet_balance || 0) + creditAmount;
-  const { data: updated } = await supabase.from('customers').update({ wallet_balance: newBalance }).eq('phone', req.user.phone).select();
+  const { data: updated, error: updateError } = await supabase.from('customers').update({ wallet_balance: newBalance }).eq('phone', req.user.phone).select();
   if (updated && updated[0]) {
     await logWalletTransaction(req.user.phone, 'credit', creditAmount, 'Wallet top-up');
     return res.json(mapCustomerToFrontend(updated[0]));
   }
+  console.error('Wallet top-up credit failed:', updateError?.message || 'no matching customer row');
   res.status(500).json({ error: 'Failed to credit wallet' });
 });
 
@@ -1056,8 +1114,9 @@ app.post('/api/subscriptions/activate', authMiddleware, requireRole('customer'),
   }
 
   if (!supabase) return res.status(503).json({ error: 'Database unavailable' });
-  const { data: updated } = await supabase.from('customers').update({ active_plan: planName }).eq('phone', req.user.phone).select();
+  const { data: updated, error: updateError } = await supabase.from('customers').update({ active_plan: planName }).eq('phone', req.user.phone).select();
   if (updated && updated[0]) return res.json(mapCustomerToFrontend(updated[0]));
+  console.error('Subscription activation failed:', updateError?.message || 'no matching customer row');
   res.status(500).json({ error: 'Failed to activate plan' });
 });
 
