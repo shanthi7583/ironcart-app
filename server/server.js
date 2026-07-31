@@ -360,6 +360,11 @@ async function logWalletTransaction(phone, type, amount, description) {
 // serverless functions don't guarantee send-otp and verify-otp land on the same
 // running instance, so a plain module-level Map would randomly "forget" a code
 // that was, from the customer's point of view, just issued a moment ago.
+// PGRST205 (PostgREST: table not in schema cache) / 42P01 (Postgres: relation does
+// not exist) mean the otp_codes migration hasn't been run yet — degrade to the old
+// in-memory behavior rather than breaking OTP delivery entirely until it is.
+const isMissingTableError = (error) => error && (error.code === 'PGRST205' || error.code === '42P01');
+
 app.post('/api/auth/send-otp', async (req, res) => {
   const { phone } = req.body;
   if (!phone || !/^\d{10}$/.test(phone)) {
@@ -369,16 +374,21 @@ app.post('/api/auth/send-otp', async (req, res) => {
   const otp = Math.floor(1000 + Math.random() * 9000).toString();
   const now = new Date();
   const expiresAt = new Date(now.getTime() + 5 * 60 * 1000);
+  let useSupabaseOtpStore = !!supabase;
 
-  if (supabase) {
+  if (useSupabaseOtpStore) {
     const { data: existing, error: lookupError } = await supabase.from('otp_codes').select('last_sent_at').eq('phone', phone).maybeSingle();
-    if (lookupError) {
+    if (lookupError && isMissingTableError(lookupError)) {
+      useSupabaseOtpStore = false;
+    } else if (lookupError) {
       console.error('OTP rate-limit lookup failed:', lookupError.message);
       return res.status(503).json({ error: 'Could not send OTP right now. Please try again.' });
-    }
-    if (existing && now.getTime() - new Date(existing.last_sent_at).getTime() < 30 * 1000) {
+    } else if (existing && now.getTime() - new Date(existing.last_sent_at).getTime() < 30 * 1000) {
       return res.status(429).json({ error: 'Please wait a bit before requesting another OTP' });
     }
+  }
+
+  if (useSupabaseOtpStore) {
     const { error: writeError } = await supabase.from('otp_codes').upsert([{
       phone, otp, expires_at: expiresAt.toISOString(), last_sent_at: now.toISOString()
     }]);
@@ -405,17 +415,22 @@ app.post('/api/auth/verify-otp', async (req, res) => {
   if (!phone || !otp) return res.status(400).json({ error: 'Phone and OTP are required' });
 
   let validOtp = false;
+  let usedSupabaseOtpStore = false;
   if (supabase) {
     const { data: entry, error } = await supabase.from('otp_codes').select('*').eq('phone', phone).maybeSingle();
-    if (error) {
+    if (error && !isMissingTableError(error)) {
       console.error('OTP lookup failed during verification:', error.message);
       return res.status(503).json({ error: 'Could not verify right now. Please try again.' });
     }
-    if (entry && entry.otp === otp && Date.now() < new Date(entry.expires_at).getTime()) {
-      validOtp = true;
-      await supabase.from('otp_codes').delete().eq('phone', phone);
+    if (!error) {
+      usedSupabaseOtpStore = true;
+      if (entry && entry.otp === otp && Date.now() < new Date(entry.expires_at).getTime()) {
+        validOtp = true;
+        await supabase.from('otp_codes').delete().eq('phone', phone);
+      }
     }
-  } else {
+  }
+  if (!usedSupabaseOtpStore) {
     const entry = otpStore.get(phone);
     if (entry && entry.otp === otp && Date.now() < entry.expiresAt) {
       validOtp = true;
