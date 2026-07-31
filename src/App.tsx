@@ -436,10 +436,7 @@ export default function App() {
     setToastMessage({ message, type: 'error' });
     setTimeout(() => setToastMessage(null), 3500);
   };
-  const customSuccess = (message: string) => {
-    setToastMessage({ message, type: 'success' });
-    setTimeout(() => setToastMessage(null), 3500);
-  };
+
   const customConfirm = (message: string, onConfirm: () => void) => {
     setModalConfig({ title: 'Confirm Action', message, type: 'confirm', onConfirm });
   };
