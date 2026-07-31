@@ -760,11 +760,18 @@ export default function App() {
   // --- Admin Actions ---
   const updateOrderStatus = (orderId: string, nextStatus: 'Placed' | 'Picked Up' | 'Ironing' | 'Ready' | 'Delivered') => {
     const order = orders.find(o => o.id === orderId);
-    // The manual WhatsApp click-through is gone — the server already sends an SMS
-    // to the customer's mobile automatically on every status change (see
-    // sendNotification in server.js). Until Fast2SMS's DLT/OTP-route registration
-    // is sorted, that automatic SMS is silently blocked by carrier DND filtering,
-    // so customers won't currently receive a notification either way.
+    if (order && order.customerPhone) {
+      const statuses: Record<string, string> = {
+        'Picked Up': `Hello ${order.customerName}, your garments for order *${order.id}* have been Picked Up! 🛵💨`,
+        'Ironing': `Hi ${order.customerName}, your garments for order *${order.id}* are currently being Ironed & Processed! 👔✨`,
+        'Ready': `Great news ${order.customerName}! Your order *${order.id}* is Ready for delivery. 🎉`,
+        'Delivered': `Thank you ${order.customerName}! 🌟\n\nYour garments for order *${order.id}* have been successfully Delivered.\n\n*--- INVOICE ---*\nTotal Amount: ₹${order.total}\nPayment Status: ${order.paymentStatus} (${order.paymentMethod})\n\nWe hope you love the crisp finish! 👔✨`
+      };
+      if (statuses[nextStatus]) {
+        const whatsappUrl = `https://wa.me/91${order.customerPhone}?text=${encodeURIComponent(statuses[nextStatus])}`;
+        window.open(whatsappUrl, '_blank');
+      }
+    }
 
     let payload: any = { status: nextStatus };
     if (nextStatus === 'Delivered' && order?.paymentStatus === 'Pending') {
