@@ -429,6 +429,20 @@ export default function App() {
   const [gatewayOrderData, setGatewayOrderData] = useState<any>(null);
   const [firebaseConfirmResult, setFirebaseConfirmResult] = useState<any>(null);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const [modalConfig, setModalConfig] = useState<{title: string, message: string, type: 'alert'|'confirm', onConfirm?: ()=>void} | null>(null);
+  const [toastMessage, setToastMessage] = useState<{message: string, type: 'success'|'error'|'info'} | null>(null);
+
+  const customAlert = (message: string) => {
+    setToastMessage({ message, type: 'error' });
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+  const customSuccess = (message: string) => {
+    setToastMessage({ message, type: 'success' });
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+  const customConfirm = (message: string, onConfirm: () => void) => {
+    setModalConfig({ title: 'Confirm Action', message, type: 'confirm', onConfirm });
+  };
 
   // Show simulated WhatsApp / System Notification banners
   const triggerNotification = (message: string) => {
@@ -441,7 +455,7 @@ export default function App() {
   // --- Auth Handlers ---
   const handleSendOTP = () => {
     if (!authPhone || authPhone.length < 10) {
-      alert('Please enter a valid 10-digit mobile number');
+      customAlert('Please enter a valid 10-digit mobile number');
       return;
     }
 
@@ -479,12 +493,12 @@ export default function App() {
             triggerNotification(`💬 Real SMS OTP Sent to +91 ${authPhone}!`);
           })
           .catch((err) => {
-            alert('Firebase Phone Auth Error: ' + err.message);
+            customAlert('Firebase Phone Auth Error: ' + err.message);
             console.warn('Firebase Phone Auth Error, falling back to local:', err.message);
             sendLocalOTP();
           });
       } catch (err: any) {
-        alert('Failed to initialize SMS gateway: ' + err.message);
+        customAlert('Failed to initialize SMS gateway: ' + err.message);
         console.warn('Failed to initialize SMS gateway, falling back to local:', err.message);
         sendLocalOTP();
       }
@@ -533,7 +547,7 @@ export default function App() {
           processLogin();
         })
         .catch((err: any) => {
-          alert('Invalid verification code: ' + err.message);
+          customAlert('Invalid verification code: ' + err.message);
         });
       return;
     }
@@ -541,13 +555,13 @@ export default function App() {
     if (authOTP === sentOTP || authOTP === '1234') { // Fallback bypass
       processLogin();
     } else {
-      alert('Invalid OTP. Please try again or use 1234');
+      customAlert('Invalid OTP. Please try again or use 1234');
     }
   };
 
   const handleRegister = () => {
     if (!authName.trim() || !authApartment.trim() || authAddress.trim().length < 5) {
-      alert('Please enter a valid name, apartment number, and full street address (at least 5 characters).');
+      customAlert('Please enter a valid name, apartment number, and full street address (at least 5 characters).');
       return;
     }
     const newProfile: CustomerProfile = {
@@ -671,16 +685,16 @@ export default function App() {
     const { subtotal, total } = calculateTotals();
 
     if (!orderName.trim() || !orderPhone.trim() || orderAddress.trim().length < 5) {
-      alert('Please fill out all pickup details (Name, Phone, and Full Address) correctly.');
+      customAlert('Please fill out all pickup details (Name, Phone, and Full Address) correctly.');
       return;
     }
 
     if (subtotal === 0) {
-      alert('Please add at least one garment to your basket');
+      customAlert('Please add at least one garment to your basket');
       return;
     }
     if (!pickupDate) {
-      alert('Please select a pickup date');
+      customAlert('Please select a pickup date');
       return;
     }
 
@@ -697,7 +711,7 @@ export default function App() {
         setShowCheckoutModal(true);
       })
       .catch(err => {
-        alert('Failed to connect to checkout gateway: ' + err.message);
+        customAlert('Failed to connect to checkout gateway: ' + err.message);
       });
   };
 
@@ -757,14 +771,14 @@ export default function App() {
         setCustomerActiveTab('history');
         triggerNotification(`🎉 Order Placed Successfully! We care for your clothes as much as you do! ❤️`);
       })
-      .catch(err => alert('API Connection Error: ' + err.message));
+      .catch(err => customAlert('API Connection Error: ' + err.message));
   };
 
   const handleCheckoutSubmit = () => {
     if (paymentMethod === 'Wallet') {
       const { total } = calculateTotals();
       if (!currentCustomer || (currentCustomer.walletBalance || 0) < total) {
-        alert('Insufficient wallet balance! Please add funds or choose another payment method.');
+        customAlert('Insufficient wallet balance! Please add funds or choose another payment method.');
         return;
       }
       const newBalance = currentCustomer.walletBalance! - total;
@@ -822,17 +836,22 @@ export default function App() {
       }
     }
 
+    let payload: any = { status: nextStatus };
+    if (nextStatus === 'Delivered' && order?.paymentStatus === 'Pending') {
+      payload.paymentStatus = 'Paid';
+    }
+
     fetch(`${API_URL}/orders/${orderId}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: nextStatus })
+      body: JSON.stringify(payload)
     })
       .then(res => res.json())
       .then(data => {
         setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...data } : o));
         triggerNotification(`Order ${orderId} updated to ${nextStatus}!`);
       })
-      .catch(err => alert('API Connection Error: ' + err.message));
+      .catch(err => customAlert('API Connection Error: ' + err.message));
   };
 
   const markOrderPaid = (orderId: string) => {
@@ -846,13 +865,13 @@ export default function App() {
         setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...data } : o));
         triggerNotification(`💳 Payment received for order ${orderId}`);
       })
-      .catch(err => alert('API Connection Error: ' + err.message));
+      .catch(err => customAlert('API Connection Error: ' + err.message));
   };
 
   const deleteOrder = (orderId: string) => {
-    if (confirm('Delete this order record?')) {
+    customConfirm('Delete this order record?', () => {
       setOrders(prev => prev.filter(o => o.id !== orderId));
-    }
+    })
   };
 
   const saveAdminPrices = () => {
@@ -896,7 +915,7 @@ export default function App() {
         setEditingPrices({});
         triggerNotification(`⚙️ Price rates updated successfully!`);
       })
-      .catch(err => alert('API Connection Error: ' + err.message));
+      .catch(err => customAlert('API Connection Error: ' + err.message));
   };
 
   const saveUpiSettings = () => {
@@ -944,7 +963,7 @@ export default function App() {
       setAdminPin('');
       triggerNotification('🏍️ Rider mode activated successfully!');
     } else {
-      alert('Invalid PIN. Use default PIN 9791 (Admin) or 8888 (Rider).');
+      customAlert('Invalid PIN. Use default PIN 9791 (Admin) or 8888 (Rider).');
     }
   };
 
@@ -958,7 +977,7 @@ export default function App() {
   const handleRescheduleOrder = () => {
     if (!selectedOrderForTracking) return;
     if (!rescheduleDate || !rescheduleTime) {
-      alert("Please select a new date and time slot.");
+      customAlert("Please select a new date and time slot.");
       return;
     }
 
@@ -974,13 +993,13 @@ export default function App() {
         setShowRescheduleModal(false);
         triggerNotification(`🔔 Order ${updated.id} rescheduled to ${updated.pickupDate}`);
       })
-      .catch(err => alert('Failed to reschedule order: ' + err.message));
+      .catch(err => customAlert('Failed to reschedule order: ' + err.message));
   };
 
   const handleCancelOrder = () => {
     if (!selectedOrderForTracking) return;
     if (!cancelReasonInput.trim()) {
-      alert("Please provide a reason for cancellation.");
+      customAlert("Please provide a reason for cancellation.");
       return;
     }
 
@@ -1002,7 +1021,7 @@ export default function App() {
         setCancelReasonInput('');
         triggerNotification(`🔔 Order ${updated.id} has been Cancelled.`);
       })
-      .catch(err => alert('Failed to cancel order: ' + err.message));
+      .catch(err => customAlert('Failed to cancel order: ' + err.message));
   };
   
   const [newAddressLabel, setNewAddressLabel] = useState('Home');
@@ -1043,7 +1062,7 @@ export default function App() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(updated)
             });
-            alert(`₹${amount} added to wallet successfully!`);
+            customAlert(`₹${amount} added to wallet successfully!`);
             setShowAddMoney(false);
             setAddMoneyAmount('');
           },
@@ -1064,13 +1083,13 @@ export default function App() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updated)
         });
-        alert(`Demo Mode: ₹${amount} added to wallet!`);
+        customAlert(`Demo Mode: ₹${amount} added to wallet!`);
         setShowAddMoney(false);
         setAddMoneyAmount('');
       }
     } catch (e) {
       console.error(e);
-      alert('Failed to initialize payment gateway.');
+      customAlert('Failed to initialize payment gateway.');
     }
   };
 
@@ -1105,7 +1124,7 @@ export default function App() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(updated)
             });
-            alert(`₹${amount} added to wallet successfully!`);
+            customAlert(`₹${amount} added to wallet successfully!`);
             setCheckoutAddAmount('');
           },
           prefill: {
@@ -1125,12 +1144,12 @@ export default function App() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updated)
         });
-        alert(`Demo Mode: ₹${amount} added to wallet!`);
+        customAlert(`Demo Mode: ₹${amount} added to wallet!`);
         setCheckoutAddAmount('');
       }
     } catch (e) {
       console.error(e);
-      alert('Failed to initialize payment gateway.');
+      customAlert('Failed to initialize payment gateway.');
     }
   };
 
@@ -1155,7 +1174,46 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-100 text-gray-900 flex flex-col font-sans">
       
-      {/* Simulation Banner Notification */}
+
+      {/* Global Toast */}
+      {toastMessage && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-sm">
+          <div className={`flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl backdrop-blur-md border text-white text-xs font-bold transition-all animate-fade-in ${toastMessage.type === 'error' ? 'bg-rose-500/95 border-rose-400' : toastMessage.type === 'success' ? 'bg-emerald-500/95 border-emerald-400' : 'bg-slate-800/95 border-slate-700'}`}>
+            {toastMessage.type === 'error' ? '⚠️' : toastMessage.type === 'success' ? '✅' : 'ℹ️'}
+            <div className="flex-1">{toastMessage.message}</div>
+          </div>
+        </div>
+      )}
+
+      {/* Global Modal */}
+      {modalConfig && (
+        <div className="fixed inset-0 z-[110] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 text-left flex flex-col gap-4 transform transition-all scale-100">
+            <h3 className="text-lg font-black text-slate-900">{modalConfig.title}</h3>
+            <div className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap max-h-[60vh] overflow-y-auto pr-2">{modalConfig.message}</div>
+            <div className="flex gap-3 justify-end mt-2">
+              <button 
+                onClick={() => setModalConfig(null)}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition-colors"
+              >
+                {modalConfig.type === 'confirm' ? 'Cancel' : 'Close'}
+              </button>
+              {modalConfig.type === 'confirm' && (
+                <button 
+                  onClick={() => {
+                    if (modalConfig.onConfirm) modalConfig.onConfirm();
+                    setModalConfig(null);
+                  }}
+                  className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold rounded-xl transition-colors shadow-lg shadow-rose-500/30"
+                >
+                  Confirm
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+\n      {/* Simulation Banner Notification */}
       {notification && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4 animate-bounce">
           <div className="bg-emerald-600 text-white rounded-xl shadow-2xl p-4 border border-emerald-400 flex items-start gap-3">
@@ -1218,11 +1276,11 @@ export default function App() {
               </div>
               <button 
                 onClick={() => {
-                  if (confirm('Are you sure you want to log out?')) {
+                  customConfirm('Are you sure you want to log out?', () => {
                     setCurrentCustomer(null);
                     localStorage.removeItem('iron_current_user');
                     setCustomerActiveTab('home');
-                  }
+                  })
                 }}
                 className="bg-gray-50 border border-gray-200 p-2 rounded-full text-rose-500 hover:bg-rose-50 hover:border-rose-350 transition-all flex items-center justify-center"
                 title="Logout"
@@ -1583,7 +1641,25 @@ export default function App() {
                             <p className="text-[10px] text-purple-600 font-medium mt-0.5">Experience premium fabric care tailored just for you. ✨</p>
                           </div>
                           
-                          {/* Promotional Slide Banner */}
+                          
+                          {/* Eco-Impact Tracker */}
+                          <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-200 rounded-2xl p-4 flex flex-col gap-2 mt-2 shadow-sm relative overflow-hidden">
+                            <div className="absolute top-0 right-0 size-24 bg-emerald-500/10 rounded-full blur-2xl"></div>
+                            <div className="flex items-center gap-2 relative z-10">
+                              <span className="text-lg">🌿</span>
+                              <h4 className="text-xs font-black text-emerald-900">Your Eco Impact</h4>
+                            </div>
+                            <div className="flex justify-between items-center bg-white/70 backdrop-blur-sm p-3 rounded-xl border border-white/50 relative z-10 shadow-sm">
+                              <div className="text-center w-1/2 border-r border-gray-200/60">
+                                <div className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Water Saved</div>
+                                <div className="font-black text-emerald-600 mt-1">{(orders.filter(o => o.customerPhone === currentCustomer?.phone).length * 15)}L</div>
+                              </div>
+                              <div className="text-center w-1/2">
+                                <div className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Carbon Offset</div>
+                                <div className="font-black text-teal-600 mt-1">{(orders.filter(o => o.customerPhone === currentCustomer?.phone).length * 2.5)}kg</div>
+                              </div>
+                            </div>
+                          </div>\n\n                          {/* Promotional Slide Banner */}
                           <div className="bg-gradient-to-r from-rose-600 to-amber-500 rounded-2xl p-0 text-left shadow-lg relative overflow-hidden h-32 flex items-center justify-center group">
                             <div className="absolute inset-0 flex transition-transform duration-1000 ease-in-out" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
                               {slideImages.map((src, index) => (
@@ -1603,9 +1679,9 @@ export default function App() {
                           </div>
 
                           {/* Wallet Section */}
-                          <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col gap-3">
+                          <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col gap-3 animate-fade-in transition-all hover:shadow-md">
                             <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 transform transition-transform hover:scale-105">
                                 <span className="text-lg">💳</span>
                                 <span className="text-sm font-bold text-gray-900">Iron Kart Wallet</span>
                               </div>
@@ -1638,28 +1714,28 @@ export default function App() {
                           <div className="grid grid-cols-3 gap-3">
                             <button 
                               onClick={() => setCustomerActiveTab('order')}
-                              className="flex flex-col items-center justify-center gap-2 p-3 bg-white border border-gray-200 rounded-xl hover:border-rose-500 transition-all text-center relative overflow-hidden"
+                              className="flex flex-col items-center justify-center gap-2 p-3 bg-white border border-gray-200 rounded-xl hover:border-rose-500 hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300 text-center relative overflow-hidden group"
                             >
-                              <div className="size-8 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500">
+                              <div className="size-8 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 group-hover:scale-110 transition-transform">
                                 <Plus className="size-4" />
                               </div>
                               <span className="text-[10px] font-semibold text-gray-900">Ironing</span>
                             </button>
                             <button 
-                              onClick={() => triggerNotification('✨ Dry Cleaning service is launching very soon! Stay tuned!')}
-                              className="flex flex-col items-center justify-center gap-2 p-3 bg-white border border-gray-200 rounded-xl opacity-70 hover:opacity-100 transition-all text-center relative"
+                              onClick={() => setCustomerActiveTab('order')}
+                              className="flex flex-col items-center justify-center gap-2 p-3 bg-white border border-gray-200 rounded-xl hover:border-rose-500 hover:shadow-lg transform hover:-translate-y-1 group transition-all text-center relative"
                             >
-                              <span className="absolute top-1 right-1 text-[7px] bg-amber-500 text-black font-bold px-1 rounded-sm">SOON</span>
+                              
                               <div className="size-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
                                 <Star className="size-4" />
                               </div>
                               <span className="text-[10px] font-semibold text-gray-700">Dry Clean</span>
                             </button>
                             <button 
-                              onClick={() => triggerNotification('💧 Laundry service is launching very soon! Stay tuned!')}
-                              className="flex flex-col items-center justify-center gap-2 p-3 bg-white border border-gray-200 rounded-xl opacity-70 hover:opacity-100 transition-all text-center relative"
+                              onClick={() => setCustomerActiveTab('order')}
+                              className="flex flex-col items-center justify-center gap-2 p-3 bg-white border border-gray-200 rounded-xl hover:border-rose-500 hover:shadow-lg transform hover:-translate-y-1 group transition-all text-center relative"
                             >
-                              <span className="absolute top-1 right-1 text-[7px] bg-amber-500 text-black font-bold px-1 rounded-sm">SOON</span>
+                              
                               <div className="size-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
                                 <RefreshCw className="size-4" />
                               </div>
@@ -1671,9 +1747,9 @@ export default function App() {
                           <div className="grid grid-cols-3 gap-3">
                             <button 
                               onClick={() => setCustomerActiveTab('history')}
-                              className="flex flex-col items-center justify-center gap-2 p-3 bg-white border border-gray-200 rounded-xl hover:border-amber-500 transition-all text-center"
+                              className="flex flex-col items-center justify-center gap-2 p-3 bg-white border border-gray-200 rounded-xl hover:border-amber-500 hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300 text-center group"
                             >
-                              <div className="size-8 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500">
+                              <div className="size-8 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform">
                                 <ShoppingBag className="size-4" />
                               </div>
                               <span className="text-[10px] font-semibold text-gray-900">My Orders</span>
@@ -2074,7 +2150,7 @@ export default function App() {
                                   className={`relative shrink-0 w-[120px] h-[80px] rounded-2xl overflow-hidden transition-all shadow-sm ${
                                     activeCategory === cat.name 
                                     ? 'ring-2 ring-rose-500 ring-offset-2 scale-105 shadow-[0_4px_12px_rgba(225,29,72,0.3)]' 
-                                    : 'opacity-70 hover:opacity-100 grayscale-[40%] hover:grayscale-0'
+                                    : 'hover:border-rose-500 hover:shadow-lg transform hover:-translate-y-1 group grayscale-[40%] hover:grayscale-0'
                                   }`}
                                 >
                                   <img src={cat.img} alt={cat.name} className="w-full h-full object-cover" />
@@ -2150,9 +2226,9 @@ export default function App() {
                               onClick={() => {
                                 if (couponCode === 'WELCOME50' || couponCode === 'FIRST10') {
                                   setAppliedCoupon(couponCode);
-                                  alert('Coupon Applied!');
+                                  customAlert('Coupon Applied!');
                                 } else {
-                                  alert('Invalid or Expired Coupon');
+                                  customAlert('Invalid or Expired Coupon');
                                 }
                               }}
                               className="bg-gray-200 hover:bg-gray-300 text-gray-900 px-3 py-2 rounded-xl text-xs font-semibold"
@@ -2625,9 +2701,9 @@ export default function App() {
                                     </div>
                                     <button 
                                       onClick={() => {
-                                        if (confirm('Delete this address?')) {
+                                        customConfirm('Delete this address?', () => {
                                           const addresses = (currentCustomer.addresses || []).filter((a: any) => a.id !== addr.id);
-                                          const updated = { ...currentCustomer, addresses };
+                                          const updated = { ...currentCustomer, addresses });
                                           setCurrentCustomer(updated);
                                           fetch(`${API_URL}/customers/${currentCustomer.phone}`, {
                                             method: 'PUT',
@@ -2696,11 +2772,11 @@ export default function App() {
                               <Settings className="size-4 text-gray-500" /> Settings & Policies
                             </h4>
                             <div className="flex flex-col gap-1 text-[10px]">
-                              <button onClick={() => alert('Terms & Conditions:\n\n1. All garments are ironed standard steam settings.\n2. In case of garment damage, maximum liability is limited to 5x the service cost.\n3. Orders must be cancelled at least 2 hours prior to pickup time.')} className="w-full text-left p-2 hover:bg-gray-50 rounded-lg text-gray-700 flex justify-between items-center border border-gray-100">
+                              <button onClick={() => customAlert('Terms & Conditions:\n\n1. All garments are ironed standard steam settings.\n2. In case of garment damage, maximum liability is limited to 5x the service cost.\n3. Orders must be cancelled at least 2 hours prior to pickup time.')} className="w-full text-left p-2 hover:bg-gray-50 rounded-lg text-gray-700 flex justify-between items-center border border-gray-100">
                                 <span>Terms & Conditions</span>
                                 <ChevronRight className="size-3.5 text-gray-400" />
                               </button>
-                              <button onClick={() => alert('Privacy Policy:\n\n1. We gather name, mobile number and address details solely to deliver services.\n2. Your details are secure and never sold or shared with external parties.\n3. Payment operations are securely routed through certified gateways.')} className="w-full text-left p-2 hover:bg-gray-50 rounded-lg text-gray-700 flex justify-between items-center border border-gray-100">
+                              <button onClick={() => customAlert('Privacy Policy:\n\n1. We gather name, mobile number and address details solely to deliver services.\n2. Your details are secure and never sold or shared with external parties.\n3. Payment operations are securely routed through certified gateways.')} className="w-full text-left p-2 hover:bg-gray-50 rounded-lg text-gray-700 flex justify-between items-center border border-gray-100">
                                 <span>Privacy & Policy</span>
                                 <ChevronRight className="size-3.5 text-gray-400" />
                               </button>
@@ -2713,7 +2789,7 @@ export default function App() {
                             <p className="text-[10px] text-gray-500 leading-relaxed">Permanently delete your profile and account information. This action is irreversible.</p>
                             <button 
                               onClick={() => {
-                                if (confirm('⚠️ WARNING: Deleting your account will remove your address list, purchase logs, and remaining wallet balance. Are you sure you want to proceed?')) {
+                                customConfirm('⚠️ WARNING: Deleting your account will remove your address list, purchase logs, and remaining wallet balance. Are you sure you want to proceed?', () => {
                                   if (confirm('Are you absolutely certain? This cannot be undone.')) {
                                     const client = supabase;
                                     if (client) {
@@ -2724,13 +2800,13 @@ export default function App() {
                                           setCurrentCustomer(null);
                                           localStorage.removeItem('iron_current_user');
                                           setCustomerActiveTab('home');
-                                          alert('Your profile has been deleted successfully. We hope to see you again! ❤️');
-                                        });
+                                          customAlert('Your profile has been deleted successfully. We hope to see you again! ❤️');
+                                        }));
                                     } else {
                                       setCurrentCustomer(null);
                                       localStorage.removeItem('iron_current_user');
                                       setCustomerActiveTab('home');
-                                      alert('Your profile has been deleted locally successfully.');
+                                      customAlert('Your profile has been deleted locally successfully.');
                                     }
                                   }
                                 }
@@ -3340,7 +3416,7 @@ export default function App() {
                               if (error) err = error;
                             }
                             
-                            if (err) alert("Failed to save: " + err.message);
+                            if (err) customAlert("Failed to save: " + err.message);
                             else {
                               setFlashOffers(editingOffers);
                               setFestiveOffer(editingFestive);
@@ -3508,7 +3584,7 @@ export default function App() {
             <div className="flex justify-between items-start border-b border-slate-200 pb-4">
               <div>
                 <h3 className="text-lg font-black tracking-tight text-slate-900">Iron Kart Invoice</h3>
-                <span className="text-[10px] text-gray-400 font-mono">No. {selectedInvoice.invoiceNo}</span>
+                <span className="text-[10px] text-gray-400 font-mono">No. {selectedInvoice.invoiceNo || `IK${selectedInvoice.id.split('-')[0].toUpperCase()}`}</span>
               </div>
               <button 
                 onClick={() => setSelectedInvoice(null)}
