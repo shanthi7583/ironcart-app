@@ -1201,7 +1201,16 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-100 text-gray-900 flex flex-col font-sans">
-      
+      {/* Firebase's invisible reCAPTCHA lives outside the phone-frame mockup on purpose.
+          That wrapper clips anything past its edges — fine for an actually-invisible
+          widget, but when Google decides a login looks risky enough to demand a real
+          visible challenge, the challenge iframe rendered inside the clipped container
+          becomes impossible to see or solve, and the OTP request just hangs forever
+          with no error. Rendering it here, fixed over the whole viewport, means an
+          escalated challenge is always visible and solvable regardless of where in the
+          UI the OTP form happens to live. Invisible and non-interactive until Google
+          actually puts an iframe in it. */}
+      <div id="recaptcha-container" className="fixed inset-0 z-[300] flex items-center justify-center pointer-events-none [&:has(iframe)]:pointer-events-auto [&:has(iframe)]:bg-black/60"></div>
 
       {/* Global Toast */}
       {toastMessage && (
@@ -1555,14 +1564,12 @@ export default function App() {
                             />
                           </div>
                         </div>
-                        <button 
+                        <button
                           onClick={handleSendOTP}
                           className="w-full bg-rose-500 hover:bg-rose-600 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md active:translate-y-0.5"
                         >
                           Send OTP Verification
                         </button>
-                        {/* Invisible reCAPTCHA anchor required by Firebase phone auth — renders nothing visible */}
-                        <div id="recaptcha-container"></div>
 
                         {/* Admin Login Gateway Switcher */}
                         <div className="mt-8 pt-4 flex flex-col items-center gap-2 pb-2">
