@@ -4,7 +4,7 @@ import {
   TrendingUp, Users, Smartphone,
   ChevronRight, ShoppingBag,
   FileText, CreditCard, ArrowLeft, Settings,
-  Bell, HelpCircle, LogOut, Eye, RefreshCw, Key, Star, Navigation, Wallet, X, Phone, Gift, Landmark, Truck, User, Shirt, Sparkles
+  Bell, HelpCircle, LogOut, Eye, RefreshCw, Key, Star, Navigation, Wallet, X, Phone, Gift, Landmark, Truck, User, Sparkles
 } from 'lucide-react'
 import { auth as firebaseAuth, RecaptchaVerifier } from './firebaseConfig'
 import { signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth'
@@ -1308,8 +1308,12 @@ export default function App() {
           <div className="flex items-center gap-3">
             <div className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-tr from-rose-500 to-amber-500 shadow-md relative overflow-hidden border border-white/20">
               <div className="absolute inset-0 bg-white/20 rotate-45 transform translate-x-[-10px]"></div>
-              <Shirt className="size-5 text-white drop-shadow-md" />
-              <Sparkles className="size-3 text-amber-200 absolute top-1 right-1" />
+              <svg viewBox="0 0 48 48" className="size-6 relative z-10" fill="none">
+                <path d="M34 6c0 2-3 2-3 4.5S34 13 34 15" stroke="white" strokeWidth="2.4" strokeLinecap="round" opacity="0.9" />
+                <path d="M40 8c0 2-3 2-3 4.5S40 15 40 17" stroke="white" strokeWidth="2.4" strokeLinecap="round" opacity="0.9" />
+                <path d="M17 20v-4a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v4" stroke="white" strokeWidth="2.8" strokeLinecap="round" fill="none" />
+                <path d="M8 22a2 2 0 0 1 2-2h14c9 0 15 4.5 15 9s-6 9-15 9H10a2 2 0 0 1-2-2Z" fill="white" />
+              </svg>
             </div>
             <div>
               <h1 className="font-display text-xl font-semibold tracking-tight m-0 p-0 text-left bg-clip-text text-transparent bg-gradient-to-r from-rose-500 to-amber-500">Vastra Care</h1>
@@ -1444,10 +1448,13 @@ export default function App() {
                           <div className="relative size-[60px] rounded-[20px] bg-gradient-to-br from-rose-600 via-rose-500 to-amber-500 shadow-lg shadow-rose-500/40 flex items-center justify-center border-[3px] border-white overflow-hidden">
                             <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/35"></div>
                             <svg viewBox="0 0 48 48" className="size-8 relative z-10" fill="none">
-                              <path d="M21 4c0 2-3.5 2-3.5 4.5S21 11 21 13" stroke="white" strokeWidth="2.2" strokeLinecap="round" opacity="0.9" />
-                              <path d="M29 4c0 2-3.5 2-3.5 4.5S29 11 29 13" stroke="white" strokeWidth="2.2" strokeLinecap="round" opacity="0.9" />
-                              <path d="M24 12L9.5 23.5A3 3 0 0 0 11.5 29H36.5A3 3 0 0 0 38.5 23.5L24 12Z" fill="white" />
-                              <rect x="9.5" y="30.5" width="29" height="3" rx="1.5" fill="white" />
+                              {/* Steam rising off the hot tip */}
+                              <path d="M34 6c0 2-3 2-3 4.5S34 13 34 15" stroke="white" strokeWidth="2.2" strokeLinecap="round" opacity="0.9" />
+                              <path d="M40 8c0 2-3 2-3 4.5S40 15 40 17" stroke="white" strokeWidth="2.2" strokeLinecap="round" opacity="0.9" />
+                              {/* Handle */}
+                              <path d="M17 20v-4a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v4" stroke="white" strokeWidth="2.6" strokeLinecap="round" fill="none" />
+                              {/* Iron body — flat back, tapering to a rounded point at the front */}
+                              <path d="M8 22a2 2 0 0 1 2-2h14c9 0 15 4.5 15 9s-6 9-15 9H10a2 2 0 0 1-2-2Z" fill="white" />
                             </svg>
                           </div>
 
@@ -1517,10 +1524,10 @@ export default function App() {
                           <div className="flex items-center gap-2">
                             <div className="size-9 rounded-xl bg-gradient-to-br from-rose-600 via-rose-500 to-amber-500 shadow-md flex items-center justify-center border-2 border-white shrink-0">
                               <svg viewBox="0 0 48 48" className="size-5" fill="none">
-                                <path d="M21 4c0 2-3.5 2-3.5 4.5S21 11 21 13" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.9" />
-                                <path d="M29 4c0 2-3.5 2-3.5 4.5S29 11 29 13" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.9" />
-                                <path d="M24 12L9.5 23.5A3 3 0 0 0 11.5 29H36.5A3 3 0 0 0 38.5 23.5L24 12Z" fill="white" />
-                                <rect x="9.5" y="30.5" width="29" height="3" rx="1.5" fill="white" />
+                                <path d="M34 6c0 2-3 2-3 4.5S34 13 34 15" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.9" />
+                                <path d="M40 8c0 2-3 2-3 4.5S40 15 40 17" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.9" />
+                                <path d="M17 20v-4a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v4" stroke="white" strokeWidth="3.4" strokeLinecap="round" fill="none" />
+                                <path d="M8 22a2 2 0 0 1 2-2h14c9 0 15 4.5 15 9s-6 9-15 9H10a2 2 0 0 1-2-2Z" fill="white" />
                               </svg>
                             </div>
                             <span className="font-display text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-amber-600 tracking-tight">Vastra Care</span>
