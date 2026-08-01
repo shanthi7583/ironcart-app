@@ -1350,8 +1350,8 @@ export default function App() {
               <div
                 className="flex-1 flex flex-col overflow-y-auto px-4 pt-8 pb-4"
                 style={!currentCustomer ? {
-                  background: 'radial-gradient(circle at 18% -8%, rgba(244,63,94,0.30), transparent 55%), radial-gradient(circle at 105% 12%, rgba(245,158,11,0.32), transparent 48%), linear-gradient(165deg, #FFF3E6 0%, #FFEBE2 45%, #FFE0DD 100%)'
-                } : { background: 'radial-gradient(circle at 15% 0%, rgba(244,63,94,0.05), transparent 45%), radial-gradient(circle at 100% 20%, rgba(245,158,11,0.06), transparent 40%), #FFF9F0' }}
+                  background: 'radial-gradient(circle at 15% -10%, rgba(244,63,94,0.42), transparent 55%), radial-gradient(circle at 108% 15%, rgba(245,158,11,0.42), transparent 50%), linear-gradient(160deg, #FFEBD9 0%, #FFDCCC 45%, #FFC9B8 100%)'
+                } : { background: 'radial-gradient(circle at 15% 0%, rgba(244,63,94,0.10), transparent 45%), radial-gradient(circle at 100% 20%, rgba(245,158,11,0.12), transparent 40%), linear-gradient(180deg, #FFF7ED 0%, #FFF3E4 100%)' }}
               >
                 
                 {/* Rider Portal View */}
@@ -1451,14 +1451,18 @@ export default function App() {
                             </svg>
                           </div>
 
-                          <div className="text-center flex flex-col items-center gap-1 relative">
-                            <h2 className="font-display text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-amber-600 tracking-tight drop-shadow-sm">Vastra Care</h2>
-                            <p className="text-sm font-extrabold text-rose-600 tracking-wide">Pressed to perfection, picked up at your door.</p>
+                          <div className="text-center flex flex-col items-center gap-1.5 relative">
+                            <h2 className="font-display italic text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 via-orange-500 to-amber-600 tracking-tight drop-shadow-sm">Vastra Care</h2>
+                            <p className="flex items-center gap-2 text-sm font-extrabold text-rose-600 tracking-wide">
+                              <Sparkles className="size-3.5 text-amber-500 animate-spark shrink-0" />
+                              <span className="text-shimmer">Pressed to perfection, picked up at your door.</span>
+                              <Sparkles className="size-3.5 text-amber-500 animate-spark shrink-0" style={{ animationDelay: '0.8s' }} />
+                            </p>
                           </div>
                         </div>
 
                         {/* Rotating hero carousel — three slides, auto-advancing every 4s */}
-                        <div className="relative w-full h-48 rounded-3xl overflow-hidden shadow-xl shadow-rose-500/25">
+                        <div className="relative w-full h-60 rounded-3xl overflow-hidden shadow-xl shadow-rose-500/25">
                           {LOGIN_HERO_SLIDES.map((slide, i) => (
                             <div
                               key={slide.title}
@@ -1735,13 +1739,16 @@ export default function App() {
 
                           {/* Welcome User Greeting */}
                           <div className="text-left mt-1 animate-slide-up">
-                            <h3 className="font-display text-2xl font-semibold text-gray-900 leading-tight">Hello, {currentCustomer?.name || 'Friend'} 👋</h3>
-                            <p className="text-[12px] text-rose-500 font-medium mt-1">Experience premium fabric care tailored just for you.</p>
+                            <h3 className="font-display italic text-2xl font-semibold text-gray-900 leading-tight">Hello, {currentCustomer?.name || 'Friend'} 👋</h3>
+                            <p className="flex items-center gap-1.5 text-[12px] font-bold mt-1">
+                              <Sparkles className="size-3 text-amber-500 animate-spark shrink-0" />
+                              <span className="text-shimmer text-rose-500">Experience premium fabric care tailored just for you.</span>
+                            </p>
                           </div>
 
 
                           {/* Promotional Slide Banner */}
-                          <div className="bg-gradient-to-r from-rose-600 to-amber-500 rounded-2xl p-0 text-left shadow-lg shadow-rose-500/15 relative overflow-hidden h-36 flex items-center justify-center group animate-slide-up stagger-1">
+                          <div className="bg-gradient-to-r from-rose-600 to-amber-500 rounded-2xl p-0 text-left shadow-lg shadow-rose-500/15 relative overflow-hidden h-48 flex items-center justify-center group animate-slide-up stagger-1">
                             <div className="absolute inset-0 flex transition-transform duration-1000 ease-in-out" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
                               {slideImages.map((src, index) => (
                                 <div key={index} className="relative w-full h-full shrink-0">
@@ -1757,10 +1764,10 @@ export default function App() {
                                 </div>
                               ))}
                             </div>
-                            <div className="relative z-10 px-4 w-full">
-                              <h4 className="font-display font-semibold text-base text-white drop-shadow-md">Premium Garment Pressing</h4>
-                              <p className="text-[12px] text-white/95 mt-1 max-w-[200px] drop-shadow-md">Get 50% off on your first order. Professional steam care starts at just ₹12/item.</p>
-                              <span className="inline-block bg-white text-rose-600 text-[11px] font-bold px-2 py-0.5 rounded-full mt-2.5 shadow-sm">Code: WELCOME50</span>
+                            <div className="relative z-10 px-5 w-full">
+                              <h4 className="font-display italic font-bold text-xl text-white drop-shadow-md">Premium Garment Pressing</h4>
+                              <p className="text-[13px] text-white/95 mt-1.5 max-w-[220px] leading-relaxed drop-shadow-md">Get 50% off on your first order. Professional steam care starts at just ₹12/item.</p>
+                              <span className="inline-block bg-white text-rose-600 text-[11px] font-bold px-2.5 py-1 rounded-full mt-3 shadow-sm">Code: WELCOME50</span>
                             </div>
                           </div>
 
@@ -1895,7 +1902,7 @@ export default function App() {
                           {/* Refer & Earn Banner */}
                           <div
                             onClick={() => setCustomerActiveTab('rewards')}
-                            className="rounded-xl cursor-pointer text-left relative overflow-hidden shadow-lg shadow-rose-500/15 mt-1 animate-slide-up stagger-3 h-24"
+                            className="rounded-xl cursor-pointer text-left relative overflow-hidden shadow-lg shadow-rose-500/15 mt-1 animate-slide-up stagger-3 h-32"
                           >
                             <img
                               src="https://images.unsplash.com/photo-1513151233558-d860c5398176?w=800&h=400&fit=crop"
@@ -1935,7 +1942,7 @@ export default function App() {
                             <img
                               src="https://images.unsplash.com/photo-1582719508461-905c673771fd?w=400&h=300&fit=crop"
                               alt="Steam Ironing"
-                              className="size-16 rounded-xl object-cover shrink-0 border border-gray-100 shadow-sm"
+                              className="size-20 rounded-xl object-cover shrink-0 border border-gray-100 shadow-sm"
                               style={{ filter: 'saturate(1.15) contrast(1.05)' }}
                             />
                             <div className="text-left flex-1 min-w-0">
@@ -1952,7 +1959,7 @@ export default function App() {
                                 <button 
                                   key={f.name}
                                   onClick={() => { setActiveCategory(f.cat); setCustomerActiveTab('order'); }}
-                                  className="relative shrink-0 size-20 rounded-2xl overflow-hidden shadow-sm active:scale-95 transition-all"
+                                  className="relative shrink-0 size-24 rounded-2xl overflow-hidden shadow-md active:scale-95 transition-all"
                                 >
                                   <img src={f.img} className="w-full h-full object-cover" />
                                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
