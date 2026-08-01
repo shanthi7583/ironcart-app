@@ -1021,7 +1021,7 @@ app.post('/api/payments/create-order', authMiddleware, async (req, res) => {
           },
           order_meta: {
             ...(safePaymentMethods ? { payment_methods: safePaymentMethods } : {}),
-            return_url: `${req.headers.origin || 'https://vastracare-app.vercel.app'}/?cf_order_id={order_id}`
+            return_url: `${req.headers.origin || 'https://pressngo-app.vercel.app'}/?cf_order_id={order_id}`
           }
         })
       });
