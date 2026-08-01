@@ -8,6 +8,19 @@ import {
 } from 'lucide-react'
 import { auth as firebaseAuth, RecaptchaVerifier } from './firebaseConfig'
 import { signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth'
+import { load as loadCashfree } from '@cashfreepayments/cashfree-js'
+
+// The SDK's load() re-fetches/re-initializes Cashfree's checkout script, so this
+// caches one instance per mode instead of reloading it on every checkout attempt.
+let cashfreeInstancePromise: ReturnType<typeof loadCashfree> | null = null;
+let cashfreeInstanceMode: 'sandbox' | 'production' | null = null;
+function getCashfreeInstance(mode: 'sandbox' | 'production') {
+  if (!cashfreeInstancePromise || cashfreeInstanceMode !== mode) {
+    cashfreeInstanceMode = mode;
+    cashfreeInstancePromise = loadCashfree({ mode });
+  }
+  return cashfreeInstancePromise;
+}
 
 // Define interfaces
 interface GarmentItem {
@@ -171,18 +184,6 @@ export default function App() {
     'Content-Type': 'application/json',
     ...(sessionToken ? { 'Authorization': `Bearer ${sessionToken}` } : {}),
     ...extra
-  });
-  // Razorpay's checkout shows every method (card, netbanking, UPI, wallets, EMI,
-  // pay-later) by default regardless of what was picked in our own UI — without this,
-  // choosing "UPI" still lands on a screen offering card/bank entry too. This locks
-  // the widget to only the method(s) that make sense for the context it's opened in.
-  const razorpayMethodRestriction = (allowed: Array<'card' | 'netbanking' | 'upi'>) => ({
-    card: allowed.includes('card'),
-    netbanking: allowed.includes('netbanking'),
-    upi: allowed.includes('upi'),
-    wallet: false,
-    paylater: false,
-    emi: false
   });
   const setSession = (token: string | null) => {
     setSessionToken(token);
@@ -774,9 +775,9 @@ export default function App() {
       .finally(() => setIsCreatingCheckout(false));
   };
 
-  const confirmOrderPayment = (razorpayDetails?: { orderId: string, paymentId: string, signature: string }) => {
+  const confirmOrderPayment = (cashfreeDetails?: { orderId: string }) => {
     // isSubmittingOrder is already set by handleCheckoutSubmit before this runs (immediately
-    // for COD/Wallet, or later from the Razorpay success callback) — just clear it when done.
+    // for COD/Wallet, or later once the Cashfree checkout modal closes) — just clear it when done.
     const cartItems = buildCartItems();
 
     const newOrder: any = {
@@ -793,16 +794,15 @@ export default function App() {
       cartItems,
       couponCode: appliedCoupon,
       status: 'Placed',
-      paymentMethod: razorpayDetails ? `${paymentMethod} (Txn: ${razorpayDetails.paymentId})` : paymentMethod,
+      paymentMethod: cashfreeDetails ? `${paymentMethod} (Txn: ${cashfreeDetails.orderId})` : paymentMethod,
       specialInstructions,
       createdAt: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     };
-    // The server independently decides the real paymentStatus (verifying the Razorpay
-    // signature, or deducting the wallet balance itself) — these are just its inputs.
-    if (razorpayDetails) {
-      newOrder.razorpayOrderId = razorpayDetails.orderId;
-      newOrder.razorpayPaymentId = razorpayDetails.paymentId;
-      newOrder.razorpaySignature = razorpayDetails.signature;
+    // The server independently decides the real paymentStatus (asking Cashfree what
+    // actually happened to this order_id, or deducting the wallet balance itself) —
+    // this is just its input.
+    if (cashfreeDetails) {
+      newOrder.cashfreeOrderId = cashfreeDetails.orderId;
     }
 
     fetch(`${API_URL}/orders`, {
@@ -850,37 +850,27 @@ export default function App() {
     }
 
     if ((paymentMethod === 'UPI' || paymentMethod === 'Card' || paymentMethod === 'NetBanking') && gatewayOrderData?.liveMode) {
-      // Trigger Live Razorpay Checkout
-      const options = {
-        key: gatewayOrderData.keyId,
-        amount: gatewayOrderData.amount * 100, // paise
-        currency: gatewayOrderData.currency,
-        name: "Vastra Care Service",
-        description: "Ironing Booking Service Payment",
-        order_id: gatewayOrderData.gatewayOrderId,
-        handler: function (response: any) {
-          confirmOrderPayment({
-            orderId: response.razorpay_order_id,
-            paymentId: response.razorpay_payment_id,
-            signature: response.razorpay_signature
-          });
-        },
-        modal: {
-          // Without this, cancelling the Razorpay popup would leave the submit
-          // button disabled forever (nothing else clears isSubmittingOrder).
-          ondismiss: () => setIsSubmittingOrder(false)
-        },
-        method: razorpayMethodRestriction([
-          paymentMethod === 'UPI' ? 'upi' : paymentMethod === 'Card' ? 'card' : 'netbanking'
-        ]),
-        prefill: {
-          name: orderName || '',
-          contact: orderPhone || ''
-        },
-        theme: { color: "#F43F5E" }
-      };
-      const rzp = new (window as any).Razorpay(options);
-      rzp.open();
+      // Trigger live Cashfree Checkout (in-page modal, matches the old Razorpay popup UX)
+      getCashfreeInstance(gatewayOrderData.cashfreeEnv === 'production' ? 'production' : 'sandbox')
+        .then(cashfree => cashfree.checkout({
+          paymentSessionId: gatewayOrderData.paymentSessionId,
+          redirectTarget: '_modal'
+        }))
+        .then((result: any) => {
+          if (result?.error) {
+            // User closed the modal, or the attempt failed inside it — nothing to verify.
+            setIsSubmittingOrder(false);
+            return;
+          }
+          // Whatever the modal reported, Cashfree's own Get Order status is the only
+          // thing worth trusting — confirmOrderPayment hands that off to the server.
+          confirmOrderPayment({ orderId: gatewayOrderData.gatewayOrderId });
+        })
+        .catch((err: any) => {
+          console.error('Cashfree checkout failed:', err);
+          customAlert('Could not open the payment gateway. Please try again.');
+          setIsSubmittingOrder(false);
+        });
     } else {
       // Demo Mode or COD
       confirmOrderPayment();
@@ -1078,7 +1068,7 @@ export default function App() {
 
   const [checkoutAddAmount, setCheckoutAddAmount] = useState('');
 
-  // Shared by the "Add Money" and in-checkout top-up buttons: creates a Razorpay order,
+  // Shared by the "Add Money" and in-checkout top-up buttons: creates a Cashfree order,
   // then hands the resulting payment (or nothing, in demo mode) to the server, which is
   // the only party that actually credits the wallet — the client can no longer just
   // tell the API what the new balance should be.
@@ -1089,16 +1079,14 @@ export default function App() {
       const res = await fetch(`${API_URL}/payments/create-order`, {
         method: 'POST',
         headers: authHeaders(),
-        body: JSON.stringify({ amount, currency: 'INR' })
+        body: JSON.stringify({ amount, currency: 'INR', paymentMethods: 'nb,cc,dc' })
       });
       const gatewayOrderData = await res.json();
 
-      const creditWallet = async (razorpayDetails?: { orderId: string, paymentId: string, signature: string }) => {
+      const creditWallet = async (cashfreeDetails?: { orderId: string }) => {
         const payload: any = { amount };
-        if (razorpayDetails) {
-          payload.razorpayOrderId = razorpayDetails.orderId;
-          payload.razorpayPaymentId = razorpayDetails.paymentId;
-          payload.razorpaySignature = razorpayDetails.signature;
+        if (cashfreeDetails) {
+          payload.cashfreeOrderId = cashfreeDetails.orderId;
         }
         const verifyRes = await fetch(`${API_URL}/payments/verify-wallet-topup`, {
           method: 'POST',
@@ -1117,29 +1105,13 @@ export default function App() {
       };
 
       if (gatewayOrderData.liveMode) {
-        const options = {
-          key: gatewayOrderData.keyId,
-          amount: gatewayOrderData.amount * 100, // paise
-          currency: gatewayOrderData.currency,
-          name: "Vastra Care Wallet",
-          description: "Wallet Top-up",
-          order_id: gatewayOrderData.gatewayOrderId,
-          handler: function (response: any) {
-            creditWallet({
-              orderId: response.razorpay_order_id,
-              paymentId: response.razorpay_payment_id,
-              signature: response.razorpay_signature
-            });
-          },
-          method: razorpayMethodRestriction(['netbanking', 'card']),
-          prefill: {
-            name: currentCustomer.name || '',
-            contact: currentCustomer.phone || ''
-          },
-          theme: { color: "#F43F5E" }
-        };
-        const rzp = new (window as any).Razorpay(options);
-        rzp.open();
+        const cashfree = await getCashfreeInstance(gatewayOrderData.cashfreeEnv === 'production' ? 'production' : 'sandbox');
+        const result: any = await cashfree.checkout({
+          paymentSessionId: gatewayOrderData.paymentSessionId,
+          redirectTarget: '_modal'
+        });
+        if (result?.error) return; // user closed the modal or the attempt failed
+        await creditWallet({ orderId: gatewayOrderData.gatewayOrderId });
       } else {
         await creditWallet();
       }
@@ -1173,12 +1145,10 @@ export default function App() {
       });
       const gatewayOrderData = await res.json();
 
-      const activatePlan = async (razorpayDetails?: { orderId: string, paymentId: string, signature: string }) => {
+      const activatePlan = async (cashfreeDetails?: { orderId: string }) => {
         const payload: any = { planName };
-        if (razorpayDetails) {
-          payload.razorpayOrderId = razorpayDetails.orderId;
-          payload.razorpayPaymentId = razorpayDetails.paymentId;
-          payload.razorpaySignature = razorpayDetails.signature;
+        if (cashfreeDetails) {
+          payload.cashfreeOrderId = cashfreeDetails.orderId;
         }
         const activateRes = await fetch(`${API_URL}/subscriptions/activate`, {
           method: 'POST',
@@ -1195,26 +1165,13 @@ export default function App() {
       };
 
       if (gatewayOrderData.liveMode) {
-        const options = {
-          key: gatewayOrderData.keyId,
-          amount: gatewayOrderData.amount * 100,
-          currency: gatewayOrderData.currency,
-          name: "Vastra Care Prime",
-          description: `${planName} Plan Subscription`,
-          order_id: gatewayOrderData.gatewayOrderId,
-          handler: function (response: any) {
-            activatePlan({
-              orderId: response.razorpay_order_id,
-              paymentId: response.razorpay_payment_id,
-              signature: response.razorpay_signature
-            });
-          },
-          method: razorpayMethodRestriction(['card', 'upi', 'netbanking']),
-          prefill: { name: currentCustomer.name || '', contact: currentCustomer.phone || '' },
-          theme: { color: "#F43F5E" }
-        };
-        const rzp = new (window as any).Razorpay(options);
-        rzp.open();
+        const cashfree = await getCashfreeInstance(gatewayOrderData.cashfreeEnv === 'production' ? 'production' : 'sandbox');
+        const result: any = await cashfree.checkout({
+          paymentSessionId: gatewayOrderData.paymentSessionId,
+          redirectTarget: '_modal'
+        });
+        if (result?.error) return; // user closed the modal or the attempt failed
+        await activatePlan({ orderId: gatewayOrderData.gatewayOrderId });
       } else {
         await activatePlan();
       }
@@ -2777,7 +2734,7 @@ export default function App() {
                                 </button>
                                 {expandedFaq === 30 && (
                                   <div className="p-2.5 bg-white text-[11px] text-gray-500 leading-relaxed border-t border-gray-100">
-                                    Do not worry! In case of gateway failures, deducted funds are automatically refunded to your original payment source within 3-5 working days by Razorpay.
+                                    Do not worry! In case of gateway failures, deducted funds are automatically refunded to your original payment source within 3-5 working days by Cashfree.
                                   </div>
                                 )}
                               </div>
@@ -3071,7 +3028,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* Simulated Mobile Device Checkout Modal (Razorpay simulation) */}
+            {/* Our own in-app checkout modal — the customer picks a method here, then Cashfree's own widget opens for UPI/Card/NetBanking */}
             {showCheckoutModal && (
               <div className="absolute inset-0 bg-white/90 z-40 flex items-end justify-center p-4 rounded-[40px]">
                 <div className="w-full bg-gray-50 border border-gray-200 rounded-3xl p-5 text-left flex flex-col gap-4 animate-slide-up">
