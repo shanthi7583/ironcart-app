@@ -228,10 +228,6 @@ async function computeQuote({ cartItems, couponCode, customerPhone }) {
   };
 }
 
-// --- OTP store (in-memory; fine for a single-instance deployment) ---
-const otpStore = new Map(); // phone -> { otp, expiresAt }
-const otpRateLimit = new Map(); // phone -> last-sent timestamp
-
 const ADMIN_PIN = process.env.ADMIN_PIN || '9791';
 const RIDER_PIN = process.env.RIDER_PIN || '8888';
 const OWNER_ALERT_PHONE = process.env.OWNER_ALERT_PHONE || '9791019505';
@@ -406,77 +402,12 @@ async function logWalletTransaction(phone, type, amount, description) {
 
 // --- AUTH ROUTES ---
 
-// Send OTP: the code is only ever dispatched via the notification channel below,
-// never returned in the response — that was the whole point of having an OTP.
-//
-// OTPs are stored in Supabase, not the in-memory otpStore Map below — Vercel's
-// serverless functions don't guarantee send-otp and verify-otp land on the same
-// running instance, so a plain module-level Map would randomly "forget" a code
-// that was, from the customer's point of view, just issued a moment ago.
-// PGRST205 (PostgREST: table not in schema cache) / 42P01 (Postgres: relation does
-// not exist) mean the otp_codes migration hasn't been run yet — degrade to the old
-// in-memory behavior rather than breaking OTP delivery entirely until it is.
-const isMissingTableError = (error) => error && (error.code === 'PGRST205' || error.code === '42P01');
-
-app.post('/api/auth/send-otp', async (req, res) => {
-  const { phone } = req.body;
-  if (!phone || !/^\d{10}$/.test(phone)) {
-    return res.status(400).json({ error: 'A valid 10-digit mobile number is required' });
-  }
-
-  const otp = Math.floor(1000 + Math.random() * 9000).toString();
-  const now = new Date();
-  // 10 minutes, not the more typical 5 — Fast2SMS's current promotional route is
-  // taking 3-4 minutes to actually deliver, so 5 left almost no real usable window.
-  // Revisit once a proper DLT-registered transactional route is in place.
-  const expiresAt = new Date(now.getTime() + 10 * 60 * 1000);
-  let useSupabaseOtpStore = !!supabase;
-
-  if (useSupabaseOtpStore) {
-    const { data: existing, error: lookupError } = await supabase.from('otp_codes').select('last_sent_at').eq('phone', phone).maybeSingle();
-    if (lookupError && isMissingTableError(lookupError)) {
-      useSupabaseOtpStore = false;
-    } else if (lookupError) {
-      console.error('OTP rate-limit lookup failed:', lookupError.message);
-      return res.status(503).json({ error: 'Could not send OTP right now. Please try again.' });
-    } else if (existing && now.getTime() - new Date(existing.last_sent_at).getTime() < 30 * 1000) {
-      return res.status(429).json({ error: 'Please wait a bit before requesting another OTP' });
-    }
-  }
-
-  if (useSupabaseOtpStore) {
-    const { error: writeError } = await supabase.from('otp_codes').upsert([{
-      phone, otp, expires_at: expiresAt.toISOString(), last_sent_at: now.toISOString()
-    }]);
-    if (writeError) {
-      console.error('OTP store failed:', writeError.message);
-      return res.status(503).json({ error: 'Could not send OTP right now. Please try again.' });
-    }
-  } else {
-    const lastSent = otpRateLimit.get(phone);
-    if (lastSent && now.getTime() - lastSent < 30 * 1000) {
-      return res.status(429).json({ error: 'Please wait a bit before requesting another OTP' });
-    }
-    otpRateLimit.set(phone, now.getTime());
-    otpStore.set(phone, { otp, expiresAt: expiresAt.getTime() });
-  }
-
-  const dispatchResult = await sendNotification('whatsapp', phone, `Your Vastra Care verification OTP code is ${otp}. Valid for 10 minutes.`);
-  if (!dispatchResult.ok) {
-    // Don't tell the customer "sent" when nothing actually went out — this used to
-    // always report success even when Fast2SMS explicitly failed (e.g. an empty
-    // wallet balance), leaving people waiting forever for an OTP that never arrives.
-    console.error('OTP dispatch failed:', dispatchResult.reason);
-    return res.status(503).json({ error: 'Could not send the OTP right now. Please try again in a moment.' });
-  }
-  res.json({ success: true });
-});
-
-// Verify OTP -> issues a signed session token scoped to this phone number.
-// Shared by verify-otp and the Firebase login route: once a phone number is
-// confirmed verified (by whichever channel), issue our own session token and
-// report whether a profile for it already exists. Returns { status, body } so
-// callers just forward it as the HTTP response.
+// Issues a signed session token scoped to a phone number once it's been verified.
+// Used by the Firebase login route: the client verifies the phone directly with
+// Firebase (real telecom transactional SMS route), and we independently re-check
+// that verification server-side (see /api/auth/firebase-login below) before
+// trusting it. Returns { status, body } so the caller just forwards it as the
+// HTTP response.
 async function issueSessionForPhone(phone) {
   const token = signToken({ role: 'customer', phone }, 30 * 24 * 60 * 60);
 
@@ -493,41 +424,6 @@ async function issueSessionForPhone(phone) {
   }
   return { status: 200, body: { token, exists: !!customer, customer } };
 }
-
-app.post('/api/auth/verify-otp', async (req, res) => {
-  const { phone, otp } = req.body;
-  if (!phone || !otp) return res.status(400).json({ error: 'Phone and OTP are required' });
-
-  let validOtp = false;
-  let usedSupabaseOtpStore = false;
-  if (supabase) {
-    const { data: entry, error } = await supabase.from('otp_codes').select('*').eq('phone', phone).maybeSingle();
-    if (error && !isMissingTableError(error)) {
-      console.error('OTP lookup failed during verification:', error.message);
-      return res.status(503).json({ error: 'Could not verify right now. Please try again.' });
-    }
-    if (!error) {
-      usedSupabaseOtpStore = true;
-      if (entry && entry.otp === otp && Date.now() < new Date(entry.expires_at).getTime()) {
-        validOtp = true;
-        await supabase.from('otp_codes').delete().eq('phone', phone);
-      }
-    }
-  }
-  if (!usedSupabaseOtpStore) {
-    const entry = otpStore.get(phone);
-    if (entry && entry.otp === otp && Date.now() < entry.expiresAt) {
-      validOtp = true;
-      otpStore.delete(phone);
-    }
-  }
-  if (!validOtp) {
-    return res.status(401).json({ error: 'Invalid or expired OTP' });
-  }
-
-  const { status, body } = await issueSessionForPhone(phone);
-  res.status(status).json(body);
-});
 
 // Firebase phone-auth login: the client already completed verification directly with
 // Firebase (real telecom transactional SMS route). We independently re-verify the ID

@@ -482,21 +482,18 @@ export default function App() {
   };
 
   // --- Auth Handlers ---
-  // The OTP itself never comes back to the browser. When Firebase is configured
-  // (firebaseAuth is non-null), phone verification happens via Firebase's own
-  // transactional SMS route, then the resulting ID token is exchanged server-side
-  // for our session token. If Firebase isn't configured, or fails to send, we fall
-  // back to the server's own Fast2SMS-backed /api/auth/send-otp + verify-otp flow.
-  // Verification always happens against a trusted server (Firebase or our own OTP
-  // store) which then issues a signed session token; there is no client-side bypass.
+  // The OTP itself never comes back to the browser. Phone verification happens
+  // entirely through Firebase's own transactional SMS route (invisible reCAPTCHA +
+  // signInWithPhoneNumber), and the resulting ID token is independently re-checked
+  // server-side with Firebase Admin before we issue our own session token — there is
+  // no client-side bypass. There is deliberately no fallback to any other SMS
+  // provider: a fallback that silently degrades to a slower, unfunded, or
+  // DND-blocked route is worse than a clear "please try again" error.
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
 
-  // Pre-warm the invisible reCAPTCHA as soon as the login screen mounts. Building it
+  // Pre-warm the invisible reCAPTCHA as soon as the login screen mounts — building it
   // lazily on the first "Send OTP" tap made that first attempt eat several extra
-  // seconds (sometimes long enough to time out) loading Google's recaptcha script —
-  // which made it look like Firebase failed and silently fell back to the slower
-  // Fast2SMS route, while a second "Resend" tap hit an already-warm widget and went
-  // through Firebase quickly. Rendering it ahead of time removes that cold-start gap.
+  // seconds (sometimes long enough to time out) loading Google's recaptcha script.
   useEffect(() => {
     if (!firebaseAuth || currentCustomer || authStep !== 'login') return;
     if (recaptchaVerifierRef.current) return;
@@ -512,25 +509,6 @@ export default function App() {
     }
   }, [currentCustomer, authStep]);
 
-  const sendOtpViaFast2Sms = () => {
-    fetch(`${API_URL}/auth/send-otp`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ phone: authPhone })
-    })
-      .then(async res => {
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
-        setFirebaseConfirmation(null);
-        setAuthStep('otp');
-        setResendCooldown(30); // matches the server's own rate-limit window
-        triggerNotification(`💬 OTP sent to +91 ${authPhone}! Delivery can take a few minutes right now.`);
-      })
-      .catch(err => {
-        customAlert('Could not send OTP: ' + err.message + '. Please check your connection and try again.');
-      });
-  };
-
   const handleSendOTP = () => {
     if (!authPhone || authPhone.length < 10) {
       customAlert('Please enter a valid 10-digit mobile number');
@@ -538,7 +516,7 @@ export default function App() {
     }
 
     if (!firebaseAuth) {
-      sendOtpViaFast2Sms();
+      customAlert('Sign-in is not available right now. Please try again in a moment.');
       return;
     }
 
@@ -556,42 +534,21 @@ export default function App() {
           triggerNotification(`💬 OTP sent to +91 ${authPhone}!`);
         })
         .catch(err => {
-          console.error('Firebase send OTP failed, falling back:', err);
+          console.error('Firebase send OTP failed:', err);
           recaptchaVerifierRef.current?.clear();
           recaptchaVerifierRef.current = null;
-          sendOtpViaFast2Sms();
+          customAlert('Could not send OTP right now. Please try again in a moment.');
         });
     } catch (err) {
-      console.error('Firebase RecaptchaVerifier setup failed, falling back:', err);
-      sendOtpViaFast2Sms();
+      console.error('Firebase RecaptchaVerifier setup failed:', err);
+      customAlert('Could not send OTP right now. Please try again in a moment.');
     }
-  };
-
-  const verifyOtpViaFast2Sms = () => {
-    fetch(`${API_URL}/auth/verify-otp`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ phone: authPhone, otp: authOTP })
-    })
-      .then(async res => {
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || 'Invalid OTP');
-        setSession(data.token);
-        if (data.exists && data.customer) {
-          setCurrentCustomer(data.customer);
-          setCustomerActiveTab('home');
-        } else {
-          setAuthStep('register');
-        }
-      })
-      .catch(err => {
-        customAlert(err.message || 'Invalid OTP. Please try again.');
-      });
   };
 
   const handleVerifyOTP = () => {
     if (!firebaseConfirmation) {
-      verifyOtpViaFast2Sms();
+      customAlert('Your verification session expired. Please request a new OTP.');
+      setAuthStep('login');
       return;
     }
 
@@ -1648,7 +1605,7 @@ export default function App() {
                         >
                           Verify & Continue
                         </button>
-                        <p className="text-[11px] text-gray-500 -mt-1">Delivery can take a few minutes right now — no need to request a new code unless this one expires.</p>
+                        <p className="text-[11px] text-gray-500 -mt-1">Didn't get a code? You can request a new one once the timer below finishes.</p>
                         <div className="flex justify-between items-center text-xs text-gray-500 mt-1">
                           <button
                             onClick={handleSendOTP}
