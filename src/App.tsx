@@ -1208,9 +1208,15 @@ export default function App() {
           becomes impossible to see or solve, and the OTP request just hangs forever
           with no error. Rendering it here, fixed over the whole viewport, means an
           escalated challenge is always visible and solvable regardless of where in the
-          UI the OTP form happens to live. Invisible and non-interactive until Google
-          actually puts an iframe in it. */}
-      <div id="recaptcha-container" className="fixed inset-0 z-[300] flex items-center justify-center pointer-events-none [&:has(iframe)]:pointer-events-auto [&:has(iframe)]:bg-black/60"></div>
+          UI the OTP form happens to live.
+          The wrapper itself must stay pointer-events-none UNCONDITIONALLY — reCAPTCHA
+          renders iframes into it constantly even while operating fully invisibly, so
+          any rule that flips pointer-events based on "an iframe exists in here" ends up
+          permanently blocking clicks/typing on the entire page, not just during an
+          actual visible challenge. Only the iframe(s) themselves get pointer-events —
+          harmless when they're invisible, since there are no visible pixels to
+          intercept clicks through. */}
+      <div id="recaptcha-container" className="fixed inset-0 z-[300] flex items-center justify-center pointer-events-none [&_iframe]:pointer-events-auto"></div>
 
       {/* Global Toast */}
       {toastMessage && (
