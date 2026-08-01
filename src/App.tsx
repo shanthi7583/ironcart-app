@@ -1600,7 +1600,7 @@ export default function App() {
 
 
                           {/* Promotional Slide Banner */}
-                          <div className="bg-gradient-to-r from-rose-600 to-amber-500 rounded-2xl p-0 text-left shadow-lg shadow-rose-500/15 relative overflow-hidden h-32 flex items-center justify-center group animate-slide-up stagger-1">
+                          <div className="bg-gradient-to-r from-rose-600 to-amber-500 rounded-2xl p-0 text-left shadow-lg shadow-rose-500/15 relative overflow-hidden h-36 flex items-center justify-center group animate-slide-up stagger-1">
                             <div className="absolute inset-0 flex transition-transform duration-1000 ease-in-out" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
                               {slideImages.map((src, index) => (
                                 <div key={index} className="relative w-full h-full shrink-0">
@@ -1610,7 +1610,9 @@ export default function App() {
                                     className="w-full h-full object-cover"
                                     style={{ filter: 'saturate(1.15) contrast(1.05)' }}
                                   />
-                                  <div className="absolute inset-0 bg-gradient-to-r from-rose-700/80 via-rose-600/55 to-amber-500/40"></div>
+                                  {/* Lighter than before — the photo itself should read as the
+                                      hero, not just a tint behind a solid color block. */}
+                                  <div className="absolute inset-0 bg-gradient-to-t from-rose-950/85 via-rose-900/25 to-transparent"></div>
                                 </div>
                               ))}
                             </div>
@@ -1752,13 +1754,21 @@ export default function App() {
                           {/* Refer & Earn Banner */}
                           <div
                             onClick={() => setCustomerActiveTab('rewards')}
-                            className="bg-gradient-to-r from-rose-500 to-amber-500 rounded-xl p-4 cursor-pointer text-left relative overflow-hidden shadow-lg shadow-rose-500/15 mt-1 animate-slide-up stagger-3"
+                            className="rounded-xl cursor-pointer text-left relative overflow-hidden shadow-lg shadow-rose-500/15 mt-1 animate-slide-up stagger-3 h-24"
                           >
-                            <div className="relative z-10">
+                            <img
+                              src="https://images.unsplash.com/photo-1513151233558-d860c5398176?w=800&h=400&fit=crop"
+                              alt=""
+                              className="absolute inset-0 w-full h-full object-cover"
+                              style={{ filter: 'saturate(1.15) contrast(1.05)' }}
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-r from-rose-600/90 via-rose-500/70 to-amber-500/40"></div>
+                            <div className="relative z-10 h-full flex flex-col justify-center p-4">
                               <h3 className="font-display text-white font-semibold text-lg tracking-wide leading-tight break-words whitespace-normal drop-shadow-md">Refer &amp; Earn ₹50</h3>
+                              <p className="text-[11px] text-white/90 mt-0.5">Invite a friend, you both get rewarded</p>
                             </div>
-                            <div className="absolute right-[-10px] bottom-[-10px] opacity-20">
-                              <Gift className="size-20 text-white" />
+                            <div className="absolute right-3 bottom-3 opacity-90">
+                              <Gift className="size-6 text-white drop-shadow-md" />
                             </div>
                           </div>
 
