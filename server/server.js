@@ -271,7 +271,14 @@ const DEFAULT_CUSTOMERS = [
 ];
 
 // --- SIMULATED SMS / WHATSAPP GATEWAY DISPATCHER ---
-// Integrated with Fast2SMS for cost-effective Indian mobile SMS OTPs & Alerts
+// Integrated with Fast2SMS for cost-effective Indian mobile SMS OTPs & Alerts.
+// Returns a Promise<{ok, reason}> so callers that need to know whether delivery
+// actually succeeded (the OTP route) can check it — Fast2SMS returns HTTP 200 even
+// when it fails to send (e.g. "insufficient wallet balance"), so the HTTP status
+// alone proves nothing. Existing fire-and-forget callers (order status updates,
+// welcome messages, etc.) are unaffected — they never awaited this and still don't
+// have to; failing to notify about an already-successful action is a lesser issue
+// than the OTP route silently telling a customer "sent" when nothing went out.
 const sendNotification = (type, phone, message) => {
   const timestamp = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   console.log(`\n======================================================`);
@@ -282,41 +289,52 @@ const sendNotification = (type, phone, message) => {
   console.log(`======================================================\n`);
 
   const fast2smsKey = process.env.FAST2SMS_API_KEY;
-  if (fast2smsKey && (type === 'sms' || type === 'otp' || type === 'whatsapp')) {
-    const postData = JSON.stringify({
-      route: 'q',
-      message: message,
-      language: 'english',
-      flash: 0,
-      numbers: phone
-    });
+  if (!fast2smsKey || !(type === 'sms' || type === 'otp' || type === 'whatsapp')) {
+    return Promise.resolve({ ok: false, reason: 'Fast2SMS is not configured' });
+  }
 
-    const options = {
-      hostname: 'www.fast2sms.com',
-      path: '/dev/bulkV2',
-      method: 'POST',
-      headers: {
-        'authorization': fast2smsKey,
-        'Content-Type': 'application/json',
-        'Content-Length': postData.length
-      }
-    };
+  const postData = JSON.stringify({
+    route: 'q',
+    message: message,
+    language: 'english',
+    flash: 0,
+    numbers: phone
+  });
 
+  const options = {
+    hostname: 'www.fast2sms.com',
+    path: '/dev/bulkV2',
+    method: 'POST',
+    headers: {
+      'authorization': fast2smsKey,
+      'Content-Type': 'application/json',
+      'Content-Length': postData.length
+    }
+  };
+
+  return new Promise((resolve) => {
     const req = https.request(options, (res) => {
       let body = '';
       res.on('data', chunk => body += chunk);
       res.on('end', () => {
         console.log(`✉️ Fast2SMS Live Dispatch Response Status: ${res.statusCode} - ${body}`);
+        let parsed = null;
+        try { parsed = JSON.parse(body); } catch { /* non-JSON response */ }
+        // Fast2SMS returns HTTP 200 with { return: false, message: '...' } on failure
+        // (e.g. insufficient wallet balance) — the JSON body is the real verdict.
+        const ok = res.statusCode === 200 && !!parsed && parsed.return === true;
+        resolve({ ok, reason: ok ? null : (parsed?.message || `Fast2SMS returned HTTP ${res.statusCode}`) });
       });
     });
 
     req.on('error', (e) => {
       console.error(`❌ Fast2SMS Live Transmission Failed: ${e.message}`);
+      resolve({ ok: false, reason: e.message });
     });
 
     req.write(postData);
     req.end();
-  }
+  });
 };
 
 // --- API MAPPER HELPERS ---
@@ -443,7 +461,14 @@ app.post('/api/auth/send-otp', async (req, res) => {
     otpStore.set(phone, { otp, expiresAt: expiresAt.getTime() });
   }
 
-  sendNotification('whatsapp', phone, `Your Vastra Care verification OTP code is ${otp}. Valid for 10 minutes.`);
+  const dispatchResult = await sendNotification('whatsapp', phone, `Your Vastra Care verification OTP code is ${otp}. Valid for 10 minutes.`);
+  if (!dispatchResult.ok) {
+    // Don't tell the customer "sent" when nothing actually went out — this used to
+    // always report success even when Fast2SMS explicitly failed (e.g. an empty
+    // wallet balance), leaving people waiting forever for an OTP that never arrives.
+    console.error('OTP dispatch failed:', dispatchResult.reason);
+    return res.status(503).json({ error: 'Could not send the OTP right now. Please try again in a moment.' });
+  }
   res.json({ success: true });
 });
 
