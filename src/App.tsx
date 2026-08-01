@@ -1403,7 +1403,12 @@ export default function App() {
               <div className="absolute top-2 left-1/2 -translate-x-1/2 w-28 h-4 bg-gray-100 rounded-full z-20"></div>
 
               {/* Inside Mobile App Viewport */}
-              <div className="flex-1 flex flex-col overflow-y-auto px-4 pt-8 pb-4" style={{ background: 'radial-gradient(circle at 15% 0%, rgba(244,63,94,0.05), transparent 45%), radial-gradient(circle at 100% 20%, rgba(245,158,11,0.06), transparent 40%), #FFF9F0' }}>
+              <div
+                className="flex-1 flex flex-col overflow-y-auto px-4 pt-8 pb-4"
+                style={!currentCustomer ? {
+                  background: 'radial-gradient(circle at 18% -8%, rgba(244,63,94,0.30), transparent 55%), radial-gradient(circle at 105% 12%, rgba(245,158,11,0.32), transparent 48%), linear-gradient(165deg, #FFF3E6 0%, #FFEBE2 45%, #FFE0DD 100%)'
+                } : { background: 'radial-gradient(circle at 15% 0%, rgba(244,63,94,0.05), transparent 45%), radial-gradient(circle at 100% 20%, rgba(245,158,11,0.06), transparent 40%), #FFF9F0' }}
+              >
                 
                 {/* Rider Portal View */}
                 {viewMode === 'rider' ? (
@@ -1486,8 +1491,28 @@ export default function App() {
                   </div>
                 ) : !currentCustomer ? (
                   <div className="flex-1 flex flex-col justify-center gap-5">
+                    {/* Brand mark — a custom hanger-and-steam glyph, not a stock icon */}
+                    <div className="flex flex-col items-center gap-3 relative">
+                      <div className="absolute -top-6 size-32 bg-gradient-to-br from-rose-400 via-orange-300 to-amber-300 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
+
+                      <div className="relative size-[68px] rounded-[22px] bg-gradient-to-br from-rose-600 via-rose-500 to-amber-500 shadow-lg shadow-rose-500/40 flex items-center justify-center border-[3px] border-white overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/35"></div>
+                        <svg viewBox="0 0 48 48" className="size-9 relative z-10" fill="none">
+                          <path d="M21 4c0 2-3.5 2-3.5 4.5S21 11 21 13" stroke="white" strokeWidth="2.2" strokeLinecap="round" opacity="0.9" />
+                          <path d="M29 4c0 2-3.5 2-3.5 4.5S29 11 29 13" stroke="white" strokeWidth="2.2" strokeLinecap="round" opacity="0.9" />
+                          <path d="M24 12L9.5 23.5A3 3 0 0 0 11.5 29H36.5A3 3 0 0 0 38.5 23.5L24 12Z" fill="white" />
+                          <rect x="9.5" y="30.5" width="29" height="3" rx="1.5" fill="white" />
+                        </svg>
+                      </div>
+
+                      <div className="text-center flex flex-col items-center gap-1 relative">
+                        <h2 className="font-display text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-amber-600 tracking-tight drop-shadow-sm">Vastra Care</h2>
+                        <p className="text-sm font-extrabold text-rose-600 tracking-wide">Pressed to perfection, picked up at your door.</p>
+                      </div>
+                    </div>
+
                     {/* Rotating hero carousel — three slides, auto-advancing every 4s */}
-                    <div className="relative w-full h-44 rounded-3xl overflow-hidden shadow-xl shadow-rose-500/25">
+                    <div className="relative w-full h-40 rounded-3xl overflow-hidden shadow-xl shadow-rose-500/25">
                       {LOGIN_HERO_SLIDES.map((slide, i) => (
                         <div
                           key={slide.title}
@@ -1507,10 +1532,6 @@ export default function App() {
                           </div>
                         </div>
                       ))}
-                      <div className="absolute top-3 left-3 flex items-center gap-1 bg-black/25 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20">
-                        <Sparkles className="size-3 text-amber-300" />
-                        <span className="text-white text-[10px] font-bold uppercase tracking-wider">Premium Steam Care</span>
-                      </div>
                       <div className="absolute bottom-3 right-4 flex gap-1.5">
                         {LOGIN_HERO_SLIDES.map((_, i) => (
                           <button
@@ -1521,11 +1542,6 @@ export default function App() {
                           />
                         ))}
                       </div>
-                    </div>
-
-                    <div className="text-center flex flex-col items-center gap-0.5">
-                      <h2 className="font-display text-3xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-amber-500 tracking-tight drop-shadow-sm">Vastra Care</h2>
-                      <p className="text-[11px] font-bold text-gray-400 tracking-wide">Pressed to perfection, picked up at your door.</p>
                     </div>
 
                     {authStep === 'login' && (
