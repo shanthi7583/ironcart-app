@@ -599,7 +599,7 @@ export default function App() {
         setCurrentCustomer(data);
         setAuthPhone('');
         setAuthOTP('');
-        triggerNotification(`🎉 Welcome to Vastra Care, ${data.name}!`);
+        triggerNotification(`🎉 Welcome to PressGo, ${data.name}!`);
       })
       .catch(err => {
         customAlert('Could not complete registration: ' + err.message + '. Please try again.');
@@ -1316,7 +1316,7 @@ export default function App() {
               </svg>
             </div>
             <div>
-              <h1 className="font-display text-xl font-semibold tracking-tight m-0 p-0 text-left bg-clip-text text-transparent bg-gradient-to-r from-rose-500 to-amber-500">Vastra Care</h1>
+              <h1 className="font-display text-xl font-semibold tracking-tight m-0 p-0 text-left bg-clip-text text-transparent bg-gradient-to-r from-rose-500 to-amber-500">PressGo</h1>
               <p className="text-xs text-gray-500 text-left font-medium">Premium Ironing & Care</p>
             </div>
           </div>
@@ -1459,7 +1459,7 @@ export default function App() {
                           </div>
 
                           <div className="text-center flex flex-col items-center gap-1.5 relative">
-                            <h2 className="font-display italic text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 via-orange-500 to-amber-600 tracking-tight drop-shadow-sm">Vastra Care</h2>
+                            <h2 className="font-display italic text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 via-orange-500 to-amber-600 tracking-tight drop-shadow-sm">PressGo</h2>
                             <p className="flex items-center gap-2 text-sm font-extrabold text-rose-600 tracking-wide">
                               <Sparkles className="size-3.5 text-amber-500 animate-spark shrink-0" />
                               <span className="text-shimmer">Pressed to perfection, picked up at your door.</span>
@@ -1530,7 +1530,7 @@ export default function App() {
                                 <path d="M8 22a2 2 0 0 1 2-2h14c9 0 15 4.5 15 9s-6 9-15 9H10a2 2 0 0 1-2-2Z" fill="white" />
                               </svg>
                             </div>
-                            <span className="font-display text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-amber-600 tracking-tight">Vastra Care</span>
+                            <span className="font-display text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-amber-600 tracking-tight">PressGo</span>
                           </div>
                         </div>
 
@@ -1783,7 +1783,7 @@ export default function App() {
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2 transform transition-transform hover:scale-105">
                                 <span className="text-lg">💳</span>
-                                <span className="text-sm font-bold text-gray-900">Vastra Care Wallet</span>
+                                <span className="text-sm font-bold text-gray-900">PressGo Wallet</span>
                               </div>
                               <span className="font-display text-xl font-semibold text-emerald-500">₹{currentCustomer?.walletBalance || 0}</span>
                             </div>
@@ -2036,7 +2036,7 @@ export default function App() {
                             </div>
                             <h2 className="text-base font-black text-white relative z-10 tracking-tight leading-tight break-words whitespace-normal">Earn ₹50 Per Friend</h2>
                             <p className="text-xs text-gray-300 mt-2 relative z-10 max-w-[250px] leading-relaxed">
-                              Invite your friends to Vastra Care. When they complete their first order, you <strong className="text-white">both get ₹50</strong> added to your wallets!
+                              Invite your friends to PressGo. When they complete their first order, you <strong className="text-white">both get ₹50</strong> added to your wallets!
                             </p>
                           </div>
 
@@ -2044,12 +2044,12 @@ export default function App() {
                           <div className="bg-white border border-gray-200 rounded-2xl p-5 mt-2 flex flex-col items-center shadow-sm">
                             <span className="text-[12px] font-bold text-gray-500 uppercase tracking-wider mb-2">Your Unique Code</span>
                             <div className="bg-gray-50 border-2 border-dashed border-rose-500/30 text-rose-500 font-mono text-2xl font-black px-6 py-3 rounded-xl tracking-[0.2em] w-full text-center select-all">
-                              {currentCustomer.referralCode || 'VASTRA-NEW'}
+                              {currentCustomer.referralCode || 'PRESSGO-NEW'}
                             </div>
                             
                             <button
                               onClick={() => {
-                                const text = `Hey! Use my code ${currentCustomer.referralCode || 'VASTRA-NEW'} to get ₹50 off your first Vastra Care ironing & laundry order! 🧺✨\nDownload the app and sign up now!`;
+                                const text = `Hey! Use my code ${currentCustomer.referralCode || 'PRESSGO-NEW'} to get ₹50 off your first PressGo ironing & laundry order! 🧺✨\nDownload the app and sign up now!`;
                                 const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
                                 window.open(whatsappUrl, '_blank');
                               }}
@@ -2060,7 +2060,7 @@ export default function App() {
 
                             <div className="flex flex-col items-center mt-4 pt-4 border-t border-gray-100 w-full">
                               <img
-                                src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(currentCustomer.referralCode || 'VASTRA-NEW')}`}
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(currentCustomer.referralCode || 'PRESSGO-NEW')}`}
                                 alt="Referral code QR"
                                 className="size-[110px] rounded-lg border border-gray-200"
                               />
@@ -2112,7 +2112,7 @@ export default function App() {
                                     </div>
                                     <p className="text-[11px] text-gray-500">
                                       Status updated to <strong className="text-rose-400">{order.status}</strong>. 
-                                      {order.status === 'Delivered' ? ' Thank you for choosing Vastra Care!' : ' We are working on it.'}
+                                      {order.status === 'Delivered' ? ' Thank you for choosing PressGo!' : ' We are working on it.'}
                                     </p>
                                   </div>
                                 </div>
@@ -2783,13 +2783,13 @@ export default function App() {
                             <button onClick={() => setCustomerActiveTab('home')} className="p-1 hover:bg-gray-200 rounded-lg">
                               <ArrowLeft className="size-4 text-gray-500" />
                             </button>
-                            <h3 className="text-sm font-bold text-gray-900">Vastra Care Prime Plans</h3>
+                            <h3 className="text-sm font-bold text-gray-900">PressGo Prime Plans</h3>
                           </div>
                           
                           <div className="w-full h-32 rounded-2xl overflow-hidden relative shadow-lg">
                             <img src="/subscription_banner_1785298423353.png" alt="Prime Subscription" className="w-full h-full object-cover opacity-80 mix-blend-screen" />
                             <div className="absolute inset-0 flex flex-col justify-end p-4 bg-gradient-to-t from-slate-950 to-transparent">
-                              <h4 className="font-display font-semibold text-white text-2xl drop-shadow-md">Vastra Care Prime</h4>
+                              <h4 className="font-display font-semibold text-white text-2xl drop-shadow-md">PressGo Prime</h4>
                               <p className="text-amber-300 text-xs font-bold mt-0.5 drop-shadow-md">Subscribe & Save</p>
                             </div>
                           </div>
@@ -3035,7 +3035,7 @@ export default function App() {
                   {/* Checkout Header */}
                   <div className="flex items-center justify-between pb-3 border-b border-gray-200">
                     <div>
-                      <h4 className="text-xs font-bold text-gray-500">Vastra Care Checkout</h4>
+                      <h4 className="text-xs font-bold text-gray-500">PressGo Checkout</h4>
                       <h3 className="font-display text-lg font-semibold text-gray-900 mt-0.5">Pay ₹{confirmedQuote?.total ?? calculateTotals().total}</h3>
                     </div>
                     <button onClick={() => { setShowCheckoutModal(false); setConfirmedQuote(null); setIsSubmittingOrder(false); }} className="text-xs text-gray-500 hover:text-gray-900">Cancel</button>
@@ -3062,7 +3062,7 @@ export default function App() {
                     >
                       <Wallet className="size-4 text-emerald-400" />
                       <div className="text-xs font-semibold text-left">
-                        <span>Vastra Care Wallet</span>
+                        <span>PressGo Wallet</span>
                         <div className="text-[11px] opacity-75">Pay using your prepaid balance</div>
                       </div>
                     </button>
@@ -3111,7 +3111,7 @@ export default function App() {
                         {upiDetails.id && (
                           <div className="bg-white p-1 rounded shrink-0">
                             <img 
-                              src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=upi://pay?pa=${upiDetails.id}&pn=Vastra Care&cu=INR`} 
+                              src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=upi://pay?pa=${upiDetails.id}&pn=PressGo&cu=INR`} 
                               alt="UPI QR Code" 
                               className="w-16 h-16 object-contain"
                             />
@@ -3130,7 +3130,7 @@ export default function App() {
                       </div>
 
                       <a 
-                        href={`upi://pay?pa=${upiDetails.id}&pn=Vastra Care&cu=INR`} 
+                        href={`upi://pay?pa=${upiDetails.id}&pn=PressGo&cu=INR`} 
                         className="w-full bg-gray-50 hover:bg-gray-200 text-center text-gray-900 py-2 rounded-lg font-bold border border-gray-200 transition-colors mt-2"
                       >
                         Click to Open UPI App
@@ -3159,7 +3159,7 @@ export default function App() {
                   {paymentMethod === 'Wallet' && (
                     <div className="bg-white border border-gray-200 p-3 rounded-xl flex flex-col gap-2 mt-1 text-left text-xs animate-fade-in">
                       <div className="font-bold text-gray-900 flex items-center justify-between">
-                        <span>💳 Vastra Care Wallet Balance</span>
+                        <span>💳 PressGo Wallet Balance</span>
                         <span className="text-emerald-500">₹{currentCustomer?.walletBalance || 0}</span>
                       </div>
                       
@@ -3660,7 +3660,7 @@ export default function App() {
                       <div className="mt-2 flex gap-4 items-start">
                         <div className="bg-white p-2 rounded-lg">
                           <img 
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=upi://pay?pa=${upiDetails.id}&pn=Vastra Care&cu=INR`} 
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=upi://pay?pa=${upiDetails.id}&pn=PressGo&cu=INR`} 
                             alt="Live QR Preview" 
                             className="w-[100px] h-[100px]"
                           />
@@ -3697,7 +3697,7 @@ export default function App() {
             {/* Invoice Header */}
             <div className="flex justify-between items-start border-b border-slate-200 pb-4">
               <div>
-                <h3 className="font-display text-xl font-semibold tracking-tight text-slate-900">Vastra Care Invoice</h3>
+                <h3 className="font-display text-xl font-semibold tracking-tight text-slate-900">PressGo Invoice</h3>
                 <span className="text-[12px] text-gray-500 font-mono">No. {selectedInvoice.invoiceNo || `IK${selectedInvoice.id.split('-')[0].toUpperCase()}`}</span>
               </div>
               <button 
@@ -3875,7 +3875,7 @@ export default function App() {
       )}
 
       <footer className="border-t border-gray-200 bg-white px-6 py-4 text-center text-xs text-gray-500">
-        <p>© 2026 Vastra Care. <a href="/terms.html" target="_blank" rel="noreferrer" className="underline hover:text-rose-500">Terms</a> · <a href="/privacy.html" target="_blank" rel="noreferrer" className="underline hover:text-rose-500">Privacy</a></p>
+        <p>© 2026 PressGo. <a href="/terms.html" target="_blank" rel="noreferrer" className="underline hover:text-rose-500">Terms</a> · <a href="/privacy.html" target="_blank" rel="noreferrer" className="underline hover:text-rose-500">Privacy</a></p>
       </footer>
 
     </div>

@@ -666,7 +666,7 @@ app.post('/api/orders', authMiddleware, requireRole('customer', 'admin', 'rider'
   };
 
   // Dispatch alerts
-  sendNotification('whatsapp', customerPhone, `Hi ${newOrder.customerName}, your Vastra Care order ${newOrder.id} of ₹${quote.total} was placed! Pickup scheduled for ${newOrder.pickupDate} (${newOrder.pickupTime}).`);
+  sendNotification('whatsapp', customerPhone, `Hi ${newOrder.customerName}, your PressGo order ${newOrder.id} of ₹${quote.total} was placed! Pickup scheduled for ${newOrder.pickupDate} (${newOrder.pickupTime}).`);
   sendNotification('sms', OWNER_ALERT_PHONE, `Owner Alert: New order ${newOrder.id} received from ${newOrder.customerName} (${newOrder.apartmentNo}).`);
 
   res.status(201).json(responseOrder);
@@ -705,9 +705,9 @@ app.patch('/api/orders/:id/status', authMiddleware, async (req, res) => {
   if (!error && data && data.length > 0) {
     const order = mapOrderToFrontend(data[0]);
     if (status === 'Cancelled') {
-      sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your Vastra Care order ${order.id} has been Cancelled. Reason: ${cancelReason}`);
+      sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your PressGo order ${order.id} has been Cancelled. Reason: ${cancelReason}`);
     } else {
-      sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your Vastra Care order ${order.id} status is now: [${status}].`);
+      sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your PressGo order ${order.id} status is now: [${status}].`);
 
       // Referral Reward Logic
       if (status === 'Delivered') {
@@ -724,7 +724,7 @@ app.patch('/api/orders/:id/status', authMiddleware, async (req, res) => {
                 console.error('Referral credit (new customer) failed:', creditError.message);
               } else {
                 await logWalletTransaction(order.customerPhone, 'credit', 50, 'Referral reward — your first order');
-                sendNotification('whatsapp', order.customerPhone, `🎉 Congratulations! ₹50 has been added to your Vastra Care wallet for completing your first referred order!`);
+                sendNotification('whatsapp', order.customerPhone, `🎉 Congratulations! ₹50 has been added to your PressGo wallet for completing your first referred order!`);
               }
 
               // Reward referrer
@@ -770,7 +770,7 @@ app.patch('/api/orders/:id/reschedule', authMiddleware, async (req, res) => {
   const { data, error } = await supabase.from('orders').update({ pickup_date: pickupDate, pickup_time: pickupTime }).eq('id', id).select();
   if (!error && data && data.length > 0) {
     const order = mapOrderToFrontend(data[0]);
-    sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your Vastra Care order ${order.id} has been RESCHEDULED to ${pickupDate} (${pickupTime}).`);
+    sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your PressGo order ${order.id} has been RESCHEDULED to ${pickupDate} (${pickupTime}).`);
     return res.json(order);
   }
   console.error('Order reschedule failed:', error?.message || 'no matching order row');
@@ -786,7 +786,7 @@ app.patch('/api/orders/:id/payment', authMiddleware, requireRole('admin', 'rider
     const { data, error } = await supabase.from('orders').update({ payment_status: paymentStatus }).eq('id', id).select();
     if (!error && data && data.length > 0) {
       const order = mapOrderToFrontend(data[0]);
-      sendNotification('sms', order.customerPhone, `Vastra Care: Payment of ₹${order.total} for order ${order.id} is confirmed [Paid].`);
+      sendNotification('sms', order.customerPhone, `PressGo: Payment of ₹${order.total} for order ${order.id} is confirmed [Paid].`);
       return res.json(order);
     }
     console.error('Order payment status update failed:', error?.message || 'no matching order row');
@@ -857,7 +857,7 @@ app.post('/api/customers', authMiddleware, requireRole('customer'), async (req, 
       return res.json(mapCustomerToFrontend(existing[0]));
     }
 
-    const referralCode = `VASTRA-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    const referralCode = `PRESSGO-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
     const customerData = {
       phone,
@@ -879,7 +879,7 @@ app.post('/api/customers', authMiddleware, requireRole('customer'), async (req, 
       console.error('Customer insert failed during registration:', insertError.message);
       return res.status(500).json({ error: 'We could not create your profile. Please try again.' });
     }
-    sendNotification('sms', phone, `Welcome to Vastra Care, ${newCustomer.name}! Your pickup profile has been created successfully.`);
+    sendNotification('sms', phone, `Welcome to PressGo, ${newCustomer.name}! Your pickup profile has been created successfully.`);
     return res.status(201).json(mapCustomerToFrontend(inserted[0]));
   }
 
@@ -894,11 +894,11 @@ app.post('/api/customers', authMiddleware, requireRole('customer'), async (req, 
       apartmentNo: newCustomer.apartmentNo || '',
       address: newCustomer.address || '',
       addresses: newCustomer.addresses || [],
-      referralCode: `VASTRA-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+      referralCode: `PRESSGO-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
       referredBy: newCustomer.referredBy || null
     });
   }
-  sendNotification('sms', phone, `Welcome to Vastra Care, ${newCustomer.name}! Your pickup profile has been created successfully.`);
+  sendNotification('sms', phone, `Welcome to PressGo, ${newCustomer.name}! Your pickup profile has been created successfully.`);
   res.status(201).json({ ...newCustomer, phone });
 });
 
@@ -1129,7 +1129,7 @@ app.post('/api/subscriptions/activate', authMiddleware, requireRole('customer'),
 
 if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
-    console.log(`🚀 Vastra Care Backend API Server is running on http://localhost:${PORT}`);
+    console.log(`🚀 PressGo Backend API Server is running on http://localhost:${PORT}`);
   });
 }
 

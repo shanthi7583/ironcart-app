@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.vastracare.app',
-  appName: 'Vastra Care',
+  appName: 'PressGo',
   webDir: 'dist'
 };
 

@@ -1,4 +1,6 @@
 {
+  "name": "PressGo",
+  "short_name": "PressGo",
   "icons": [
     {
       "src": "../icons/icon-48.webp",
