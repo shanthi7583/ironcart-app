@@ -850,13 +850,28 @@ export default function App() {
     }
 
     if ((paymentMethod === 'UPI' || paymentMethod === 'Card' || paymentMethod === 'NetBanking') && gatewayOrderData?.liveMode) {
-      // Trigger live Cashfree Checkout (in-page modal, matches the old Razorpay popup UX)
-      getCashfreeInstance(gatewayOrderData.cashfreeEnv === 'production' ? 'production' : 'sandbox')
-        .then(cashfree => cashfree.checkout({
-          paymentSessionId: gatewayOrderData.paymentSessionId,
-          redirectTarget: '_modal'
-        }))
-        .then((result: any) => {
+      // The gateway order created back in handlePlaceOrder (before the customer had
+      // picked a method) can't be restricted to one method yet, so Cashfree's checkout
+      // would show every method it has enabled — Card, UPI, NetBanking, Pay Later,
+      // Cardless EMI, wallets, all of it. Now that we know exactly which method they
+      // picked, create a fresh, correctly-restricted order for it before opening
+      // checkout, so the customer only ever sees the one method they chose.
+      const methodCode = paymentMethod === 'UPI' ? 'upi' : paymentMethod === 'Card' ? 'cc,dc' : 'nb';
+      fetch(`${API_URL}/payments/create-order`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ cartItems: buildCartItems(), couponCode: appliedCoupon, currency: 'INR', paymentMethods: methodCode })
+      })
+        .then(async res => {
+          const restrictedOrder = await res.json().catch(() => ({}));
+          if (!res.ok || !restrictedOrder.paymentSessionId) throw new Error(restrictedOrder.error || 'Failed to prepare payment');
+
+          // Trigger live Cashfree Checkout (in-page modal, matches the old Razorpay popup UX)
+          const cashfree = await getCashfreeInstance(restrictedOrder.cashfreeEnv === 'production' ? 'production' : 'sandbox');
+          const result: any = await cashfree.checkout({
+            paymentSessionId: restrictedOrder.paymentSessionId,
+            redirectTarget: '_modal'
+          });
           if (result?.error) {
             // User closed the modal, or the attempt failed inside it — nothing to verify.
             setIsSubmittingOrder(false);
@@ -864,7 +879,7 @@ export default function App() {
           }
           // Whatever the modal reported, Cashfree's own Get Order status is the only
           // thing worth trusting — confirmOrderPayment hands that off to the server.
-          confirmOrderPayment({ orderId: gatewayOrderData.gatewayOrderId });
+          confirmOrderPayment({ orderId: restrictedOrder.gatewayOrderId });
         })
         .catch((err: any) => {
           console.error('Cashfree checkout failed:', err);
@@ -3157,48 +3172,16 @@ export default function App() {
                   )}
 
                   {paymentMethod === 'Card' && (
-                    <div className="bg-white border border-gray-200 p-3 rounded-xl flex flex-col gap-2.5 mt-1 text-left text-xs animate-fade-in">
-                      <div className="font-bold text-gray-900">💳 Card Payment Details</div>
-                      <div className="flex flex-col gap-2">
-                        <input 
-                          type="text" 
-                          placeholder="Cardholder Name" 
-                          className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 outline-none focus:border-rose-500" 
-                        />
-                        <input 
-                          type="text" 
-                          placeholder="Card Number (16-digits)" 
-                          maxLength={16}
-                          className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 outline-none focus:border-rose-500" 
-                        />
-                        <div className="grid grid-cols-2 gap-2">
-                          <input 
-                            type="text" 
-                            placeholder="Expiry (MM/YY)" 
-                            maxLength={5}
-                            className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 outline-none focus:border-rose-500" 
-                          />
-                          <input 
-                            type="password" 
-                            placeholder="CVV (3-digits)" 
-                            maxLength={3}
-                            className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 outline-none focus:border-rose-500" 
-                          />
-                        </div>
-                      </div>
+                    <div className="bg-white border border-gray-200 p-3 rounded-xl flex flex-col gap-1 mt-1 text-left text-xs animate-fade-in">
+                      <div className="font-bold text-gray-900">💳 Credit / Debit Card</div>
+                      <p className="text-gray-500 text-[11px] leading-relaxed">Tap "Confirm & Submit Order" — you'll enter your card number, expiry, and CVV once, on Cashfree's secure payment screen. We never see or store those details.</p>
                     </div>
                   )}
 
                   {paymentMethod === 'NetBanking' && (
-                    <div className="bg-white border border-gray-200 p-3 rounded-xl flex flex-col gap-2.5 mt-1 text-left text-xs animate-fade-in">
-                      <div className="font-bold text-gray-900">🏦 Select NetBanking Bank</div>
-                      <select className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 outline-none focus:border-rose-500">
-                        <option value="SBI">State Bank of India (SBI)</option>
-                        <option value="HDFC">HDFC Bank</option>
-                        <option value="ICICI">ICICI Bank</option>
-                        <option value="AXIS">Axis Bank</option>
-                        <option value="KOTAK">Kotak Mahindra Bank</option>
-                      </select>
+                    <div className="bg-white border border-gray-200 p-3 rounded-xl flex flex-col gap-1 mt-1 text-left text-xs animate-fade-in">
+                      <div className="font-bold text-gray-900">🏦 NetBanking</div>
+                      <p className="text-gray-500 text-[11px] leading-relaxed">Tap "Confirm & Submit Order" — you'll pick your bank and log in securely on Cashfree's payment screen.</p>
                     </div>
                   )}
 
