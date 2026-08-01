@@ -141,6 +141,25 @@ const CATEGORY_IMAGES: Record<string, string> = {
 };
 const FALLBACK_CATEGORY_IMAGE = 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&h=300&fit=crop';
 
+// Pre-login hero carousel — three rotating slides shown above the phone-number form.
+const LOGIN_HERO_SLIDES = [
+  {
+    img: 'https://images.unsplash.com/photo-1489274495757-95c7c837b101?w=800&h=1000&fit=crop',
+    title: 'Steam-Pressed to Perfection',
+    subtitle: 'Fabric-safe steam care — no burns, no shine, just crisp results.'
+  },
+  {
+    img: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&h=1000&fit=crop',
+    title: 'Doorstep Pickup, Zero Hassle',
+    subtitle: 'Schedule a pickup in seconds — we handle the rest, door to door.'
+  },
+  {
+    img: 'https://images.unsplash.com/photo-1616627561950-9f746e330187?w=800&h=1000&fit=crop',
+    title: 'Fresh, Folded, On Time',
+    subtitle: 'Every order quality-checked and delivered back within 24 hours.'
+  }
+];
+
 export default function App() {
   // --- Persistent State using Backend API & LocalStorage ---
   const API_URL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL || 'http://localhost:5000/api');
@@ -329,6 +348,14 @@ export default function App() {
   // Set only when Firebase handled this OTP round — verification then goes through
   // Firebase's own confirm() rather than our /api/auth/verify-otp fallback.
   const [firebaseConfirmation, setFirebaseConfirmation] = useState<ConfirmationResult | null>(null);
+
+  const [loginHeroIndex, setLoginHeroIndex] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setLoginHeroIndex(i => (i + 1) % LOGIN_HERO_SLIDES.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, []);
   const [notification, setNotification] = useState<string | null>(null);
 
   useEffect(() => {
@@ -1435,28 +1462,47 @@ export default function App() {
                     </div>
                   </div>
                 ) : !currentCustomer ? (
-                  <div className="flex-1 flex flex-col justify-center gap-6">
-                    <div className="text-center flex flex-col items-center gap-2">
-                      <div className="size-20 bg-gradient-to-tr from-rose-500 to-amber-500 rounded-3xl flex items-center justify-center shadow-lg shadow-rose-500/30 relative overflow-hidden mb-3 border-[3px] border-white animate-pulse">
-                        <div className="absolute inset-0 bg-white/20 rotate-45 transform translate-x-[-20px]"></div>
-                        <Shirt className="size-10 text-white drop-shadow-md" />
-                        <Sparkles className="size-5 text-amber-200 absolute top-3 right-3" />
+                  <div className="flex-1 flex flex-col justify-center gap-5">
+                    {/* Rotating hero carousel — three slides, auto-advancing every 4s */}
+                    <div className="relative w-full h-44 rounded-3xl overflow-hidden shadow-xl shadow-rose-500/25">
+                      {LOGIN_HERO_SLIDES.map((slide, i) => (
+                        <div
+                          key={slide.title}
+                          className="absolute inset-0 transition-opacity duration-700 ease-out"
+                          style={{ opacity: i === loginHeroIndex ? 1 : 0 }}
+                        >
+                          <img
+                            src={slide.img}
+                            alt=""
+                            className="absolute inset-0 w-full h-full object-cover"
+                            style={{ filter: 'saturate(1.1) contrast(1.05)' }}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/20 to-transparent" />
+                          <div className="absolute inset-x-0 bottom-0 p-4">
+                            <h3 className="font-display italic text-white text-lg font-semibold leading-tight tracking-tight drop-shadow-md">{slide.title}</h3>
+                            <p className="text-white/80 text-[10.5px] leading-snug mt-0.5 max-w-[88%]">{slide.subtitle}</p>
+                          </div>
+                        </div>
+                      ))}
+                      <div className="absolute top-3 left-3 flex items-center gap-1 bg-black/25 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20">
+                        <Sparkles className="size-3 text-amber-300" />
+                        <span className="text-white text-[10px] font-bold uppercase tracking-wider">Premium Steam Care</span>
                       </div>
-                      {/* Steam Iron Icon badge under the IK logo */}
-                      <div className="flex justify-center -mt-1 mb-1 text-rose-500 bg-rose-50 px-2 py-1.5 rounded-full border border-rose-100 items-center gap-1.5 shadow-sm scale-90 select-none">
-                        <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M2 16h20" />
-                          <path d="M6 16a4 4 0 0 1-4-4V6h15a5 5 0 0 1 5 5v5" />
-                          <path d="M9 6v10" />
-                          <path d="M14 6v10" />
-                          <path d="M18 10h4" />
-                        </svg>
-                        <span className="text-[11px] font-black tracking-wider uppercase">Premium Steam Care</span>
+                      <div className="absolute bottom-3 right-4 flex gap-1.5">
+                        {LOGIN_HERO_SLIDES.map((_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setLoginHeroIndex(i)}
+                            aria-label={`Show slide ${i + 1}`}
+                            className={`h-1.5 rounded-full transition-all ${i === loginHeroIndex ? 'w-5 bg-white' : 'w-1.5 bg-white/45'}`}
+                          />
+                        ))}
                       </div>
-                      <h2 className="font-display text-4xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-amber-500 tracking-tight drop-shadow-sm pb-1">Vastra Care</h2>
-                      <p className="text-xs font-extrabold bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 bg-clip-text text-transparent mt-1 max-w-[260px] mx-auto leading-relaxed animate-pulse drop-shadow-sm">
-                        Pressed to perfection, picked up at your door.
-                      </p>
+                    </div>
+
+                    <div className="text-center flex flex-col items-center gap-0.5">
+                      <h2 className="font-display text-3xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-amber-500 tracking-tight drop-shadow-sm">Vastra Care</h2>
+                      <p className="text-[11px] font-bold text-gray-400 tracking-wide">Pressed to perfection, picked up at your door.</p>
                     </div>
 
                     {authStep === 'login' && (
