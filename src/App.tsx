@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Plus, Minus, Clock, Check, MapPin,
   TrendingUp, Users, Smartphone,
@@ -6,6 +6,8 @@ import {
   FileText, CreditCard, ArrowLeft, Settings,
   Bell, HelpCircle, LogOut, Eye, RefreshCw, Key, Star, Navigation, Wallet, X, Phone, Gift, Landmark, Truck, User, Shirt, Sparkles
 } from 'lucide-react'
+import { auth as firebaseAuth, RecaptchaVerifier } from './firebaseConfig'
+import { signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth'
 
 // Define interfaces
 interface GarmentItem {
@@ -324,6 +326,9 @@ export default function App() {
   const [authReferredBy, setAuthReferredBy] = useState('');
   const [authOTP, setAuthOTP] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
+  // Set only when Firebase handled this OTP round — verification then goes through
+  // Firebase's own confirm() rather than our /api/auth/verify-otp fallback.
+  const [firebaseConfirmation, setFirebaseConfirmation] = useState<ConfirmationResult | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
 
   useEffect(() => {
@@ -449,15 +454,16 @@ export default function App() {
   };
 
   // --- Auth Handlers ---
-  // The OTP itself never comes back to the browser — it's only ever dispatched via the
-  // SMS/WhatsApp gateway server-side. Verification happens against the server's OTP
-  // store, which then issues a signed session token; there is no client-side bypass.
-  const handleSendOTP = () => {
-    if (!authPhone || authPhone.length < 10) {
-      customAlert('Please enter a valid 10-digit mobile number');
-      return;
-    }
+  // The OTP itself never comes back to the browser. When Firebase is configured
+  // (firebaseAuth is non-null), phone verification happens via Firebase's own
+  // transactional SMS route, then the resulting ID token is exchanged server-side
+  // for our session token. If Firebase isn't configured, or fails to send, we fall
+  // back to the server's own Fast2SMS-backed /api/auth/send-otp + verify-otp flow.
+  // Verification always happens against a trusted server (Firebase or our own OTP
+  // store) which then issues a signed session token; there is no client-side bypass.
+  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
 
+  const sendOtpViaFast2Sms = () => {
     fetch(`${API_URL}/auth/send-otp`, {
       method: 'POST',
       headers: authHeaders(),
@@ -466,6 +472,7 @@ export default function App() {
       .then(async res => {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
+        setFirebaseConfirmation(null);
         setAuthStep('otp');
         setResendCooldown(30); // matches the server's own rate-limit window
         triggerNotification(`💬 OTP sent to +91 ${authPhone}! Delivery can take a few minutes right now.`);
@@ -475,7 +482,43 @@ export default function App() {
       });
   };
 
-  const handleVerifyOTP = () => {
+  const handleSendOTP = () => {
+    if (!authPhone || authPhone.length < 10) {
+      customAlert('Please enter a valid 10-digit mobile number');
+      return;
+    }
+
+    if (!firebaseAuth) {
+      sendOtpViaFast2Sms();
+      return;
+    }
+
+    try {
+      if (!recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current = new RecaptchaVerifier(firebaseAuth, 'recaptcha-container', {
+          size: 'invisible'
+        });
+      }
+      signInWithPhoneNumber(firebaseAuth, `+91${authPhone}`, recaptchaVerifierRef.current)
+        .then(confirmationResult => {
+          setFirebaseConfirmation(confirmationResult);
+          setAuthStep('otp');
+          setResendCooldown(30);
+          triggerNotification(`💬 OTP sent to +91 ${authPhone}!`);
+        })
+        .catch(err => {
+          console.error('Firebase send OTP failed, falling back:', err);
+          recaptchaVerifierRef.current?.clear();
+          recaptchaVerifierRef.current = null;
+          sendOtpViaFast2Sms();
+        });
+    } catch (err) {
+      console.error('Firebase RecaptchaVerifier setup failed, falling back:', err);
+      sendOtpViaFast2Sms();
+    }
+  };
+
+  const verifyOtpViaFast2Sms = () => {
     fetch(`${API_URL}/auth/verify-otp`, {
       method: 'POST',
       headers: authHeaders(),
@@ -484,6 +527,35 @@ export default function App() {
       .then(async res => {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || 'Invalid OTP');
+        setSession(data.token);
+        if (data.exists && data.customer) {
+          setCurrentCustomer(data.customer);
+          setCustomerActiveTab('home');
+        } else {
+          setAuthStep('register');
+        }
+      })
+      .catch(err => {
+        customAlert(err.message || 'Invalid OTP. Please try again.');
+      });
+  };
+
+  const handleVerifyOTP = () => {
+    if (!firebaseConfirmation) {
+      verifyOtpViaFast2Sms();
+      return;
+    }
+
+    firebaseConfirmation.confirm(authOTP)
+      .then(async result => {
+        const idToken = await result.user.getIdToken();
+        const res = await fetch(`${API_URL}/auth/firebase-login`, {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify({ idToken })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Sign-in failed');
         setSession(data.token);
         if (data.exists && data.customer) {
           setCurrentCustomer(data.customer);
@@ -1408,6 +1480,8 @@ export default function App() {
                         >
                           Send OTP Verification
                         </button>
+                        {/* Invisible reCAPTCHA anchor required by Firebase phone auth — renders nothing visible */}
+                        <div id="recaptcha-container"></div>
 
                         {/* Admin Login Gateway Switcher */}
                         <div className="mt-8 pt-4 flex flex-col items-center gap-2 pb-2">

@@ -5,6 +5,8 @@ import https from 'https';
 import crypto from 'crypto';
 import Razorpay from 'razorpay';
 import { createClient } from '@supabase/supabase-js';
+import { initializeApp as initializeFirebaseApp, getApps as getFirebaseApps, cert as firebaseCert } from 'firebase-admin/app';
+import { getAuth as getFirebaseAuth } from 'firebase-admin/auth';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -39,6 +41,28 @@ if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
   console.log('✅ Razorpay Live Gateway Client Initialized.');
 } else {
   console.log('⚠️ Razorpay keys missing. Operating in simulated Payment Demo Mode.');
+}
+
+// Initialize Firebase Admin (server-side verification for phone-auth ID tokens).
+// The client verifies the phone with Firebase directly — real telecom transactional
+// SMS routes, not subject to the DND/promotional-route issues Fast2SMS hits — but we
+// never trust the client's bare claim that verification succeeded. The ID token it
+// hands back is independently re-checked against Google's servers here before we
+// issue our own session for that phone number.
+let firebaseAuth = null;
+if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+  try {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+    const firebaseApp = getFirebaseApps().length
+      ? getFirebaseApps()[0]
+      : initializeFirebaseApp({ credential: firebaseCert(serviceAccount) });
+    firebaseAuth = getFirebaseAuth(firebaseApp);
+    console.log('✅ Firebase Admin Initialized — phone auth verified server-side.');
+  } catch (err) {
+    console.error('⚠️ Failed to initialize Firebase Admin (check FIREBASE_SERVICE_ACCOUNT_KEY):', err.message);
+  }
+} else {
+  console.log('⚠️ FIREBASE_SERVICE_ACCOUNT_KEY missing. Falling back to the Fast2SMS OTP flow.');
 }
 
 // --- SESSIONS ---
@@ -424,6 +448,27 @@ app.post('/api/auth/send-otp', async (req, res) => {
 });
 
 // Verify OTP -> issues a signed session token scoped to this phone number.
+// Shared by verify-otp and the Firebase login route: once a phone number is
+// confirmed verified (by whichever channel), issue our own session token and
+// report whether a profile for it already exists. Returns { status, body } so
+// callers just forward it as the HTTP response.
+async function issueSessionForPhone(phone) {
+  const token = signToken({ role: 'customer', phone }, 30 * 24 * 60 * 60);
+
+  let customer = null;
+  if (supabase) {
+    const { data, error } = await supabase.from('customers').select('*').eq('phone', phone);
+    if (error) {
+      console.error('Customer lookup failed during login:', error.message);
+      return { status: 503, body: { error: 'Could not verify your account right now. Please try again.' } };
+    }
+    if (data && data.length > 0) customer = mapCustomerToFrontend(data[0]);
+  } else {
+    customer = DEFAULT_CUSTOMERS.find(c => c.phone === phone) || null;
+  }
+  return { status: 200, body: { token, exists: !!customer, customer } };
+}
+
 app.post('/api/auth/verify-otp', async (req, res) => {
   const { phone, otp } = req.body;
   if (!phone || !otp) return res.status(400).json({ error: 'Phone and OTP are required' });
@@ -455,24 +500,34 @@ app.post('/api/auth/verify-otp', async (req, res) => {
     return res.status(401).json({ error: 'Invalid or expired OTP' });
   }
 
-  const token = signToken({ role: 'customer', phone }, 30 * 24 * 60 * 60);
+  const { status, body } = await issueSessionForPhone(phone);
+  res.status(status).json(body);
+});
 
-  let customer = null;
-  if (supabase) {
-    const { data, error } = await supabase.from('customers').select('*').eq('phone', phone);
-    if (error) {
-      // A transient read failure here must never be treated as "this customer doesn't
-      // exist" — that's exactly what was silently sending already-registered people
-      // back through account setup, discarding nothing on the server but confusing
-      // them into re-entering their details into what looked like a fresh profile.
-      console.error('Customer lookup failed during OTP verification:', error.message);
-      return res.status(503).json({ error: 'Could not verify your account right now. Please try again.' });
-    }
-    if (data && data.length > 0) customer = mapCustomerToFrontend(data[0]);
-  } else {
-    customer = DEFAULT_CUSTOMERS.find(c => c.phone === phone) || null;
+// Firebase phone-auth login: the client already completed verification directly with
+// Firebase (real telecom transactional SMS route). We independently re-verify the ID
+// token it hands back with Firebase Admin before trusting the phone number in it —
+// never just take the client's word that verification happened.
+app.post('/api/auth/firebase-login', async (req, res) => {
+  const { idToken } = req.body;
+  if (!idToken) return res.status(400).json({ error: 'ID token is required' });
+  if (!firebaseAuth) return res.status(503).json({ error: 'Firebase sign-in is not configured on the server' });
+
+  let decoded;
+  try {
+    decoded = await firebaseAuth.verifyIdToken(idToken);
+  } catch (err) {
+    console.error('Firebase ID token verification failed:', err.message);
+    return res.status(401).json({ error: 'Invalid or expired verification. Please try again.' });
   }
-  res.json({ token, exists: !!customer, customer });
+
+  const rawPhone = decoded.phone_number; // e.g. "+919791019505"
+  if (!rawPhone) return res.status(400).json({ error: 'This sign-in is not linked to a phone number' });
+  const phone = rawPhone.replace(/\D/g, '').slice(-10);
+  if (!/^\d{10}$/.test(phone)) return res.status(400).json({ error: 'Could not read a valid phone number from verification' });
+
+  const { status, body } = await issueSessionForPhone(phone);
+  res.status(status).json(body);
 });
 
 // Admin / rider login: PIN never leaves the server, and the client only ever gets a token back.
