@@ -490,6 +490,27 @@ export default function App() {
   // store) which then issues a signed session token; there is no client-side bypass.
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
 
+  // Pre-warm the invisible reCAPTCHA as soon as the login screen mounts. Building it
+  // lazily on the first "Send OTP" tap made that first attempt eat several extra
+  // seconds (sometimes long enough to time out) loading Google's recaptcha script —
+  // which made it look like Firebase failed and silently fell back to the slower
+  // Fast2SMS route, while a second "Resend" tap hit an already-warm widget and went
+  // through Firebase quickly. Rendering it ahead of time removes that cold-start gap.
+  useEffect(() => {
+    if (!firebaseAuth || currentCustomer || authStep !== 'login') return;
+    if (recaptchaVerifierRef.current) return;
+    try {
+      recaptchaVerifierRef.current = new RecaptchaVerifier(firebaseAuth, 'recaptcha-container', {
+        size: 'invisible'
+      });
+      recaptchaVerifierRef.current.render().catch(err => {
+        console.error('Recaptcha pre-render failed:', err);
+      });
+    } catch (err) {
+      console.error('Recaptcha pre-init failed:', err);
+    }
+  }, [currentCustomer, authStep]);
+
   const sendOtpViaFast2Sms = () => {
     fetch(`${API_URL}/auth/send-otp`, {
       method: 'POST',
@@ -632,6 +653,8 @@ export default function App() {
     setSession(null);
     setCurrentCustomer(null);
     setAuthStep('login');
+    recaptchaVerifierRef.current?.clear();
+    recaptchaVerifierRef.current = null;
     setAuthPhone('');
     setAuthOTP('');
     setAuthName('');
@@ -2929,6 +2952,8 @@ export default function App() {
                                         if (!res.ok) throw new Error('Failed to delete account');
                                         setSession(null);
                                         setCurrentCustomer(null);
+                                        recaptchaVerifierRef.current?.clear();
+                                        recaptchaVerifierRef.current = null;
                                         localStorage.removeItem('iron_current_user');
                                         setCustomerActiveTab('home');
                                         customAlert('Your profile has been deleted successfully. We hope to see you again! ❤️');
