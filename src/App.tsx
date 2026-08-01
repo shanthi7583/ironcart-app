@@ -337,7 +337,7 @@ export default function App() {
 
 
   // Customer Form / Auth State
-  const [authStep, setAuthStep] = useState<'login' | 'otp' | 'register'>('login');
+  const [authStep, setAuthStep] = useState<'welcome' | 'login' | 'otp' | 'register'>('welcome');
   const [authPhone, setAuthPhone] = useState('');
   const [authName, setAuthName] = useState('');
   const [authApartment, setAuthApartment] = useState('');
@@ -652,7 +652,7 @@ export default function App() {
     localStorage.removeItem('iron_current_user');
     setSession(null);
     setCurrentCustomer(null);
-    setAuthStep('login');
+    setAuthStep('welcome');
     recaptchaVerifierRef.current?.clear();
     recaptchaVerifierRef.current = null;
     setAuthPhone('');
@@ -1491,58 +1491,97 @@ export default function App() {
                   </div>
                 ) : !currentCustomer ? (
                   <div className="flex-1 flex flex-col justify-center gap-5">
-                    {/* Brand mark — a custom hanger-and-steam glyph, not a stock icon */}
-                    <div className="flex flex-col items-center gap-3 relative">
-                      <div className="absolute -top-6 size-32 bg-gradient-to-br from-rose-400 via-orange-300 to-amber-300 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
+                    {authStep === 'welcome' ? (
+                      <>
+                        {/* Brand mark — a custom hanger-and-steam glyph, not a stock icon */}
+                        <div className="flex flex-col items-center gap-3 relative">
+                          <div className="absolute -top-6 size-32 bg-gradient-to-br from-rose-400 via-orange-300 to-amber-300 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
 
-                      <div className="relative size-[68px] rounded-[22px] bg-gradient-to-br from-rose-600 via-rose-500 to-amber-500 shadow-lg shadow-rose-500/40 flex items-center justify-center border-[3px] border-white overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/35"></div>
-                        <svg viewBox="0 0 48 48" className="size-9 relative z-10" fill="none">
-                          <path d="M21 4c0 2-3.5 2-3.5 4.5S21 11 21 13" stroke="white" strokeWidth="2.2" strokeLinecap="round" opacity="0.9" />
-                          <path d="M29 4c0 2-3.5 2-3.5 4.5S29 11 29 13" stroke="white" strokeWidth="2.2" strokeLinecap="round" opacity="0.9" />
-                          <path d="M24 12L9.5 23.5A3 3 0 0 0 11.5 29H36.5A3 3 0 0 0 38.5 23.5L24 12Z" fill="white" />
-                          <rect x="9.5" y="30.5" width="29" height="3" rx="1.5" fill="white" />
-                        </svg>
-                      </div>
+                          <div className="relative size-[60px] rounded-[20px] bg-gradient-to-br from-rose-600 via-rose-500 to-amber-500 shadow-lg shadow-rose-500/40 flex items-center justify-center border-[3px] border-white overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/35"></div>
+                            <svg viewBox="0 0 48 48" className="size-8 relative z-10" fill="none">
+                              <path d="M21 4c0 2-3.5 2-3.5 4.5S21 11 21 13" stroke="white" strokeWidth="2.2" strokeLinecap="round" opacity="0.9" />
+                              <path d="M29 4c0 2-3.5 2-3.5 4.5S29 11 29 13" stroke="white" strokeWidth="2.2" strokeLinecap="round" opacity="0.9" />
+                              <path d="M24 12L9.5 23.5A3 3 0 0 0 11.5 29H36.5A3 3 0 0 0 38.5 23.5L24 12Z" fill="white" />
+                              <rect x="9.5" y="30.5" width="29" height="3" rx="1.5" fill="white" />
+                            </svg>
+                          </div>
 
-                      <div className="text-center flex flex-col items-center gap-1 relative">
-                        <h2 className="font-display text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-amber-600 tracking-tight drop-shadow-sm">Vastra Care</h2>
-                        <p className="text-sm font-extrabold text-rose-600 tracking-wide">Pressed to perfection, picked up at your door.</p>
-                      </div>
-                    </div>
-
-                    {/* Rotating hero carousel — three slides, auto-advancing every 4s */}
-                    <div className="relative w-full h-40 rounded-3xl overflow-hidden shadow-xl shadow-rose-500/25">
-                      {LOGIN_HERO_SLIDES.map((slide, i) => (
-                        <div
-                          key={slide.title}
-                          className="absolute inset-0 transition-opacity duration-700 ease-out"
-                          style={{ opacity: i === loginHeroIndex ? 1 : 0 }}
-                        >
-                          <img
-                            src={slide.img}
-                            alt=""
-                            className="absolute inset-0 w-full h-full object-cover"
-                            style={{ filter: 'saturate(1.1) contrast(1.05)' }}
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/20 to-transparent" />
-                          <div className="absolute inset-x-0 bottom-0 p-4">
-                            <h3 className="font-display italic text-white text-lg font-semibold leading-tight tracking-tight drop-shadow-md">{slide.title}</h3>
-                            <p className="text-white/80 text-[10.5px] leading-snug mt-0.5 max-w-[88%]">{slide.subtitle}</p>
+                          <div className="text-center flex flex-col items-center gap-1 relative">
+                            <h2 className="font-display text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-amber-600 tracking-tight drop-shadow-sm">Vastra Care</h2>
+                            <p className="text-sm font-extrabold text-rose-600 tracking-wide">Pressed to perfection, picked up at your door.</p>
                           </div>
                         </div>
-                      ))}
-                      <div className="absolute bottom-3 right-4 flex gap-1.5">
-                        {LOGIN_HERO_SLIDES.map((_, i) => (
-                          <button
-                            key={i}
-                            onClick={() => setLoginHeroIndex(i)}
-                            aria-label={`Show slide ${i + 1}`}
-                            className={`h-1.5 rounded-full transition-all ${i === loginHeroIndex ? 'w-5 bg-white' : 'w-1.5 bg-white/45'}`}
-                          />
-                        ))}
-                      </div>
-                    </div>
+
+                        {/* Rotating hero carousel — three slides, auto-advancing every 4s */}
+                        <div className="relative w-full h-48 rounded-3xl overflow-hidden shadow-xl shadow-rose-500/25">
+                          {LOGIN_HERO_SLIDES.map((slide, i) => (
+                            <div
+                              key={slide.title}
+                              className="absolute inset-0 transition-opacity duration-700 ease-out"
+                              style={{ opacity: i === loginHeroIndex ? 1 : 0 }}
+                            >
+                              <img
+                                src={slide.img}
+                                alt=""
+                                className="absolute inset-0 w-full h-full object-cover"
+                                style={{ filter: 'saturate(1.1) contrast(1.05)' }}
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/20 to-transparent" />
+                              <div className="absolute inset-x-0 bottom-0 p-4">
+                                <h3 className="font-display italic text-white text-lg font-semibold leading-tight tracking-tight drop-shadow-md">{slide.title}</h3>
+                                <p className="text-white/80 text-[10.5px] leading-snug mt-0.5 max-w-[88%]">{slide.subtitle}</p>
+                              </div>
+                            </div>
+                          ))}
+                          <div className="absolute bottom-3 right-4 flex gap-1.5">
+                            {LOGIN_HERO_SLIDES.map((_, i) => (
+                              <button
+                                key={i}
+                                onClick={() => setLoginHeroIndex(i)}
+                                aria-label={`Show slide ${i + 1}`}
+                                className={`h-1.5 rounded-full transition-all ${i === loginHeroIndex ? 'w-5 bg-white' : 'w-1.5 bg-white/45'}`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => setAuthStep('login')}
+                          className="w-full bg-rose-500 hover:bg-rose-600 text-white py-3 rounded-xl text-sm font-bold shadow-lg shadow-rose-500/30 active:translate-y-0.5"
+                        >
+                          Get Started
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {/* Compact header for verification/registration — small brand lockup, back arrow to Welcome from the phone step only */}
+                        <div className="flex items-center gap-3 mb-1">
+                          {authStep === 'login' && (
+                            <button
+                              onClick={() => setAuthStep('welcome')}
+                              aria-label="Back"
+                              className="p-2 -ml-2 rounded-full text-rose-600 hover:bg-rose-100/60 transition-colors"
+                            >
+                              <ArrowLeft className="size-4" />
+                            </button>
+                          )}
+                          <div className="flex items-center gap-2">
+                            <div className="size-9 rounded-xl bg-gradient-to-br from-rose-600 via-rose-500 to-amber-500 shadow-md flex items-center justify-center border-2 border-white shrink-0">
+                              <svg viewBox="0 0 48 48" className="size-5" fill="none">
+                                <path d="M21 4c0 2-3.5 2-3.5 4.5S21 11 21 13" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.9" />
+                                <path d="M29 4c0 2-3.5 2-3.5 4.5S29 11 29 13" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.9" />
+                                <path d="M24 12L9.5 23.5A3 3 0 0 0 11.5 29H36.5A3 3 0 0 0 38.5 23.5L24 12Z" fill="white" />
+                                <rect x="9.5" y="30.5" width="29" height="3" rx="1.5" fill="white" />
+                              </svg>
+                            </div>
+                            <span className="font-display text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-amber-600 tracking-tight">Vastra Care</span>
+                          </div>
+                        </div>
+
+                        {authStep === 'login' && (
+                          <p className="text-sm text-gray-600 -mt-2 mb-1">Enter your mobile number to continue.</p>
+                        )}
 
                     {authStep === 'login' && (
                       <div className="flex flex-col gap-4">
@@ -1681,7 +1720,7 @@ export default function App() {
                             className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 outline-none focus:border-rose-500 uppercase"
                           />
                         </div>
-                        <button 
+                        <button
                           onClick={handleRegister}
                           className="w-full bg-rose-500 hover:bg-rose-600 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md mt-2"
                         >
@@ -1689,7 +1728,8 @@ export default function App() {
                         </button>
                       </div>
                     )}
-
+                      </>
+                    )}
                   </div>
                 ) : (
                   // --- Active Customer Screens ---
