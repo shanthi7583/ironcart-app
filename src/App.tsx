@@ -2063,7 +2063,7 @@ export default function App() {
                             <div className="size-16 bg-gradient-to-tr from-rose-500 to-amber-500 rounded-full flex items-center justify-center shadow-lg shadow-rose-500/20 mb-3 relative z-10 shrink-0">
                               <Gift className="size-8 text-white" />
                             </div>
-                            <h2 className="text-base font-black text-white relative z-10 tracking-tight leading-tight break-words whitespace-normal">Refer & Earn ₹50</h2>
+                            <h2 className="text-base font-black text-white relative z-10 tracking-tight leading-tight break-words whitespace-normal">Earn ₹50 Per Friend</h2>
                             <p className="text-xs text-gray-300 mt-2 relative z-10 max-w-[250px] leading-relaxed">
                               Invite your friends to Vastra Care. When they complete their first order, you <strong className="text-amber-300">both get ₹50</strong> added to your wallets!
                             </p>
