@@ -9,6 +9,9 @@ import {
 import { auth as firebaseAuth, RecaptchaVerifier } from './firebaseConfig'
 import { signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth'
 import { load as loadCashfree } from '@cashfreepayments/cashfree-js'
+import { Capacitor } from '@capacitor/core'
+import { App as CapacitorApp } from '@capacitor/app'
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication'
 
 // The SDK's load() re-fetches/re-initializes Cashfree's checkout script, so this
 // caches one instance per mode instead of reloading it on every checkout attempt.
@@ -162,7 +165,7 @@ const LOGIN_HERO_SLIDES = [
     subtitle: 'Fabric-safe steam care — no burns, no shine, just crisp results.'
   },
   {
-    img: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&h=1000&fit=crop',
+    img: 'https://images.unsplash.com/photo-1620455800201-7f00aeef12ed?w=800&h=1000&fit=crop',
     title: 'Doorstep Pickup, Zero Hassle',
     subtitle: 'Schedule a pickup in seconds — we handle the rest, door to door.'
   },
@@ -175,7 +178,12 @@ const LOGIN_HERO_SLIDES = [
 
 export default function App() {
   // --- Persistent State using Backend API & LocalStorage ---
-  const API_URL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL || 'http://localhost:5000/api');
+  // The native app has no origin of its own (Capacitor serves the bundle from a local
+  // WebView host), so a relative '/api' would resolve to that local host instead of the
+  // real backend — it must always use the absolute production URL there.
+  const API_URL = Capacitor.isNativePlatform()
+    ? 'https://pressngo-app.vercel.app/api'
+    : (import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL || 'http://localhost:5000/api'));
 
   // Signed session token issued by the backend after OTP or admin-PIN verification.
   // Sent as a Bearer token on every authenticated request instead of trusting the client.
@@ -490,18 +498,31 @@ export default function App() {
   // provider: a fallback that silently degrades to a slower, unfunded, or
   // DND-blocked route is worse than a clear "please try again" error.
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
+  // Tracks the in-flight render() so handleSendOTP can wait for it instead of racing
+  // it — calling verify() while a render() on the same container is still pending
+  // makes grecaptcha throw "reCAPTCHA has already been rendered in this element".
+  const recaptchaRenderPromiseRef = useRef<Promise<unknown> | null>(null);
+  // Native (Android/iOS) phone auth goes through @capacitor-firebase/authentication
+  // instead of the web JS SDK's reCAPTCHA flow — Firebase's reCAPTCHA verification is
+  // unreliable inside a WebView regardless of dashboard config (App Check, API key
+  // restrictions, and Android app registration were all confirmed correct/absent and
+  // it still failed with auth/invalid-app-credential). The native plugin uses Play
+  // Integrity attestation instead, which has no such WebView-trust problem.
+  const nativeVerificationIdRef = useRef<string | null>(null);
 
   // Pre-warm the invisible reCAPTCHA as soon as the login screen mounts — building it
   // lazily on the first "Send OTP" tap made that first attempt eat several extra
   // seconds (sometimes long enough to time out) loading Google's recaptcha script.
+  // Not needed (or wanted) on native, which uses the plugin's own verification flow.
   useEffect(() => {
+    if (Capacitor.isNativePlatform()) return;
     if (!firebaseAuth || currentCustomer || authStep !== 'login') return;
     if (recaptchaVerifierRef.current) return;
     try {
       recaptchaVerifierRef.current = new RecaptchaVerifier(firebaseAuth, 'recaptcha-container', {
         size: 'invisible'
       });
-      recaptchaVerifierRef.current.render().catch(err => {
+      recaptchaRenderPromiseRef.current = recaptchaVerifierRef.current.render().catch(err => {
         console.error('Recaptcha pre-render failed:', err);
       });
     } catch (err) {
@@ -509,9 +530,38 @@ export default function App() {
     }
   }, [currentCustomer, authStep]);
 
-  const handleSendOTP = () => {
+  const handleSendOTP = async () => {
     if (!authPhone || authPhone.length < 10) {
       customAlert('Please enter a valid 10-digit mobile number');
+      return;
+    }
+
+    if (Capacitor.isNativePlatform()) {
+      let codeSentListener: { remove: () => void } | null = null;
+      let failedListener: { remove: () => void } | null = null;
+      const cleanup = () => {
+        codeSentListener?.remove();
+        failedListener?.remove();
+      };
+      try {
+        codeSentListener = await FirebaseAuthentication.addListener('phoneCodeSent', event => {
+          nativeVerificationIdRef.current = event.verificationId;
+          setAuthStep('otp');
+          setResendCooldown(30);
+          triggerNotification(`💬 OTP sent to +91 ${authPhone}!`);
+          cleanup();
+        });
+        failedListener = await FirebaseAuthentication.addListener('phoneVerificationFailed', event => {
+          console.error('Native phone verification failed:', event.message);
+          customAlert('Could not send OTP right now. Please try again in a moment.');
+          cleanup();
+        });
+        await FirebaseAuthentication.signInWithPhoneNumber({ phoneNumber: `+91${authPhone}` });
+      } catch (err) {
+        console.error('Native phone sign-in failed:', err);
+        cleanup();
+        customAlert('Could not send OTP right now. Please try again in a moment.');
+      }
       return;
     }
 
@@ -525,6 +575,12 @@ export default function App() {
         recaptchaVerifierRef.current = new RecaptchaVerifier(firebaseAuth, 'recaptcha-container', {
           size: 'invisible'
         });
+        recaptchaRenderPromiseRef.current = recaptchaVerifierRef.current.render();
+      }
+      // Wait out any still-in-flight render (pre-warm, or the one just started above)
+      // before handing the verifier to signInWithPhoneNumber.
+      if (recaptchaRenderPromiseRef.current) {
+        await recaptchaRenderPromiseRef.current;
       }
       signInWithPhoneNumber(firebaseAuth, `+91${authPhone}`, recaptchaVerifierRef.current)
         .then(confirmationResult => {
@@ -537,15 +593,57 @@ export default function App() {
           console.error('Firebase send OTP failed:', err);
           recaptchaVerifierRef.current?.clear();
           recaptchaVerifierRef.current = null;
+          recaptchaRenderPromiseRef.current = null;
           customAlert('Could not send OTP right now. Please try again in a moment.');
         });
     } catch (err) {
       console.error('Firebase RecaptchaVerifier setup failed:', err);
+      recaptchaVerifierRef.current?.clear();
+      recaptchaVerifierRef.current = null;
+      recaptchaRenderPromiseRef.current = null;
       customAlert('Could not send OTP right now. Please try again in a moment.');
     }
   };
 
+  const completeFirebaseLogin = async (idToken: string) => {
+    const res = await fetch(`${API_URL}/auth/firebase-login`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ idToken })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Sign-in failed');
+    setSession(data.token);
+    if (data.exists && data.customer) {
+      setCurrentCustomer(data.customer);
+      setCustomerActiveTab('home');
+    } else {
+      setAuthStep('register');
+    }
+  };
+
   const handleVerifyOTP = () => {
+    if (Capacitor.isNativePlatform()) {
+      if (!nativeVerificationIdRef.current) {
+        customAlert('Your verification session expired. Please request a new OTP.');
+        setAuthStep('login');
+        return;
+      }
+      FirebaseAuthentication.confirmVerificationCode({
+        verificationId: nativeVerificationIdRef.current,
+        verificationCode: authOTP
+      })
+        .then(async () => {
+          const { token: idToken } = await FirebaseAuthentication.getIdToken();
+          if (!idToken) throw new Error('Sign-in failed');
+          await completeFirebaseLogin(idToken);
+        })
+        .catch(err => {
+          customAlert(err.message || 'Invalid OTP. Please try again.');
+        });
+      return;
+    }
+
     if (!firebaseConfirmation) {
       customAlert('Your verification session expired. Please request a new OTP.');
       setAuthStep('login');
@@ -555,20 +653,7 @@ export default function App() {
     firebaseConfirmation.confirm(authOTP)
       .then(async result => {
         const idToken = await result.user.getIdToken();
-        const res = await fetch(`${API_URL}/auth/firebase-login`, {
-          method: 'POST',
-          headers: authHeaders(),
-          body: JSON.stringify({ idToken })
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || 'Sign-in failed');
-        setSession(data.token);
-        if (data.exists && data.customer) {
-          setCurrentCustomer(data.customer);
-          setCustomerActiveTab('home');
-        } else {
-          setAuthStep('register');
-        }
+        await completeFirebaseLogin(idToken);
       })
       .catch(err => {
         customAlert(err.message || 'Invalid OTP. Please try again.');
@@ -611,8 +696,13 @@ export default function App() {
     setSession(null);
     setCurrentCustomer(null);
     setAuthStep('welcome');
-    recaptchaVerifierRef.current?.clear();
-    recaptchaVerifierRef.current = null;
+    if (Capacitor.isNativePlatform()) {
+      FirebaseAuthentication.signOut().catch(() => {});
+      nativeVerificationIdRef.current = null;
+    } else {
+      recaptchaVerifierRef.current?.clear();
+      recaptchaVerifierRef.current = null;
+    }
     setAuthPhone('');
     setAuthOTP('');
     setAuthName('');
@@ -732,36 +822,9 @@ export default function App() {
       .finally(() => setIsCreatingCheckout(false));
   };
 
-  const confirmOrderPayment = (cashfreeDetails?: { orderId: string }) => {
-    // isSubmittingOrder is already set by handleCheckoutSubmit before this runs (immediately
-    // for COD/Wallet, or later once the Cashfree checkout modal closes) — just clear it when done.
-    const cartItems = buildCartItems();
-
-    const newOrder: any = {
-      id: `ORD-${Math.floor(100000 + Math.random() * 900000)}`,
-      invoiceNo: `IC-${Math.floor(1000 + Math.random() * 9000)}`,
-      customerName: orderName || 'Walk-in Customer',
-      customerPhone: orderPhone || '',
-      apartmentNo: currentCustomer?.apartmentNo || '',
-      address: orderAddress || '',
-      pickupDate,
-      pickupTime,
-      speed: orderSpeed,
-      service: selectedService,
-      cartItems,
-      couponCode: appliedCoupon,
-      status: 'Placed',
-      paymentMethod: cashfreeDetails ? `${paymentMethod} (Txn: ${cashfreeDetails.orderId})` : paymentMethod,
-      specialInstructions,
-      createdAt: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-    };
-    // The server independently decides the real paymentStatus (asking Cashfree what
-    // actually happened to this order_id, or deducting the wallet balance itself) —
-    // this is just its input.
-    if (cashfreeDetails) {
-      newOrder.cashfreeOrderId = cashfreeDetails.orderId;
-    }
-
+  // Shared by the normal in-page-modal flow and by resumeAfterCashfreeRedirect (native
+  // full-page checkout can't run a .then() continuation after redirecting away).
+  const submitOrder = (newOrder: any) => {
     fetch(`${API_URL}/orders`, {
       method: 'POST',
       headers: authHeaders(),
@@ -778,7 +841,7 @@ export default function App() {
         setSelectedOrderForTracking(data);
         setCustomerActiveTab('history');
         triggerNotification(`🎉 Order Placed Successfully! We care for your clothes as much as you do! ❤️`);
-        if (paymentMethod === 'Wallet' && currentCustomer) {
+        if (newOrder.paymentMethod?.startsWith('Wallet') && currentCustomer) {
           fetch(`${API_URL}/customers/${currentCustomer.phone}`, { headers: authHeaders() })
             .then(res => res.ok ? res.json() : null)
             .then(refreshed => { if (refreshed) setCurrentCustomer(refreshed); });
@@ -787,6 +850,43 @@ export default function App() {
       })
       .catch(err => customAlert(err.message || 'API Connection Error, please try again.'))
       .finally(() => setIsSubmittingOrder(false));
+  };
+
+  // Split out from confirmOrderPayment so the native pre-redirect path (which has to
+  // persist the order before Cashfree takes over the whole page) can build the exact
+  // same object without duplicating every field.
+  const buildNewOrder = (cashfreeDetails?: { orderId: string }) => {
+    const newOrder: any = {
+      id: `ORD-${Math.floor(100000 + Math.random() * 900000)}`,
+      invoiceNo: `IC-${Math.floor(1000 + Math.random() * 9000)}`,
+      customerName: orderName || 'Walk-in Customer',
+      customerPhone: orderPhone || '',
+      apartmentNo: currentCustomer?.apartmentNo || '',
+      address: orderAddress || '',
+      pickupDate,
+      pickupTime,
+      speed: orderSpeed,
+      service: selectedService,
+      cartItems: buildCartItems(),
+      couponCode: appliedCoupon,
+      status: 'Placed',
+      paymentMethod: cashfreeDetails ? `${paymentMethod} (Txn: ${cashfreeDetails.orderId})` : paymentMethod,
+      specialInstructions,
+      createdAt: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    };
+    // The server independently decides the real paymentStatus (asking Cashfree what
+    // actually happened to this order_id, or deducting the wallet balance itself) —
+    // this is just its input.
+    if (cashfreeDetails) {
+      newOrder.cashfreeOrderId = cashfreeDetails.orderId;
+    }
+    return newOrder;
+  };
+
+  const confirmOrderPayment = (cashfreeDetails?: { orderId: string }) => {
+    // isSubmittingOrder is already set by handleCheckoutSubmit before this runs (immediately
+    // for COD/Wallet, or later once the Cashfree checkout modal closes) — just clear it when done.
+    submitOrder(buildNewOrder(cashfreeDetails));
   };
 
   const handleCheckoutSubmit = () => {
@@ -823,8 +923,25 @@ export default function App() {
           const restrictedOrder = await res.json().catch(() => ({}));
           if (!res.ok || !restrictedOrder.paymentSessionId) throw new Error(restrictedOrder.error || 'Failed to prepare payment');
 
-          // Trigger live Cashfree Checkout (in-page modal, matches the old Razorpay popup UX)
+          // Cashfree's in-page modal (redirectTarget: '_modal') depends on a native JS
+          // bridge (PaymentJSInterface) that only exists in Cashfree's own native Android
+          // SDK — inside a plain Capacitor WebView it throws and the checkout hangs on
+          // "Processing…" forever. Native platforms use a full-page redirect instead,
+          // persisting the order first since Cashfree's return_url brings the app back
+          // as a fresh page load with no in-memory state left — see
+          // resumeAfterCashfreeRedirect, which picks this back up.
           const cashfree = await getCashfreeInstance(restrictedOrder.cashfreeEnv === 'production' ? 'production' : 'sandbox');
+          if (Capacitor.isNativePlatform()) {
+            localStorage.setItem('pendingCashfreeOrder', JSON.stringify({
+              gatewayOrderId: restrictedOrder.gatewayOrderId,
+              order: buildNewOrder({ orderId: restrictedOrder.gatewayOrderId })
+            }));
+            await cashfree.checkout({
+              paymentSessionId: restrictedOrder.paymentSessionId,
+              redirectTarget: '_self'
+            });
+            return;
+          }
           const result: any = await cashfree.checkout({
             paymentSessionId: restrictedOrder.paymentSessionId,
             redirectTarget: '_modal'
@@ -1044,6 +1161,29 @@ export default function App() {
   // then hands the resulting payment (or nothing, in demo mode) to the server, which is
   // the only party that actually credits the wallet — the client can no longer just
   // tell the API what the new balance should be.
+  // Promoted out of topUpWallet so resumeAfterCashfreeRedirect can also call it once
+  // the native full-page checkout redirects back with no in-memory onDone to run.
+  const creditWalletTopup = async (amount: number, cashfreeDetails?: { orderId: string }, onDone?: () => void) => {
+    const payload: any = { amount };
+    if (cashfreeDetails) {
+      payload.cashfreeOrderId = cashfreeDetails.orderId;
+    }
+    const verifyRes = await fetch(`${API_URL}/payments/verify-wallet-topup`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(payload)
+    });
+    const updated = await verifyRes.json().catch(() => ({}));
+    if (!verifyRes.ok) {
+      customAlert(updated.error || 'Could not verify payment.');
+      return;
+    }
+    setCurrentCustomer(updated);
+    fetchWalletTransactions();
+    customAlert(`₹${amount} added to wallet successfully!`);
+    onDone?.();
+  };
+
   const topUpWallet = async (amount: number, onDone: () => void) => {
     if (!currentCustomer || !amount || amount <= 0) return;
 
@@ -1055,37 +1195,29 @@ export default function App() {
       });
       const gatewayOrderData = await res.json();
 
-      const creditWallet = async (cashfreeDetails?: { orderId: string }) => {
-        const payload: any = { amount };
-        if (cashfreeDetails) {
-          payload.cashfreeOrderId = cashfreeDetails.orderId;
-        }
-        const verifyRes = await fetch(`${API_URL}/payments/verify-wallet-topup`, {
-          method: 'POST',
-          headers: authHeaders(),
-          body: JSON.stringify(payload)
-        });
-        const updated = await verifyRes.json().catch(() => ({}));
-        if (!verifyRes.ok) {
-          customAlert(updated.error || 'Could not verify payment.');
-          return;
-        }
-        setCurrentCustomer(updated);
-        fetchWalletTransactions();
-        customAlert(`₹${amount} added to wallet successfully!`);
-        onDone();
-      };
-
       if (gatewayOrderData.liveMode) {
         const cashfree = await getCashfreeInstance(gatewayOrderData.cashfreeEnv === 'production' ? 'production' : 'sandbox');
+        // See the order-checkout branch above for why native uses a full-page redirect
+        // instead of Cashfree's in-page modal.
+        if (Capacitor.isNativePlatform()) {
+          localStorage.setItem('pendingCashfreeWalletTopup', JSON.stringify({
+            gatewayOrderId: gatewayOrderData.gatewayOrderId,
+            amount
+          }));
+          await cashfree.checkout({
+            paymentSessionId: gatewayOrderData.paymentSessionId,
+            redirectTarget: '_self'
+          });
+          return;
+        }
         const result: any = await cashfree.checkout({
           paymentSessionId: gatewayOrderData.paymentSessionId,
           redirectTarget: '_modal'
         });
         if (result?.error) return; // user closed the modal or the attempt failed
-        await creditWallet({ orderId: gatewayOrderData.gatewayOrderId });
+        await creditWalletTopup(amount, { orderId: gatewayOrderData.gatewayOrderId }, onDone);
       } else {
-        await creditWallet();
+        await creditWalletTopup(amount, undefined, onDone);
       }
     } catch (e) {
       console.error(e);
@@ -1103,6 +1235,26 @@ export default function App() {
     await topUpWallet(amount, () => setCheckoutAddAmount(''));
   };
 
+  // Promoted out of handleSubscribe so resumeAfterCashfreeRedirect can also call it.
+  const activateSubscriptionPlan = async (planName: string, cashfreeDetails?: { orderId: string }) => {
+    const payload: any = { planName };
+    if (cashfreeDetails) {
+      payload.cashfreeOrderId = cashfreeDetails.orderId;
+    }
+    const activateRes = await fetch(`${API_URL}/subscriptions/activate`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(payload)
+    });
+    const updated = await activateRes.json().catch(() => ({}));
+    if (!activateRes.ok) {
+      customAlert(updated.error || 'Could not activate plan.');
+      return;
+    }
+    setCurrentCustomer(updated);
+    triggerNotification(`🎉 ${planName} Subscription Activated!`);
+  };
+
   // Activating a Prime plan used to just PUT the plan name onto the customer record —
   // meaning anyone could grant themselves a permanent order discount for free. Now it
   // goes through the same pay-then-verify flow as everything else.
@@ -1117,41 +1269,84 @@ export default function App() {
       });
       const gatewayOrderData = await res.json();
 
-      const activatePlan = async (cashfreeDetails?: { orderId: string }) => {
-        const payload: any = { planName };
-        if (cashfreeDetails) {
-          payload.cashfreeOrderId = cashfreeDetails.orderId;
-        }
-        const activateRes = await fetch(`${API_URL}/subscriptions/activate`, {
-          method: 'POST',
-          headers: authHeaders(),
-          body: JSON.stringify(payload)
-        });
-        const updated = await activateRes.json().catch(() => ({}));
-        if (!activateRes.ok) {
-          customAlert(updated.error || 'Could not activate plan.');
-          return;
-        }
-        setCurrentCustomer(updated);
-        triggerNotification(`🎉 ${planName} Subscription Activated!`);
-      };
-
       if (gatewayOrderData.liveMode) {
         const cashfree = await getCashfreeInstance(gatewayOrderData.cashfreeEnv === 'production' ? 'production' : 'sandbox');
+        // See the order-checkout branch above for why native uses a full-page redirect
+        // instead of Cashfree's in-page modal.
+        if (Capacitor.isNativePlatform()) {
+          localStorage.setItem('pendingCashfreeSubscription', JSON.stringify({
+            gatewayOrderId: gatewayOrderData.gatewayOrderId,
+            planName
+          }));
+          await cashfree.checkout({
+            paymentSessionId: gatewayOrderData.paymentSessionId,
+            redirectTarget: '_self'
+          });
+          return;
+        }
         const result: any = await cashfree.checkout({
           paymentSessionId: gatewayOrderData.paymentSessionId,
           redirectTarget: '_modal'
         });
         if (result?.error) return; // user closed the modal or the attempt failed
-        await activatePlan({ orderId: gatewayOrderData.gatewayOrderId });
+        await activateSubscriptionPlan(planName, { orderId: gatewayOrderData.gatewayOrderId });
       } else {
-        await activatePlan();
+        await activateSubscriptionPlan(planName);
       }
     } catch (e) {
       console.error(e);
       customAlert('Failed to initialize payment gateway.');
     }
   };
+
+  // Finishes whichever Cashfree action (order/wallet top-up/subscription) was pending
+  // before the native full-page checkout took over the WebView, using whatever was
+  // stashed in localStorage beforehand — the redirect back wipes all in-memory state.
+  const resolvePendingCashfreeAction = (cfOrderId: string) => {
+    const pendingOrderRaw = localStorage.getItem('pendingCashfreeOrder');
+    if (pendingOrderRaw) {
+      localStorage.removeItem('pendingCashfreeOrder');
+      const pending = JSON.parse(pendingOrderRaw);
+      if (pending.gatewayOrderId === cfOrderId) {
+        setIsSubmittingOrder(true);
+        submitOrder(pending.order);
+      }
+      return;
+    }
+    const pendingWalletRaw = localStorage.getItem('pendingCashfreeWalletTopup');
+    if (pendingWalletRaw) {
+      localStorage.removeItem('pendingCashfreeWalletTopup');
+      const pending = JSON.parse(pendingWalletRaw);
+      if (pending.gatewayOrderId === cfOrderId) {
+        creditWalletTopup(pending.amount, { orderId: cfOrderId });
+      }
+      return;
+    }
+    const pendingSubRaw = localStorage.getItem('pendingCashfreeSubscription');
+    if (pendingSubRaw) {
+      localStorage.removeItem('pendingCashfreeSubscription');
+      const pending = JSON.parse(pendingSubRaw);
+      if (pending.gatewayOrderId === cfOrderId) {
+        activateSubscriptionPlan(pending.planName, { orderId: cfOrderId });
+      }
+    }
+  };
+
+  // Cashfree's return_url for native is a custom URL scheme (com.vastracare.app://
+  // payment-return?cf_order_id=...) since its own WebView origin, "https://localhost",
+  // can never be whitelisted as a real website — see return_url in server.js. Android
+  // routes that scheme back into this same app (singleTask launchMode) as an
+  // appUrlOpen event instead of a normal page navigation.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    let removeListener: (() => void) | undefined;
+    CapacitorApp.addListener('appUrlOpen', (event: { url: string }) => {
+      const cfOrderId = new URL(event.url).searchParams.get('cf_order_id');
+      if (cfOrderId) resolvePendingCashfreeAction(cfOrderId);
+    }).then((handle: { remove: () => void }) => { removeListener = () => handle.remove(); });
+    return () => removeListener?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleAddAddress = () => {
     if (!currentCustomer || !newAddressText.trim()) return;
@@ -2964,8 +3159,13 @@ export default function App() {
                                         if (!res.ok) throw new Error('Failed to delete account');
                                         setSession(null);
                                         setCurrentCustomer(null);
-                                        recaptchaVerifierRef.current?.clear();
-                                        recaptchaVerifierRef.current = null;
+                                        if (Capacitor.isNativePlatform()) {
+                                          FirebaseAuthentication.signOut().catch(() => {});
+                                          nativeVerificationIdRef.current = null;
+                                        } else {
+                                          recaptchaVerifierRef.current?.clear();
+                                          recaptchaVerifierRef.current = null;
+                                        }
                                         localStorage.removeItem('iron_current_user');
                                         setCustomerActiveTab('home');
                                         customAlert('Your profile has been deleted successfully. We hope to see you again! ❤️');

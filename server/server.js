@@ -1021,7 +1021,15 @@ app.post('/api/payments/create-order', authMiddleware, async (req, res) => {
           },
           order_meta: {
             ...(safePaymentMethods ? { payment_methods: safePaymentMethods } : {}),
-            return_url: `${req.headers.origin || 'https://pressngo-app.vercel.app'}/?cf_order_id={order_id}`
+            // The native app's WebView origin is "https://localhost" — a domain that
+            // can never be whitelisted with Cashfree since it isn't a real, reachable
+            // website. Sending it back there via a custom URL scheme instead lets
+            // Android route the redirect straight back into the app (see the
+            // appUrlOpen listener in App.tsx) rather than getting stuck at Cashfree's
+            // "domain not whitelisted" error page.
+            return_url: req.headers.origin === 'https://localhost'
+              ? 'com.vastracare.app://payment-return?cf_order_id={order_id}'
+              : `${req.headers.origin || 'https://pressngo-app.vercel.app'}/?cf_order_id={order_id}`
           }
         })
       });

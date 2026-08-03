@@ -18,6 +18,15 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Lets Cashfree's checkout redirect straight back into this app instead of
+                 a real https:// domain, which the native WebView's "https://localhost"
+                 origin could never be whitelisted as. See return_url in server.js. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="com.vastracare.app" android:host="payment-return" />
+            </intent-filter>
         </activity>
 
         <provider
