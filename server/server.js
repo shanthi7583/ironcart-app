@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import { initializeApp as initializeFirebaseApp, getApps as getFirebaseApps, cert as firebaseCert } from 'firebase-admin/app';
 import { getAuth as getFirebaseAuth } from 'firebase-admin/auth';
+import { waitUntil } from '@vercel/functions';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -666,8 +667,8 @@ app.post('/api/orders', authMiddleware, requireRole('customer', 'admin', 'rider'
   };
 
   // Dispatch alerts
-  sendNotification('whatsapp', customerPhone, `Hi ${newOrder.customerName}, your PressGo order ${newOrder.id} of ₹${quote.total} was placed! Pickup scheduled for ${newOrder.pickupDate} (${newOrder.pickupTime}).`);
-  sendNotification('sms', OWNER_ALERT_PHONE, `Owner Alert: New order ${newOrder.id} received from ${newOrder.customerName} (${newOrder.apartmentNo}).`);
+  waitUntil(sendNotification('whatsapp', customerPhone, `Hi ${newOrder.customerName}, your PressGo order ${newOrder.id} of ₹${quote.total} was placed! Pickup scheduled for ${newOrder.pickupDate} (${newOrder.pickupTime}).`));
+  waitUntil(sendNotification('sms', OWNER_ALERT_PHONE, `Owner Alert: New order ${newOrder.id} received from ${newOrder.customerName} (${newOrder.apartmentNo}).`));
 
   res.status(201).json(responseOrder);
 });
@@ -705,9 +706,9 @@ app.patch('/api/orders/:id/status', authMiddleware, async (req, res) => {
   if (!error && data && data.length > 0) {
     const order = mapOrderToFrontend(data[0]);
     if (status === 'Cancelled') {
-      sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your PressGo order ${order.id} has been Cancelled. Reason: ${cancelReason}`);
+      waitUntil(sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your PressGo order ${order.id} has been Cancelled. Reason: ${cancelReason}`));
     } else {
-      sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your PressGo order ${order.id} status is now: [${status}].`);
+      waitUntil(sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your PressGo order ${order.id} status is now: [${status}].`));
 
       // Referral Reward Logic
       if (status === 'Delivered') {
@@ -724,7 +725,7 @@ app.patch('/api/orders/:id/status', authMiddleware, async (req, res) => {
                 console.error('Referral credit (new customer) failed:', creditError.message);
               } else {
                 await logWalletTransaction(order.customerPhone, 'credit', 50, 'Referral reward — your first order');
-                sendNotification('whatsapp', order.customerPhone, `🎉 Congratulations! ₹50 has been added to your PressGo wallet for completing your first referred order!`);
+                waitUntil(sendNotification('whatsapp', order.customerPhone, `🎉 Congratulations! ₹50 has been added to your PressGo wallet for completing your first referred order!`));
               }
 
               // Reward referrer
@@ -735,7 +736,7 @@ app.patch('/api/orders/:id/status', authMiddleware, async (req, res) => {
                   console.error('Referral credit (referrer) failed:', referrerCreditError.message);
                 } else {
                   await logWalletTransaction(refData.phone, 'credit', 50, `Referral reward — ${order.customerName} completed their first order`);
-                  sendNotification('whatsapp', refData.phone, `🎉 Great news! Your friend ${order.customerName} completed their first order. ₹50 has been added to your wallet!`);
+                  waitUntil(sendNotification('whatsapp', refData.phone, `🎉 Great news! Your friend ${order.customerName} completed their first order. ₹50 has been added to your wallet!`));
                 }
               }
             }
@@ -770,7 +771,7 @@ app.patch('/api/orders/:id/reschedule', authMiddleware, async (req, res) => {
   const { data, error } = await supabase.from('orders').update({ pickup_date: pickupDate, pickup_time: pickupTime }).eq('id', id).select();
   if (!error && data && data.length > 0) {
     const order = mapOrderToFrontend(data[0]);
-    sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your PressGo order ${order.id} has been RESCHEDULED to ${pickupDate} (${pickupTime}).`);
+    waitUntil(sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your PressGo order ${order.id} has been RESCHEDULED to ${pickupDate} (${pickupTime}).`));
     return res.json(order);
   }
   console.error('Order reschedule failed:', error?.message || 'no matching order row');
@@ -786,7 +787,7 @@ app.patch('/api/orders/:id/payment', authMiddleware, requireRole('admin', 'rider
     const { data, error } = await supabase.from('orders').update({ payment_status: paymentStatus }).eq('id', id).select();
     if (!error && data && data.length > 0) {
       const order = mapOrderToFrontend(data[0]);
-      sendNotification('sms', order.customerPhone, `PressGo: Payment of ₹${order.total} for order ${order.id} is confirmed [Paid].`);
+      waitUntil(sendNotification('sms', order.customerPhone, `PressGo: Payment of ₹${order.total} for order ${order.id} is confirmed [Paid].`));
       return res.json(order);
     }
     console.error('Order payment status update failed:', error?.message || 'no matching order row');
@@ -879,7 +880,7 @@ app.post('/api/customers', authMiddleware, requireRole('customer'), async (req, 
       console.error('Customer insert failed during registration:', insertError.message);
       return res.status(500).json({ error: 'We could not create your profile. Please try again.' });
     }
-    sendNotification('sms', phone, `Welcome to PressGo, ${newCustomer.name}! Your pickup profile has been created successfully.`);
+    waitUntil(sendNotification('sms', phone, `Welcome to PressGo, ${newCustomer.name}! Your pickup profile has been created successfully.`));
     return res.status(201).json(mapCustomerToFrontend(inserted[0]));
   }
 
@@ -898,7 +899,7 @@ app.post('/api/customers', authMiddleware, requireRole('customer'), async (req, 
       referredBy: newCustomer.referredBy || null
     });
   }
-  sendNotification('sms', phone, `Welcome to PressGo, ${newCustomer.name}! Your pickup profile has been created successfully.`);
+  waitUntil(sendNotification('sms', phone, `Welcome to PressGo, ${newCustomer.name}! Your pickup profile has been created successfully.`));
   res.status(201).json({ ...newCustomer, phone });
 });
 
