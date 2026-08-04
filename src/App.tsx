@@ -1636,16 +1636,16 @@ export default function App() {
                     </div>
                   </div>
                 ) : !currentCustomer ? (
-                  <div className="flex-1 flex flex-col justify-center gap-5">
+                  <div className="flex-1 flex flex-col justify-start gap-6">
                     {authStep === 'welcome' ? (
                       <>
                         {/* Brand mark — a custom hanger-and-steam glyph, not a stock icon */}
                         <div className="flex flex-col items-center gap-3 relative">
-                          <div className="absolute -top-6 size-32 bg-gradient-to-br from-rose-400 via-orange-300 to-amber-300 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
+                          <div className="absolute -top-6 size-40 bg-gradient-to-br from-rose-400 via-orange-300 to-amber-300 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
 
-                          <div className="relative size-[60px] rounded-[20px] bg-gradient-to-br from-rose-600 via-rose-500 to-amber-500 shadow-lg shadow-rose-500/40 flex items-center justify-center border-[3px] border-white overflow-hidden">
+                          <div className="relative size-20 rounded-[24px] bg-gradient-to-br from-rose-600 via-rose-500 to-amber-500 shadow-lg shadow-rose-500/40 flex items-center justify-center border-[3px] border-white overflow-hidden">
                             <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/35"></div>
-                            <svg viewBox="0 0 48 48" className="size-8 relative z-10" fill="none">
+                            <svg viewBox="0 0 48 48" className="size-11 relative z-10" fill="none">
                               {/* Steam rising off the hot tip */}
                               <path d="M34 6c0 2-3 2-3 4.5S34 13 34 15" stroke="white" strokeWidth="2.2" strokeLinecap="round" opacity="0.9" />
                               <path d="M40 8c0 2-3 2-3 4.5S40 15 40 17" stroke="white" strokeWidth="2.2" strokeLinecap="round" opacity="0.9" />
@@ -1656,8 +1656,8 @@ export default function App() {
                             </svg>
                           </div>
 
-                          <div className="text-center flex flex-col items-center gap-1.5 relative">
-                            <h2 className="font-display italic text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 via-orange-500 to-amber-600 tracking-tight drop-shadow-sm">PressGo</h2>
+                          <div className="text-center flex flex-col items-center gap-2 relative">
+                            <h2 className="font-display italic text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 via-orange-500 to-amber-600 tracking-tight drop-shadow-sm">PressGo</h2>
                             <p className="flex items-center gap-2 text-sm font-extrabold text-rose-600 tracking-wide">
                               <Sparkles className="size-3.5 text-amber-500 animate-spark shrink-0" />
                               <span className="text-shimmer">Pressed to perfection, picked up at your door.</span>
@@ -1667,7 +1667,7 @@ export default function App() {
                         </div>
 
                         {/* Rotating hero carousel — three slides, auto-advancing every 4s */}
-                        <div className="relative w-full h-60 rounded-3xl overflow-hidden shadow-xl shadow-rose-500/25">
+                        <div className="relative w-full h-80 rounded-3xl overflow-hidden shadow-xl shadow-rose-500/25">
                           {LOGIN_HERO_SLIDES.map((slide, i) => (
                             <div
                               key={slide.title}
@@ -1701,7 +1701,7 @@ export default function App() {
 
                         <button
                           onClick={() => setAuthStep('login')}
-                          className="w-full bg-rose-500 hover:bg-rose-600 text-white py-3 rounded-xl text-sm font-bold shadow-lg shadow-rose-500/30 active:translate-y-0.5"
+                          className="w-full mt-auto bg-rose-500 hover:bg-rose-600 text-white py-3 rounded-xl text-sm font-bold shadow-lg shadow-rose-500/30 active:translate-y-0.5"
                         >
                           Get Started
                         </button>
