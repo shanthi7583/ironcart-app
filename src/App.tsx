@@ -11,6 +11,7 @@ import { signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth'
 import { load as loadCashfree } from '@cashfreepayments/cashfree-js'
 import { Capacitor } from '@capacitor/core'
 import { App as CapacitorApp } from '@capacitor/app'
+import { Browser } from '@capacitor/browser'
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication'
 
 // The SDK's load() re-fetches/re-initializes Cashfree's checkout script, so this
@@ -926,22 +927,24 @@ export default function App() {
           // Cashfree's in-page modal (redirectTarget: '_modal') depends on a native JS
           // bridge (PaymentJSInterface) that only exists in Cashfree's own native Android
           // SDK — inside a plain Capacitor WebView it throws and the checkout hangs on
-          // "Processing…" forever. Native platforms use a full-page redirect instead,
-          // persisting the order first since Cashfree's return_url brings the app back
-          // as a fresh page load with no in-memory state left — see
-          // resumeAfterCashfreeRedirect, which picks this back up.
-          const cashfree = await getCashfreeInstance(restrictedOrder.cashfreeEnv === 'production' ? 'production' : 'sandbox');
+          // "Processing…" forever. A '_self' full-page redirect avoids that, but Cashfree
+          // also checks the referring page's own origin, which is still the WebView's
+          // unwhitelistable "https://localhost" either way. So native opens the checkout
+          // in a genuine external browser tab instead (Chrome Custom Tab), landing first
+          // on our own already-whitelisted /api/payments/cashfree-redirect page (a tiny
+          // auto-submitting form — Cashfree's checkout is a POST, not a plain URL) so the
+          // referrer Cashfree sees is real. The order is persisted first since Cashfree's
+          // return_url brings the app back as a fresh page load with no in-memory state
+          // left — see resolvePendingCashfreeAction, which picks this back up.
           if (Capacitor.isNativePlatform()) {
             localStorage.setItem('pendingCashfreeOrder', JSON.stringify({
               gatewayOrderId: restrictedOrder.gatewayOrderId,
               order: buildNewOrder({ orderId: restrictedOrder.gatewayOrderId })
             }));
-            await cashfree.checkout({
-              paymentSessionId: restrictedOrder.paymentSessionId,
-              redirectTarget: '_self'
-            });
+            await Browser.open({ url: `${API_URL}/payments/cashfree-redirect?session_id=${encodeURIComponent(restrictedOrder.paymentSessionId)}` });
             return;
           }
+          const cashfree = await getCashfreeInstance(restrictedOrder.cashfreeEnv === 'production' ? 'production' : 'sandbox');
           const result: any = await cashfree.checkout({
             paymentSessionId: restrictedOrder.paymentSessionId,
             redirectTarget: '_modal'
@@ -1196,20 +1199,17 @@ export default function App() {
       const gatewayOrderData = await res.json();
 
       if (gatewayOrderData.liveMode) {
-        const cashfree = await getCashfreeInstance(gatewayOrderData.cashfreeEnv === 'production' ? 'production' : 'sandbox');
-        // See the order-checkout branch above for why native uses a full-page redirect
-        // instead of Cashfree's in-page modal.
+        // See the order-checkout branch above for why native opens an external browser
+        // tab via our own /cashfree-redirect page instead of Cashfree's in-page modal.
         if (Capacitor.isNativePlatform()) {
           localStorage.setItem('pendingCashfreeWalletTopup', JSON.stringify({
             gatewayOrderId: gatewayOrderData.gatewayOrderId,
             amount
           }));
-          await cashfree.checkout({
-            paymentSessionId: gatewayOrderData.paymentSessionId,
-            redirectTarget: '_self'
-          });
+          await Browser.open({ url: `${API_URL}/payments/cashfree-redirect?session_id=${encodeURIComponent(gatewayOrderData.paymentSessionId)}` });
           return;
         }
+        const cashfree = await getCashfreeInstance(gatewayOrderData.cashfreeEnv === 'production' ? 'production' : 'sandbox');
         const result: any = await cashfree.checkout({
           paymentSessionId: gatewayOrderData.paymentSessionId,
           redirectTarget: '_modal'
@@ -1270,20 +1270,17 @@ export default function App() {
       const gatewayOrderData = await res.json();
 
       if (gatewayOrderData.liveMode) {
-        const cashfree = await getCashfreeInstance(gatewayOrderData.cashfreeEnv === 'production' ? 'production' : 'sandbox');
-        // See the order-checkout branch above for why native uses a full-page redirect
-        // instead of Cashfree's in-page modal.
+        // See the order-checkout branch above for why native opens an external browser
+        // tab via our own /cashfree-redirect page instead of Cashfree's in-page modal.
         if (Capacitor.isNativePlatform()) {
           localStorage.setItem('pendingCashfreeSubscription', JSON.stringify({
             gatewayOrderId: gatewayOrderData.gatewayOrderId,
             planName
           }));
-          await cashfree.checkout({
-            paymentSessionId: gatewayOrderData.paymentSessionId,
-            redirectTarget: '_self'
-          });
+          await Browser.open({ url: `${API_URL}/payments/cashfree-redirect?session_id=${encodeURIComponent(gatewayOrderData.paymentSessionId)}` });
           return;
         }
+        const cashfree = await getCashfreeInstance(gatewayOrderData.cashfreeEnv === 'production' ? 'production' : 'sandbox');
         const result: any = await cashfree.checkout({
           paymentSessionId: gatewayOrderData.paymentSessionId,
           redirectTarget: '_modal'
@@ -1342,7 +1339,10 @@ export default function App() {
     let removeListener: (() => void) | undefined;
     CapacitorApp.addListener('appUrlOpen', (event: { url: string }) => {
       const cfOrderId = new URL(event.url).searchParams.get('cf_order_id');
-      if (cfOrderId) resolvePendingCashfreeAction(cfOrderId);
+      if (cfOrderId) {
+        Browser.close().catch(() => {}); // best-effort — dismiss the checkout tab now that we're back
+        resolvePendingCashfreeAction(cfOrderId);
+      }
     }).then((handle: { remove: () => void }) => { removeListener = () => handle.remove(); });
     return () => removeListener?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -1073,6 +1073,29 @@ app.post('/api/payments/create-order', authMiddleware, async (req, res) => {
   res.json(gatewayOrder);
 });
 
+// 9b. Cashfree's checkout page (https://api.cashfree.com/pg/view/sessions/checkout) is
+// loaded via a POST with the session id in the form body, not a GET with it in the URL
+// — the cashfree-js SDK does this itself normally, but that SDK call happens inside the
+// native app's WebView, whose "https://localhost" origin as the referrer can never be
+// whitelisted with Cashfree (unlike a real domain, it can't be registered as a website).
+// This tiny auto-submitting form page is loaded instead, in a genuine external browser
+// tab (see Browser.open in App.tsx) from this already-whitelisted domain, so Cashfree
+// sees a real, approved referrer when the POST lands.
+app.get('/api/payments/cashfree-redirect', (req, res) => {
+  const sessionId = req.query.session_id;
+  if (typeof sessionId !== 'string' || !/^[A-Za-z0-9_-]+$/.test(sessionId)) {
+    return res.status(400).send('Invalid session id');
+  }
+  res.setHeader('Content-Type', 'text/html');
+  res.send(`<!DOCTYPE html>
+<html><body>
+<form id="cf" method="POST" action="https://api.cashfree.com/pg/view/sessions/checkout">
+  <input type="hidden" name="payment_session_id" value="${sessionId}" />
+</form>
+<script>document.getElementById('cf').submit();</script>
+</body></html>`);
+});
+
 // 10. Verify a Cashfree payment and credit the customer's wallet server-side.
 // Replaces the old flow where the browser just PUT whatever wallet_balance it felt like.
 app.post('/api/payments/verify-wallet-topup', authMiddleware, requireRole('customer'), async (req, res) => {
