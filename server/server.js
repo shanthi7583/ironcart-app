@@ -73,7 +73,7 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
     console.error('⚠️ Failed to initialize Firebase Admin (check FIREBASE_SERVICE_ACCOUNT_KEY):', err.message);
   }
 } else {
-  console.log('⚠️ FIREBASE_SERVICE_ACCOUNT_KEY missing. Falling back to the Fast2SMS OTP flow.');
+  console.log('⚠️ FIREBASE_SERVICE_ACCOUNT_KEY missing. Phone login (the only auth route) will not work.');
 }
 
 // --- SESSIONS ---
