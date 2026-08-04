@@ -305,7 +305,12 @@ const sendNotification = (type, phone, message) => {
     headers: {
       'authorization': fast2smsKey,
       'Content-Type': 'application/json',
-      'Content-Length': postData.length
+      // Byte length, not JS string length — messages routinely carry ₹ and emoji,
+      // which are multiple UTF-8 bytes but a single UTF-16 code unit each. Using
+      // postData.length undercounts Content-Length for any such message, so
+      // Fast2SMS truncates the body at that shorter length — silently dropping
+      // whatever field lands past the cut (numbers, being last, every time).
+      'Content-Length': Buffer.byteLength(postData)
     }
   };
 
