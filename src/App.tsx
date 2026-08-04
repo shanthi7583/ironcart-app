@@ -1706,8 +1706,11 @@ export default function App() {
                           </div>
                         </div>
 
-                        {/* Rotating hero carousel — three slides, auto-advancing every 4s */}
-                        <div className="relative w-full h-80 rounded-3xl overflow-hidden shadow-xl shadow-rose-500/25">
+                        {/* Rotating hero carousel — three slides, auto-advancing every 4s.
+                            flex-1 (not a fixed height) so it grows to fill whatever room is
+                            left above the button instead of leaving a blank gap on taller
+                            screens, while min-h keeps it from getting too small on short ones. */}
+                        <div className="relative w-full flex-1 min-h-[200px] rounded-3xl overflow-hidden shadow-xl shadow-rose-500/25">
                           {LOGIN_HERO_SLIDES.map((slide, i) => (
                             <div
                               key={slide.title}
@@ -1741,7 +1744,7 @@ export default function App() {
 
                         <button
                           onClick={() => setAuthStep('login')}
-                          className="w-full mt-auto bg-rose-500 hover:bg-rose-600 text-white py-3 rounded-xl text-sm font-bold shadow-lg shadow-rose-500/30 active:translate-y-0.5"
+                          className="w-full shrink-0 bg-rose-500 hover:bg-rose-600 text-white py-3 rounded-xl text-sm font-bold shadow-lg shadow-rose-500/30 active:translate-y-0.5"
                         >
                           Get Started
                         </button>
