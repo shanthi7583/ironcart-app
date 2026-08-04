@@ -148,30 +148,30 @@ BASE_GARMENTS.forEach(item => {
 // the picker never silently shows an empty item list just because a category name
 // wasn't in a hardcoded list — anything unrecognized still gets a sensible fallback image.
 const CATEGORY_IMAGES: Record<string, string> = {
-  'Light Weight': 'https://images.unsplash.com/photo-1544441893-675973e31985?w=400&h=300&fit=crop',
-  'Medium/Heavy': 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=400&h=300&fit=crop',
-  'Premium': 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&h=300&fit=crop',
-  'Household': 'https://images.unsplash.com/photo-1616627561950-9f746e330187?w=400&h=300&fit=crop',
-  'Apparel': 'https://images.unsplash.com/photo-1544441893-675973e31985?w=400&h=300&fit=crop',
-  'Outerwear': 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=400&h=300&fit=crop',
-  'Bedding': 'https://images.unsplash.com/photo-1616627561950-9f746e330187?w=400&h=300&fit=crop'
+  'Light Weight': '/img-category-light.jpg',
+  'Medium/Heavy': '/img-category-medium-heavy.jpg',
+  'Premium': '/img-category-premium.jpg',
+  'Household': '/img-household-linens.jpg',
+  'Apparel': '/img-category-light.jpg',
+  'Outerwear': '/img-category-medium-heavy.jpg',
+  'Bedding': '/img-household-linens.jpg'
 };
-const FALLBACK_CATEGORY_IMAGE = 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&h=300&fit=crop';
+const FALLBACK_CATEGORY_IMAGE = '/img-category-premium.jpg';
 
 // Pre-login hero carousel — three rotating slides shown above the phone-number form.
 const LOGIN_HERO_SLIDES = [
   {
-    img: 'https://images.unsplash.com/photo-1489274495757-95c7c837b101?w=800&h=1000&fit=crop',
+    img: '/img-steam-ironing.jpg',
     title: 'Steam-Pressed to Perfection',
     subtitle: 'Fabric-safe steam care — no burns, no shine, just crisp results.'
   },
   {
-    img: 'https://images.unsplash.com/photo-1620455800201-7f00aeef12ed?w=800&h=1000&fit=crop',
+    img: '/img-doorstep-pickup.jpg',
     title: 'Doorstep Pickup, Zero Hassle',
     subtitle: 'Schedule a pickup in seconds — we handle the rest, door to door.'
   },
   {
-    img: 'https://images.unsplash.com/photo-1616627561950-9f746e330187?w=800&h=1000&fit=crop',
+    img: '/img-household-linens.jpg',
     title: 'Fresh, Folded, On Time',
     subtitle: 'Every order quality-checked and delivered back within 24 hours.'
   }
@@ -204,10 +204,10 @@ export default function App() {
   const [priceList, setPriceList] = useState<GarmentItem[]>(DEFAULT_PRICE_LIST);
   
   const DEFAULT_OFFERS = [
-    { name: 'Everyday', img: 'https://images.unsplash.com/photo-1544441893-675973e31985?w=200&h=200&fit=crop', cat: 'Light Weight' },
-    { name: 'Party Wear', img: 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=200&h=200&fit=crop', cat: 'Medium/Heavy' },
-    { name: 'Premium', img: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=200&h=200&fit=crop', cat: 'Premium' },
-    { name: 'Home', img: 'https://images.unsplash.com/photo-1616627561950-9f746e330187?w=200&h=200&fit=crop', cat: 'Household' }
+    { name: 'Everyday', img: '/img-category-light.jpg', cat: 'Light Weight' },
+    { name: 'Party Wear', img: '/img-category-medium-heavy.jpg', cat: 'Medium/Heavy' },
+    { name: 'Premium', img: '/img-category-premium.jpg', cat: 'Premium' },
+    { name: 'Home', img: '/img-household-linens.jpg', cat: 'Household' }
   ];
   const [flashOffers, setFlashOffers] = useState<{name: string, img: string, cat: string}[]>(DEFAULT_OFFERS);
   const [editingOffers, setEditingOffers] = useState<{name: string, img: string, cat: string}[]>(DEFAULT_OFFERS);
@@ -216,7 +216,7 @@ export default function App() {
     enabled: false,
     title: 'Diwali Special Offer',
     subtitle: 'Get 20% off on all Premium Dry Cleaning!',
-    img: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&h=400&fit=crop'
+    img: '/img-festive-diwali.jpg'
   };
   const [festiveOffer, setFestiveOffer] = useState<{enabled: boolean, title: string, subtitle: string, img: string}>(DEFAULT_FESTIVE_OFFER);
   const [editingFestive, setEditingFestive] = useState<{enabled: boolean, title: string, subtitle: string, img: string}>(DEFAULT_FESTIVE_OFFER);
@@ -328,10 +328,10 @@ export default function App() {
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const slideImages = [
-    "https://images.unsplash.com/photo-1489274495757-95c7c837b101?w=800&h=400&fit=crop", // Steam Ironing
-    "https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=800&h=400&fit=crop", // Laundry
-    "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800&h=400&fit=crop", // Dry Cleaning
-    "https://images.unsplash.com/photo-1616627561950-9f746e330187?w=800&h=400&fit=crop"  // Linens/Curtains
+    "/img-steam-ironing.jpg", // Steam Ironing
+    "/img-service-laundry.jpg", // Laundry
+    "/img-service-dry-cleaning.jpg", // Dry Cleaning
+    "/img-household-linens.jpg"  // Linens/Curtains
   ];
 
   useEffect(() => {
@@ -382,7 +382,7 @@ export default function App() {
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState('');
 
-  const orderSpeed = 'Normal';
+  const [orderSpeed, setOrderSpeed] = useState<'Normal' | 'Express' | 'Urgent'>('Normal');
   const [pickupDate, setPickupDate] = useState('');
   const [pickupTime, setPickupTime] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
@@ -725,7 +725,10 @@ export default function App() {
       }
     });
 
-    let markupMultiplier = 0; // Standard delivery (no extra markup)
+    // Standard has no surcharge; Express/Urgent add a turnaround premium. Purely a
+    // client-side estimate for display — the server independently recomputes this
+    // same way from the authoritative price catalog before it's ever charged.
+    const markupMultiplier = orderSpeed === 'Urgent' ? 0.5 : orderSpeed === 'Express' ? 0.2 : 0;
     const markup = parseFloat((subtotal * markupMultiplier).toFixed(2));
     
     // Apply discount to subtotal
@@ -768,7 +771,7 @@ export default function App() {
     const tax = parseFloat((taxableAmount * 0.05).toFixed(2)); // 5% GST
     const total = parseFloat((taxableAmount + tax).toFixed(2));
 
-    return { subtotal, discount, markup, tax, total };
+    return { subtotal, discount, markup, tax, total, totalItems };
   };
 
   // --- Order Submission ---
@@ -807,7 +810,7 @@ export default function App() {
     fetch(`${API_URL}/payments/create-order`, {
       method: 'POST',
       headers: authHeaders(),
-      body: JSON.stringify({ cartItems, couponCode: appliedCoupon })
+      body: JSON.stringify({ cartItems, couponCode: appliedCoupon, speed: orderSpeed })
     })
       .then(async res => {
         const data = await res.json().catch(() => ({}));
@@ -918,7 +921,7 @@ export default function App() {
       fetch(`${API_URL}/payments/create-order`, {
         method: 'POST',
         headers: authHeaders(),
-        body: JSON.stringify({ cartItems: buildCartItems(), couponCode: appliedCoupon, currency: 'INR', paymentMethods: methodCode })
+        body: JSON.stringify({ cartItems: buildCartItems(), couponCode: appliedCoupon, currency: 'INR', paymentMethods: methodCode, speed: orderSpeed })
       })
         .then(async res => {
           const restrictedOrder = await res.json().catch(() => ({}));
@@ -1705,11 +1708,22 @@ export default function App() {
                       </>
                     ) : (
                       <>
-                        {/* Compact header for verification/registration — small brand lockup, back arrow to Welcome from the phone step only */}
+                        {/* Compact header for verification/registration — small brand lockup, plus a
+                            back arrow at every step so there's always a way out without logging in:
+                            phone entry backs out to Welcome, OTP entry backs out to phone entry
+                            (clearing the stale code so a leftover digit sequence is never shown
+                            again after coming back around). */}
                         <div className="flex items-center gap-3 mb-1">
-                          {authStep === 'login' && (
+                          {(authStep === 'login' || authStep === 'otp') && (
                             <button
-                              onClick={() => setAuthStep('welcome')}
+                              onClick={() => {
+                                if (authStep === 'otp') {
+                                  setAuthOTP('');
+                                  setAuthStep('login');
+                                } else {
+                                  setAuthStep('welcome');
+                                }
+                              }}
                               aria-label="Back"
                               className="p-2 -ml-2 rounded-full text-rose-600 hover:bg-rose-100/60 transition-colors"
                             >
@@ -1820,7 +1834,7 @@ export default function App() {
                           >
                             {resendCooldown > 0 ? `Resend OTP in ${resendCooldown}s` : 'Resend OTP'}
                           </button>
-                          <button onClick={() => setAuthStep('login')} className="text-rose-500 hover:underline">Change Number</button>
+                          <button onClick={() => { setAuthOTP(''); setAuthStep('login'); }} className="text-rose-500 hover:underline">Change Number</button>
                         </div>
                       </div>
                     )}
@@ -2107,7 +2121,7 @@ export default function App() {
                             className="rounded-xl cursor-pointer text-left relative overflow-hidden shadow-lg shadow-rose-500/15 mt-1 animate-slide-up stagger-3 h-32"
                           >
                             <img
-                              src="https://images.unsplash.com/photo-1513151233558-d860c5398176?w=800&h=400&fit=crop"
+                              src="/img-promo-banner.jpg"
                               alt=""
                               className="absolute inset-0 w-full h-full object-cover"
                               style={{ filter: 'saturate(1.15) contrast(1.05)' }}
@@ -2142,7 +2156,7 @@ export default function App() {
                             className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-md flex items-center gap-3 cursor-pointer p-3 hover:border-rose-350 transition-all mt-1 animate-slide-up stagger-4"
                           >
                             <img
-                              src="https://images.unsplash.com/photo-1582719508461-905c673771fd?w=400&h=300&fit=crop"
+                              src="/img-service-dry-cleaning.jpg"
                               alt="Steam Ironing"
                               className="size-20 rounded-xl object-cover shrink-0 border border-gray-100 shadow-sm"
                               style={{ filter: 'saturate(1.15) contrast(1.05)' }}
@@ -2410,8 +2424,8 @@ export default function App() {
                             <div className="flex gap-4 overflow-x-auto pb-4 pt-1 scrollbar-hide -mx-2 px-2 snap-x">
                               {[
                                 {name: 'Ironing', desc: 'Crisp pressing', img: '/hero_banner.png', comingSoon: false},
-                                {name: 'Dry Cleaning', desc: 'Delicate care', img: 'https://images.unsplash.com/photo-1489274495757-95c7c837b101?w=400&h=300&fit=crop', comingSoon: true},
-                                {name: 'Laundry', desc: 'Wash & fold', img: 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=400&h=300&fit=crop', comingSoon: true}
+                                {name: 'Dry Cleaning', desc: 'Delicate care', img: '/img-steam-ironing.jpg', comingSoon: true},
+                                {name: 'Laundry', desc: 'Wash & fold', img: '/img-service-laundry.jpg', comingSoon: true}
                               ].map(svc => (
                                 <button
                                   key={svc.name}
@@ -2433,6 +2447,31 @@ export default function App() {
                                       <Check className="size-2 text-white" />
                                     </div>
                                   )}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Delivery speed */}
+                          <div className="flex flex-col gap-3 mt-4">
+                            <label className="text-[11px] font-bold text-gray-900 tracking-wide">Select Delivery Speed</label>
+                            <div className="grid grid-cols-3 gap-2">
+                              {([
+                                { value: 'Normal' as const, label: 'Standard', sub: 'No extra cost' },
+                                { value: 'Express' as const, label: 'Express', sub: '+20%' },
+                                { value: 'Urgent' as const, label: 'Urgent', sub: '+50%' }
+                              ]).map(opt => (
+                                <button
+                                  key={opt.value}
+                                  onClick={() => setOrderSpeed(opt.value)}
+                                  className={`flex flex-col items-center justify-center py-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                                    orderSpeed === opt.value
+                                    ? 'bg-rose-500/20 border-rose-500 text-rose-500'
+                                    : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-gray-300'
+                                  }`}
+                                >
+                                  {opt.label}
+                                  <span className="text-[10px] font-medium mt-0.5 opacity-80">{opt.sub}</span>
                                 </button>
                               ))}
                             </div>
@@ -2584,7 +2623,7 @@ export default function App() {
                           {/* Price calculation summary */}
                           <div className="bg-white border border-gray-200 p-3 rounded-xl flex flex-col gap-1 text-[12px] text-gray-500">
                             <div className="flex justify-between">
-                              <span>Subtotal</span>
+                              <span>Subtotal ({calculateTotals().totalItems} {calculateTotals().totalItems === 1 ? 'item' : 'items'})</span>
                               <span className="font-bold text-gray-900">₹{calculateTotals().subtotal}</span>
                             </div>
                             {calculateTotals().discount > 0 && (

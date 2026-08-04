@@ -177,7 +177,7 @@ async function getPriceCatalog() {
 // customer's real (database) subscription tier — cartItems only ever supplies item
 // identity + quantity, never a price or a total. This is the one place that decides
 // what an order actually costs.
-async function computeQuote({ cartItems, couponCode, customerPhone }) {
+async function computeQuote({ cartItems, couponCode, customerPhone, speed }) {
   const catalog = await getPriceCatalog();
   const lookup = new Map(catalog.map(p => [`${p.serviceType}-${p.name}`, p]));
 
@@ -191,7 +191,10 @@ async function computeQuote({ cartItems, couponCode, customerPhone }) {
     items.push({ name: `${p.serviceType} - ${p.name}`, qty, price: p.price, category: p.category });
   }
 
-  const markup = 0; // no express/urgent surcharge is implemented yet
+  // Only trust our own enum of speeds — an unrecognized value is priced as Normal
+  // rather than trusting whatever the client sent.
+  const markupMultiplier = speed === 'Urgent' ? 0.5 : speed === 'Express' ? 0.2 : 0;
+  const markup = Math.round(subtotal * markupMultiplier * 100) / 100;
 
   let activePlan = 'None';
   if (customerPhone && supabase) {
@@ -595,7 +598,7 @@ app.post('/api/orders', authMiddleware, requireRole('customer', 'admin', 'rider'
 
   // The only numbers we trust are our own — recomputed from the price catalog and the
   // customer's real subscription tier, never whatever the client says the cart adds up to.
-  const quote = await computeQuote({ cartItems: newOrder.cartItems, couponCode: newOrder.couponCode, customerPhone });
+  const quote = await computeQuote({ cartItems: newOrder.cartItems, couponCode: newOrder.couponCode, customerPhone, speed: newOrder.speed });
   if (quote.items.length === 0) return res.status(400).json({ error: 'No valid items in cart' });
 
   let paymentStatus = 'Pending';
@@ -972,7 +975,7 @@ app.delete('/api/customers/:phone', authMiddleware, async (req, res) => {
 
 // 9. Payment order creation simulation / Live Cashfree Order session
 app.post('/api/payments/create-order', authMiddleware, async (req, res) => {
-  const { cartItems, couponCode, planName, currency, paymentMethods } = req.body;
+  const { cartItems, couponCode, planName, currency, paymentMethods, speed } = req.body;
   let amount;
   let quote = null;
 
@@ -982,7 +985,8 @@ app.post('/api/payments/create-order', authMiddleware, async (req, res) => {
     quote = await computeQuote({
       cartItems,
       couponCode,
-      customerPhone: req.user.role === 'customer' ? req.user.phone : undefined
+      customerPhone: req.user.role === 'customer' ? req.user.phone : undefined,
+      speed
     });
     amount = quote.total;
     if (!amount || amount <= 0) return res.status(400).json({ error: 'Cart is empty or invalid' });
