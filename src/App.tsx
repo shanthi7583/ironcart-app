@@ -13,6 +13,7 @@ import { Capacitor } from '@capacitor/core'
 import { App as CapacitorApp } from '@capacitor/app'
 import { Browser } from '@capacitor/browser'
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication'
+import { PushNotifications } from '@capacitor/push-notifications'
 
 // The SDK's load() re-fetches/re-initializes Cashfree's checkout script, so this
 // caches one instance per mode instead of reloading it on every checkout attempt.
@@ -1351,6 +1352,45 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Native push notifications for order status updates — registered once a customer
+  // is logged in so the resulting device token can be tied to their phone number
+  // server-side. Purely additive: SMS/WhatsApp keep going out regardless, so a device
+  // that never registers (permission denied, or the web build with no push channel
+  // at all) still gets every update the way it always has.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform() || !currentCustomer) return;
+    const removeListeners: (() => void)[] = [];
+
+    PushNotifications.requestPermissions().then(perm => {
+      if (perm.receive === 'granted') PushNotifications.register();
+    });
+
+    PushNotifications.addListener('registration', (token: { value: string }) => {
+      fetch(`${API_URL}/customers/fcm-token`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ token: token.value })
+      }).catch(() => {}); // best-effort — a failed save just falls back to SMS for this device
+    }).then(handle => removeListeners.push(() => handle.remove()));
+
+    PushNotifications.addListener('registrationError', (err: unknown) => {
+      console.error('Push registration failed:', err);
+    }).then(handle => removeListeners.push(() => handle.remove()));
+
+    // App already open — surface it the same way an in-app WhatsApp/system alert is shown.
+    PushNotifications.addListener('pushNotificationReceived', (notification: { title?: string; body?: string }) => {
+      triggerNotification(notification.body || notification.title || 'Order update');
+    }).then(handle => removeListeners.push(() => handle.remove()));
+
+    // Tapped from the notification tray — take them straight to their order history.
+    PushNotifications.addListener('pushNotificationActionPerformed', () => {
+      setCustomerActiveTab('history');
+    }).then(handle => removeListeners.push(() => handle.remove()));
+
+    return () => removeListeners.forEach(remove => remove());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentCustomer?.phone]);
+
   const handleAddAddress = () => {
     if (!currentCustomer || !newAddressText.trim()) return;
     const newAddr: AddressInfo = { id: Date.now().toString(), label: newAddressLabel, fullAddress: newAddressText };
@@ -1636,7 +1676,7 @@ export default function App() {
                     </div>
                   </div>
                 ) : !currentCustomer ? (
-                  <div className="flex-1 flex flex-col justify-start gap-6">
+                  <div className={`flex-1 flex flex-col gap-6 ${authStep === 'welcome' ? 'justify-start' : 'justify-center'}`}>
                     {authStep === 'welcome' ? (
                       <>
                         {/* Brand mark — a custom hanger-and-steam glyph, not a stock icon */}

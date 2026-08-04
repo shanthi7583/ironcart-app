@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import { initializeApp as initializeFirebaseApp, getApps as getFirebaseApps, cert as firebaseCert } from 'firebase-admin/app';
 import { getAuth as getFirebaseAuth } from 'firebase-admin/auth';
+import { getMessaging as getFirebaseMessaging } from 'firebase-admin/messaging';
 import { waitUntil } from '@vercel/functions';
 
 const app = express();
@@ -61,6 +62,7 @@ function cashfreeHeaders() {
 // hands back is independently re-checked against Google's servers here before we
 // issue our own session for that phone number.
 let firebaseAuth = null;
+let firebaseMessaging = null;
 if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
   try {
     const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
@@ -68,12 +70,41 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
       ? getFirebaseApps()[0]
       : initializeFirebaseApp({ credential: firebaseCert(serviceAccount) });
     firebaseAuth = getFirebaseAuth(firebaseApp);
+    firebaseMessaging = getFirebaseMessaging(firebaseApp);
     console.log('✅ Firebase Admin Initialized — phone auth verified server-side.');
   } catch (err) {
     console.error('⚠️ Failed to initialize Firebase Admin (check FIREBASE_SERVICE_ACCOUNT_KEY):', err.message);
   }
 } else {
   console.log('⚠️ FIREBASE_SERVICE_ACCOUNT_KEY missing. Phone login (the only auth route) will not work.');
+}
+
+// Best-effort push notification for order updates — sent alongside the existing
+// SMS/WhatsApp dispatch, never instead of it. A customer with no registered device
+// (web-only, or push permission denied) just gets the SMS as before; a missing/stale
+// token or a messaging error here must never block the order-lifecycle request that
+// triggered it, so every failure is caught and logged rather than thrown.
+async function sendPushNotification(phone, title, body, data = {}) {
+  if (!firebaseMessaging || !supabase || !phone) return { ok: false, reason: 'not configured' };
+  const { data: cust, error } = await supabase.from('customers').select('fcm_token').eq('phone', phone).single();
+  if (error) {
+    console.error(`Push notification skipped for ${phone} — token lookup failed:`, error.message);
+    return { ok: false, reason: error.message };
+  }
+  const token = cust?.fcm_token;
+  if (!token) return { ok: false, reason: 'no registered device' };
+  try {
+    await firebaseMessaging.send({
+      token,
+      notification: { title, body },
+      data: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v)])),
+      android: { priority: 'high' }
+    });
+    return { ok: true };
+  } catch (err) {
+    console.error(`Push notification failed for ${phone}:`, err.message);
+    return { ok: false, reason: err.message };
+  }
 }
 
 // --- SESSIONS ---
@@ -677,6 +708,7 @@ app.post('/api/orders', authMiddleware, requireRole('customer', 'admin', 'rider'
   // Dispatch alerts
   waitUntil(sendNotification('whatsapp', customerPhone, `Hi ${newOrder.customerName}, your PressGo order ${newOrder.id} of ₹${quote.total} was placed! Pickup scheduled for ${newOrder.pickupDate} (${newOrder.pickupTime}).`));
   waitUntil(sendNotification('sms', OWNER_ALERT_PHONE, `Owner Alert: New order ${newOrder.id} received from ${newOrder.customerName} (${newOrder.apartmentNo}).`));
+  waitUntil(sendPushNotification(customerPhone, 'Order placed', `Your order ${newOrder.id} of ₹${quote.total} was placed. Pickup on ${newOrder.pickupDate} (${newOrder.pickupTime}).`, { orderId: newOrder.id, status: 'Placed' }));
 
   res.status(201).json(responseOrder);
 });
@@ -715,8 +747,10 @@ app.patch('/api/orders/:id/status', authMiddleware, async (req, res) => {
     const order = mapOrderToFrontend(data[0]);
     if (status === 'Cancelled') {
       waitUntil(sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your PressGo order ${order.id} has been Cancelled. Reason: ${cancelReason}`));
+      waitUntil(sendPushNotification(order.customerPhone, 'Order cancelled', `Order ${order.id} was cancelled. Reason: ${cancelReason}`, { orderId: order.id, status: 'Cancelled' }));
     } else {
       waitUntil(sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your PressGo order ${order.id} status is now: [${status}].`));
+      waitUntil(sendPushNotification(order.customerPhone, 'Order update', `Order ${order.id} is now: ${status}.`, { orderId: order.id, status }));
 
       // Referral Reward Logic
       if (status === 'Delivered') {
@@ -780,6 +814,7 @@ app.patch('/api/orders/:id/reschedule', authMiddleware, async (req, res) => {
   if (!error && data && data.length > 0) {
     const order = mapOrderToFrontend(data[0]);
     waitUntil(sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your PressGo order ${order.id} has been RESCHEDULED to ${pickupDate} (${pickupTime}).`));
+    waitUntil(sendPushNotification(order.customerPhone, 'Pickup rescheduled', `Order ${order.id} pickup moved to ${pickupDate} (${pickupTime}).`, { orderId: order.id, status: 'Rescheduled' }));
     return res.json(order);
   }
   console.error('Order reschedule failed:', error?.message || 'no matching order row');
@@ -796,6 +831,7 @@ app.patch('/api/orders/:id/payment', authMiddleware, requireRole('admin', 'rider
     if (!error && data && data.length > 0) {
       const order = mapOrderToFrontend(data[0]);
       waitUntil(sendNotification('sms', order.customerPhone, `PressGo: Payment of ₹${order.total} for order ${order.id} is confirmed [Paid].`));
+      waitUntil(sendPushNotification(order.customerPhone, 'Payment confirmed', `Payment of ₹${order.total} for order ${order.id} is confirmed.`, { orderId: order.id, status: 'Paid' }));
       return res.json(order);
     }
     console.error('Order payment status update failed:', error?.message || 'no matching order row');
@@ -844,6 +880,23 @@ app.get('/api/customers/:phone', authMiddleware, async (req, res) => {
   const existing = DEFAULT_CUSTOMERS.find(c => c.phone === phone);
   if (existing) return res.json(existing);
   res.status(404).json({ error: 'Customer not found' });
+});
+
+// 7.6 Register/update this customer's FCM device token for push notifications.
+// Phone comes from the session, never the body — a customer can only ever set the
+// token for their own account.
+app.post('/api/customers/fcm-token', authMiddleware, requireRole('customer'), async (req, res) => {
+  const { token } = req.body;
+  if (!token || typeof token !== 'string') return res.status(400).json({ error: 'token is required' });
+
+  if (!supabase) return res.json({ success: true });
+
+  const { error } = await supabase.from('customers').update({ fcm_token: token }).eq('phone', req.user.phone);
+  if (error) {
+    console.error(`FCM token save failed for ${req.user.phone}:`, error.message);
+    return res.status(500).json({ error: 'Could not save device token' });
+  }
+  res.json({ success: true });
 });
 
 // 8. Register customer — requires a phone verified via OTP moments ago; the phone
