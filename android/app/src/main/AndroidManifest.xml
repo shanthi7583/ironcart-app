@@ -18,14 +18,18 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Lets Cashfree's checkout redirect straight back into this app instead of
-                 a real https:// domain, which the native WebView's "https://localhost"
-                 origin could never be whitelisted as. See return_url in server.js. -->
-            <intent-filter>
+            <!-- Lets Cashfree's checkout redirect straight back into this app. A custom
+                 URL scheme was tried first but Cashfree's Orders API rejects non-http(s)
+                 return_urls outright, so this is a verified Android App Link instead —
+                 a real, already-whitelisted https URL that Android intercepts before it
+                 ever reaches a browser. Verification is via
+                 public/.well-known/assetlinks.json on the same domain. See return_url
+                 in server.js. -->
+            <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="com.vastracare.app" android:host="payment-return" />
+                <data android:scheme="https" android:host="pressngo-app.vercel.app" android:pathPrefix="/payment-return" />
             </intent-filter>
         </activity>
 
