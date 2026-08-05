@@ -3291,8 +3291,8 @@ export default function App() {
                           </div>
 
                           {/* Danger Zone: Delete Account */}
-                          <div className="bg-red-50/50 border border-red-200 rounded-2xl p-4 flex flex-col gap-2 shadow-sm">
-                            <h4 className="text-xs font-bold text-red-800">Danger Zone</h4>
+                          <div className="bg-blue-50/50 border border-blue-200 rounded-2xl p-4 flex flex-col gap-2 shadow-sm">
+                            <h4 className="text-xs font-bold text-blue-800">Danger Zone</h4>
                             <p className="text-[12px] text-gray-600 leading-relaxed">Permanently delete your profile and account information. This action is irreversible.</p>
                             <button
                               onClick={() => {
@@ -3321,7 +3321,7 @@ export default function App() {
                                   });
                                 });
                               }}
-                              className="w-full bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2 rounded-xl mt-1 shadow-sm transition-all"
+                              className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 rounded-xl mt-1 shadow-sm transition-all"
                             >
                               Delete My Account Permanently
                             </button>

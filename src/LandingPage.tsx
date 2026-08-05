@@ -136,7 +136,7 @@ export default function LandingPage({ onGetStarted }: { onGetStarted: () => void
             </div>
           </div>
           <div className="relative aspect-[4/5] max-w-sm mx-auto w-full rounded-3xl overflow-hidden shadow-2xl shadow-blue-900/20">
-            <img src="/img-folded-shirts-blue.jpg" alt="Freshly folded clothes" className="absolute inset-0 w-full h-full object-cover" />
+            <img src="/img-hero-fresh-laundry.jpg" alt="Freshly cleaned and folded clothes" className="absolute inset-0 w-full h-full object-cover" />
           </div>
         </div>
       </section>
