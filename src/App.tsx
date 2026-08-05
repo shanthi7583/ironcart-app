@@ -1747,7 +1747,7 @@ export default function App() {
 
                           <div className="text-center flex flex-col items-center gap-3 relative">
                             <div className="bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-600 rounded-2xl px-6 py-1.5 shadow-lg shadow-blue-500/30">
-                              <h2 className="font-display italic text-4xl font-bold text-white tracking-tight">PressGo</h2>
+                              <h2 className="font-display text-4xl font-bold text-white tracking-tight">PressGo</h2>
                             </div>
                             <p className="flex items-center gap-2 text-sm font-extrabold text-blue-600 tracking-wide">
                               <Sparkles className="size-3.5 text-cyan-500 animate-spark shrink-0" />
