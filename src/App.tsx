@@ -1457,7 +1457,7 @@ export default function App() {
                     if (modalConfig.onConfirm) modalConfig.onConfirm();
                     setModalConfig(null);
                   }}
-                  className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold rounded-xl transition-colors shadow-lg shadow-rose-500/30"
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition-colors shadow-lg shadow-rose-500/30"
                 >
                   Confirm
                 </button>
@@ -1469,7 +1469,7 @@ export default function App() {
       {/* Simulation Banner Notification */}
       {notification && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4 animate-bounce">
-          <div className="bg-emerald-600 text-white rounded-xl shadow-2xl p-4 border border-emerald-400 flex items-start gap-3">
+          <div className="bg-emerald-700 text-white rounded-xl shadow-2xl p-4 border border-emerald-400 flex items-start gap-3">
             <Bell className="size-5 shrink-0 mt-0.5" />
             <div className="flex-1 text-xs font-semibold leading-relaxed">{notification}</div>
           </div>
@@ -1482,7 +1482,7 @@ export default function App() {
           <>
             <div className="flex items-start gap-2 max-w-[80%]">
               <div className="mt-1 bg-rose-500/20 p-1.5 rounded-full">
-                <MapPin className="size-4 text-rose-500" />
+                <MapPin className="size-4 text-rose-700" />
               </div>
               <div className="flex flex-col">
                 <span className="text-xs font-bold text-gray-900 uppercase tracking-wider flex items-center gap-1">
@@ -1502,7 +1502,7 @@ export default function App() {
                 >
                   <Bell className="size-4 text-gray-700" />
                   {orders.some(o => o.customerPhone === currentCustomer.phone && o.status !== 'Placed') && (
-                    <div className="absolute top-0 right-0 size-2 bg-rose-500 rounded-full border border-white animate-pulse"></div>
+                    <div className="absolute top-0 right-0 size-2 bg-rose-600 rounded-full border border-white animate-pulse"></div>
                   )}
                 </button>
                 
@@ -1519,7 +1519,7 @@ export default function App() {
                         orders.filter(o => o.customerPhone === currentCustomer.phone).slice(0, 5).map(o => (
                           <div key={o.id} className="p-3 border-b border-gray-200/80 hover:bg-gray-100 cursor-default">
                             <div className="text-[12px] text-gray-500 mb-0.5">Order {o.id.split('-')[0]}</div>
-                            <div className="text-xs font-medium text-gray-900">Status updated to: <span className="text-rose-400">{o.status}</span></div>
+                            <div className="text-xs font-medium text-gray-900">Status updated to: <span className="text-rose-700">{o.status}</span></div>
                           </div>
                         ))
                       )}
@@ -1535,7 +1535,7 @@ export default function App() {
                     setCustomerActiveTab('home');
                   });
                 }}
-                className="bg-gray-50 border border-gray-200 p-2 rounded-full text-rose-500 hover:bg-rose-50 hover:border-rose-350 transition-all flex items-center justify-center"
+                className="bg-gray-50 border border-gray-200 p-2 rounded-full text-rose-700 hover:bg-rose-50 hover:border-rose-350 transition-all flex items-center justify-center"
                 title="Logout"
               >
                 <LogOut className="size-4" strokeWidth={2.5} />
@@ -1564,7 +1564,7 @@ export default function App() {
         {viewMode !== 'customer' && (
           <button 
             onClick={() => setViewMode('customer')}
-            className="flex items-center gap-1.5 bg-rose-500 hover:bg-rose-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-all"
+            className="flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-all"
           >
             <Smartphone className="size-3.5" /> Exit Admin View
           </button>
@@ -1602,7 +1602,7 @@ export default function App() {
                     <div className="flex items-center justify-between pb-4 border-b border-gray-200">
                       <div>
                         <h2 className="text-xl font-bold">Rider Portal</h2>
-                        <p className="text-xs text-amber-400">Delivery Dashboard</p>
+                        <p className="text-xs text-amber-700">Delivery Dashboard</p>
                       </div>
                       <button 
                         onClick={() => setViewMode('customer')}
@@ -1628,12 +1628,12 @@ export default function App() {
                               </div>
                               <div className="text-right">
                                 <span className="text-[12px] bg-gray-200 text-gray-700 px-2 py-0.5 rounded font-bold">{order.status}</span>
-                                <div className="text-xs font-bold mt-1 text-emerald-400">₹{order.total}</div>
+                                <div className="text-xs font-bold mt-1 text-emerald-700">₹{order.total}</div>
                               </div>
                             </div>
 
                             <div className="bg-gray-50 p-2.5 rounded-xl flex items-center gap-2">
-                              <MapPin className="size-4 text-rose-500 shrink-0" />
+                              <MapPin className="size-4 text-rose-700 shrink-0" />
                               <div className="text-xs text-gray-700 truncate">{order.apartmentNo}, {order.address}</div>
                             </div>
 
@@ -1665,7 +1665,7 @@ export default function App() {
                               <button 
                                 onClick={() => updateOrderStatus(order.id, 'Delivered')}
                                 disabled={order.status === 'Delivered'}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-bold py-2 rounded-xl uppercase tracking-wide"
+                                className="bg-emerald-700 hover:bg-emerald-800 text-white text-[12px] font-bold py-2 rounded-xl uppercase tracking-wide"
                               >
                                 Mark Delivered
                               </button>
@@ -1768,7 +1768,7 @@ export default function App() {
                                 }
                               }}
                               aria-label="Back"
-                              className="p-2 -ml-2 rounded-full text-rose-600 hover:bg-rose-100/60 transition-colors"
+                              className="p-2 -ml-2 rounded-full text-rose-700 hover:bg-rose-100/60 transition-colors"
                             >
                               <ArrowLeft className="size-4" />
                             </button>
@@ -1807,7 +1807,7 @@ export default function App() {
                         </div>
                         <button
                           onClick={handleSendOTP}
-                          className="w-full bg-rose-500 hover:bg-rose-600 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md active:translate-y-0.5"
+                          className="w-full bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md active:translate-y-0.5"
                         >
                           Send OTP Verification
                         </button>
@@ -1826,7 +1826,7 @@ export default function App() {
                               />
                               <button
                                 onClick={handleAdminAccess}
-                                className="bg-rose-500 hover:bg-rose-600 text-white font-bold text-[12px] px-3.5 py-1.5 rounded-lg transition-colors"
+                                className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-[12px] px-3.5 py-1.5 rounded-lg transition-colors"
                               >
                                 Go
                               </button>
@@ -1840,7 +1840,7 @@ export default function App() {
                           ) : (
                             <button 
                               onClick={() => setShowConsoleInput(true)}
-                              className="text-[12px] font-bold text-gray-500 hover:text-rose-500 transition-colors uppercase tracking-wider"
+                              className="text-[12px] font-bold text-gray-500 hover:text-rose-700 transition-colors uppercase tracking-wider"
                             >
                               Admin Login
                             </button>
@@ -1864,7 +1864,7 @@ export default function App() {
                         </div>
                         <button 
                           onClick={handleVerifyOTP}
-                          className="w-full bg-rose-500 hover:bg-rose-600 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md active:translate-y-0.5"
+                          className="w-full bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md active:translate-y-0.5"
                         >
                           Verify & Continue
                         </button>
@@ -1873,11 +1873,11 @@ export default function App() {
                           <button
                             onClick={handleSendOTP}
                             disabled={resendCooldown > 0}
-                            className="text-rose-500 hover:underline disabled:text-gray-400 disabled:no-underline disabled:cursor-not-allowed"
+                            className="text-rose-700 hover:underline disabled:text-gray-400 disabled:no-underline disabled:cursor-not-allowed"
                           >
                             {resendCooldown > 0 ? `Resend OTP in ${resendCooldown}s` : 'Resend OTP'}
                           </button>
-                          <button onClick={() => { setAuthOTP(''); setAuthStep('login'); }} className="text-rose-500 hover:underline">Change Number</button>
+                          <button onClick={() => { setAuthOTP(''); setAuthStep('login'); }} className="text-rose-700 hover:underline">Change Number</button>
                         </div>
                       </div>
                     )}
@@ -1927,7 +1927,7 @@ export default function App() {
                         </div>
                         <button
                           onClick={handleRegister}
-                          className="w-full bg-rose-500 hover:bg-rose-600 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md mt-2"
+                          className="w-full bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md mt-2"
                         >
                           Complete Sign Up
                         </button>
@@ -1944,11 +1944,11 @@ export default function App() {
                     <div className="flex items-center justify-between pb-3 border-b border-gray-200 mb-4">
                       {customerActiveTab === 'home' ? (
                         <div className="flex items-center gap-3">
-                          <div className="size-10 rounded-full bg-rose-500 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                          <div className="size-10 rounded-full bg-rose-600 flex items-center justify-center text-white font-bold text-xl shadow-lg">
                             {currentCustomer.name.charAt(0).toUpperCase()}
                           </div>
                           <div className="text-left">
-                            <div className="text-[12px] text-rose-300 font-bold tracking-wide uppercase">Warm Welcome Back</div>
+                            <div className="text-[12px] text-blue-600 font-bold tracking-wide uppercase">Warm Welcome Back</div>
                             <div className="text-sm font-black text-gray-900 max-w-[160px] truncate">{currentCustomer.name}</div>
                           </div>
                         </div>
@@ -1956,7 +1956,7 @@ export default function App() {
                         <div className="flex items-center gap-3">
                           <button 
                             onClick={() => setCustomerActiveTab('home')} 
-                            className="p-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-500 hover:text-rose-500 transition-colors"
+                            className="p-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-500 hover:text-rose-700 transition-colors"
                           >
                             <ArrowLeft className="size-4" />
                           </button>
@@ -1972,13 +1972,13 @@ export default function App() {
                         </div>
                       )}
                       <div className="flex items-center gap-2">
-                        <button onClick={() => setCustomerActiveTab('notifications')} className="text-gray-500 hover:text-rose-500 p-2 rounded-lg bg-gray-50 border border-gray-200 relative">
+                        <button onClick={() => setCustomerActiveTab('notifications')} className="text-gray-500 hover:text-rose-700 p-2 rounded-lg bg-gray-50 border border-gray-200 relative">
                           <Bell className="size-4" />
                           {orders.filter(o => o.customerPhone === currentCustomer?.phone && o.status !== 'Delivered').length > 0 && (
-                            <span className="absolute top-1.5 right-1.5 size-2 bg-rose-500 rounded-full animate-pulse"></span>
+                            <span className="absolute top-1.5 right-1.5 size-2 bg-rose-600 rounded-full animate-pulse"></span>
                           )}
                         </button>
-                        <button onClick={handleLogout} className="text-gray-500 hover:text-rose-500 p-2 rounded-lg bg-gray-50 border border-gray-200">
+                        <button onClick={handleLogout} className="text-gray-500 hover:text-rose-700 p-2 rounded-lg bg-gray-50 border border-gray-200">
                           <LogOut className="size-4" />
                         </button>
                       </div>
@@ -1992,7 +1992,7 @@ export default function App() {
                         <div className="flex flex-col gap-4">
                           
                           {/* Top Scrolling Marquee */}
-                          <div className="bg-gradient-to-r from-rose-500 to-amber-500 text-white text-[11px] font-extrabold py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 shadow-sm">
+                          <div className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white text-[11px] font-extrabold py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 shadow-sm">
                             <span className="animate-pulse">⚡ FLASH OFFER: Get 35% off on Gold Prime subscription this week!</span>
                           </div>
 
@@ -2000,14 +2000,14 @@ export default function App() {
                           <div className="text-left mt-1 animate-slide-up">
                             <h3 className="font-display italic text-2xl font-semibold text-gray-900 leading-tight">Hello, {currentCustomer?.name || 'Friend'} 👋</h3>
                             <p className="flex items-center gap-1.5 text-[12px] font-bold mt-1">
-                              <Sparkles className="size-3 text-amber-500 animate-spark shrink-0" />
-                              <span className="text-shimmer text-rose-500">Experience premium fabric care tailored just for you.</span>
+                              <Sparkles className="size-3 text-cyan-500 animate-spark shrink-0" />
+                              <span className="text-shimmer text-blue-600">Experience premium fabric care tailored just for you.</span>
                             </p>
                           </div>
 
 
                           {/* Promotional Slide Banner */}
-                          <div className="bg-gradient-to-r from-rose-600 to-amber-500 rounded-2xl p-0 text-left shadow-lg shadow-rose-500/15 relative overflow-hidden h-48 flex items-center justify-center group animate-slide-up stagger-1">
+                          <div className="bg-gradient-to-r from-blue-700 to-teal-500 rounded-2xl p-0 text-left shadow-lg shadow-blue-600/15 relative overflow-hidden h-48 flex items-center justify-center group animate-slide-up stagger-1">
                             <div className="absolute inset-0 flex transition-transform duration-1000 ease-in-out" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
                               {slideImages.map((src, index) => (
                                 <div key={index} className="relative w-full h-full shrink-0">
@@ -2019,14 +2019,14 @@ export default function App() {
                                   />
                                   {/* Lighter than before — the photo itself should read as the
                                       hero, not just a tint behind a solid color block. */}
-                                  <div className="absolute inset-0 bg-gradient-to-t from-rose-950/85 via-rose-900/25 to-transparent"></div>
+                                  <div className="absolute inset-0 bg-gradient-to-t from-blue-950/85 via-blue-900/25 to-transparent"></div>
                                 </div>
                               ))}
                             </div>
                             <div className="relative z-10 px-5 w-full">
                               <h4 className="font-display italic font-bold text-xl text-white drop-shadow-md">Premium Garment Pressing</h4>
                               <p className="text-[13px] text-white/95 mt-1.5 max-w-[220px] leading-relaxed drop-shadow-md">Get 50% off on your first order. Professional steam care starts at just ₹12/item.</p>
-                              <span className="inline-block bg-white text-rose-600 text-[11px] font-bold px-2.5 py-1 rounded-full mt-3 shadow-sm">Code: WELCOME50</span>
+                              <span className="inline-block bg-white text-blue-600 text-[11px] font-bold px-2.5 py-1 rounded-full mt-3 shadow-sm">Code: WELCOME50</span>
                             </div>
                           </div>
 
@@ -2037,7 +2037,7 @@ export default function App() {
                                 <span className="text-lg">💳</span>
                                 <span className="text-sm font-bold text-gray-900">PressGo Wallet</span>
                               </div>
-                              <span className="font-display text-xl font-semibold text-emerald-500">₹{currentCustomer?.walletBalance || 0}</span>
+                              <span className="font-display text-xl font-semibold text-emerald-700">₹{currentCustomer?.walletBalance || 0}</span>
                             </div>
                             
                             {showAddMoney ? (
@@ -2049,11 +2049,11 @@ export default function App() {
                                   placeholder="Amount (₹)"
                                   className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-900 outline-none"
                                 />
-                                <button onClick={handleAddFunds} className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-2 rounded-lg text-xs font-bold transition-colors">Add</button>
+                                <button onClick={handleAddFunds} className="bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-2 rounded-lg text-xs font-bold transition-colors">Add</button>
                                 <button onClick={() => setShowAddMoney(false)} className="bg-gray-200 hover:bg-gray-300 text-gray-900 px-3 py-2 rounded-lg text-xs font-bold transition-colors">Cancel</button>
                               </div>
                             ) : (
-                              <button onClick={() => setShowAddMoney(true)} className="w-full bg-gray-50 hover:bg-gray-200 border border-gray-200 text-emerald-400 text-xs font-bold py-2 rounded-lg transition-colors">
+                              <button onClick={() => setShowAddMoney(true)} className="w-full bg-gray-50 hover:bg-gray-200 border border-gray-200 text-emerald-700 text-xs font-bold py-2 rounded-lg transition-colors">
                                 + Add Money to Wallet
                               </button>
                             )}
@@ -2081,7 +2081,7 @@ export default function App() {
                                         <p className="text-gray-700 font-semibold truncate">{t.description}</p>
                                         <p className="text-gray-500">{new Date(t.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
                                       </div>
-                                      <span className={`font-bold shrink-0 ${t.type === 'credit' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                      <span className={`font-bold shrink-0 ${t.type === 'credit' ? 'text-emerald-700' : 'text-rose-700'}`}>
                                         {t.type === 'credit' ? '+' : '−'}₹{t.amount}
                                       </span>
                                     </div>
@@ -2100,7 +2100,7 @@ export default function App() {
                               onClick={() => setCustomerActiveTab('order')}
                               className="flex flex-col items-center justify-center gap-2 p-3 bg-white border border-gray-200 rounded-xl hover:border-rose-500 hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300 text-center relative overflow-hidden group"
                             >
-                              <div className="size-8 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 group-hover:scale-110 transition-transform">
+                              <div className="size-8 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-700 group-hover:scale-110 transition-transform">
                                 <Plus className="size-4" />
                               </div>
                               <span className="text-[12px] font-semibold text-gray-900">Ironing</span>
@@ -2133,7 +2133,7 @@ export default function App() {
                               onClick={() => setCustomerActiveTab('history')}
                               className="flex flex-col items-center justify-center gap-2 p-3 bg-white border border-gray-200 rounded-xl hover:border-amber-500 hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300 text-center group"
                             >
-                              <div className="size-8 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform">
+                              <div className="size-8 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-700 group-hover:scale-110 transition-transform">
                                 <ShoppingBag className="size-4" />
                               </div>
                               <span className="text-[12px] font-semibold text-gray-900">My Orders</span>
@@ -2151,7 +2151,7 @@ export default function App() {
                               onClick={() => setCustomerActiveTab('support')}
                               className="flex flex-col items-center justify-center gap-2 p-3 bg-white border border-gray-200 rounded-xl hover:border-emerald-500 transition-all text-center"
                             >
-                              <div className="size-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                              <div className="size-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-700">
                                 <HelpCircle className="size-4" />
                               </div>
                               <span className="text-[12px] font-semibold text-gray-900">Support</span>
@@ -2240,7 +2240,7 @@ export default function App() {
                               </div>
                               <div className="flex items-center justify-between">
                                 <div>
-                                  <div className="text-xs font-bold text-rose-500">
+                                  <div className="text-xs font-bold text-rose-700">
                                     Status: {orders.filter(o => o.customerPhone === currentCustomer.phone)[0].status}
                                   </div>
                                   <div className="text-[12px] text-gray-500 mt-1">
@@ -2295,7 +2295,7 @@ export default function App() {
                           {/* Code Display */}
                           <div className="bg-white border border-gray-200 rounded-2xl p-5 mt-2 flex flex-col items-center shadow-sm">
                             <span className="text-[12px] font-bold text-gray-500 uppercase tracking-wider mb-2">Your Unique Code</span>
-                            <div className="bg-gray-50 border-2 border-dashed border-rose-500/30 text-rose-500 font-mono text-2xl font-black px-6 py-3 rounded-xl tracking-[0.2em] w-full text-center select-all">
+                            <div className="bg-gray-50 border-2 border-dashed border-rose-500/30 text-rose-700 font-mono text-2xl font-black px-6 py-3 rounded-xl tracking-[0.2em] w-full text-center select-all">
                               {currentCustomer.referralCode || 'PRESSGO-NEW'}
                             </div>
                             
@@ -2333,8 +2333,8 @@ export default function App() {
                                 <p className="text-[11px] text-gray-500 leading-snug flex-1">They sign up and enter your code during registration.</p>
                               </div>
                               <div className="flex items-center gap-3 bg-gray-50/50 p-3 rounded-xl border border-gray-200/80">
-                                <div className="size-8 rounded-full bg-emerald-500/10 flex items-center justify-center font-black text-xs text-emerald-500">3</div>
-                                <p className="text-[11px] text-gray-700 leading-snug flex-1">You <strong className="text-emerald-400">both get ₹50</strong> in your wallet when their first order is delivered!</p>
+                                <div className="size-8 rounded-full bg-emerald-500/10 flex items-center justify-center font-black text-xs text-emerald-700">3</div>
+                                <p className="text-[11px] text-gray-700 leading-snug flex-1">You <strong className="text-emerald-700">both get ₹50</strong> in your wallet when their first order is delivered!</p>
                               </div>
                             </div>
                           </div>
@@ -2355,7 +2355,7 @@ export default function App() {
                               {orders.filter(o => o.customerPhone === currentCustomer?.phone).map(order => (
                                 <div key={order.id} className="bg-gray-50 border border-gray-200 p-3 rounded-xl flex gap-3 items-start">
                                   <div className="size-8 rounded-full bg-rose-500/10 flex items-center justify-center shrink-0">
-                                    <Bell className="size-4 text-rose-500" />
+                                    <Bell className="size-4 text-rose-700" />
                                   </div>
                                   <div className="flex-1">
                                     <div className="flex justify-between items-center mb-1">
@@ -2363,7 +2363,7 @@ export default function App() {
                                       <span className="text-[11px] text-gray-500">{order.createdAt}</span>
                                     </div>
                                     <p className="text-[11px] text-gray-500">
-                                      Status updated to <strong className="text-rose-400">{order.status}</strong>. 
+                                      Status updated to <strong className="text-rose-700">{order.status}</strong>. 
                                       {order.status === 'Delivered' ? ' Thank you for choosing PressGo!' : ' We are working on it.'}
                                     </p>
                                   </div>
@@ -2387,7 +2387,7 @@ export default function App() {
                           {/* Address Details Card */}
                           <div className="bg-white p-3 rounded-xl border border-gray-200 text-xs flex flex-col gap-2">
                             <div className="font-bold text-gray-900 flex items-center justify-between">
-                              <span className="flex items-center gap-1.5"><MapPin className="size-3.5 text-rose-500" /> Pickup Details</span>
+                              <span className="flex items-center gap-1.5"><MapPin className="size-3.5 text-rose-700" /> Pickup Details</span>
                               <span className="text-[11px] text-gray-500 font-normal">Editable</span>
                             </div>
                             
@@ -2423,7 +2423,7 @@ export default function App() {
                                       <div className="text-xs font-bold text-gray-900">{addr.label}</div>
                                       <div className="text-[12px] text-gray-500 truncate w-48">{addr.fullAddress}</div>
                                     </div>
-                                    {orderAddress === addr.fullAddress && <div className="size-2 rounded-full bg-rose-500" />}
+                                    {orderAddress === addr.fullAddress && <div className="size-2 rounded-full bg-rose-600" />}
                                   </div>
                                 ))}
 
@@ -2443,7 +2443,7 @@ export default function App() {
                                       className="w-full bg-white border border-gray-200 rounded px-2 py-1.5 mb-2 text-xs text-gray-900 outline-none focus:border-rose-500 resize-none h-16"
                                     />
                                     <div className="flex gap-2">
-                                      <button onClick={handleAddAddress} className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[12px] font-bold py-1.5 rounded transition-colors">Save Address</button>
+                                      <button onClick={handleAddAddress} className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white text-[12px] font-bold py-1.5 rounded transition-colors">Save Address</button>
                                       <button onClick={() => setShowAddAddress(false)} className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 text-[12px] font-bold py-1.5 rounded transition-colors">Cancel</button>
                                     </div>
                                   </div>
@@ -2484,9 +2484,9 @@ export default function App() {
                                     <p className="text-[11px] text-gray-300 line-clamp-1">{svc.comingSoon ? 'Coming soon' : svc.desc}</p>
                                   </div>
                                   {svc.comingSoon ? (
-                                    <div className="absolute top-1.5 right-1.5 bg-amber-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-md">SOON</div>
+                                    <div className="absolute top-1.5 right-1.5 bg-amber-700 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-md">SOON</div>
                                   ) : selectedService === svc.name && (
-                                    <div className="absolute top-1.5 right-1.5 bg-rose-500 rounded-full p-0.5 shadow-md flex items-center justify-center">
+                                    <div className="absolute top-1.5 right-1.5 bg-rose-600 rounded-full p-0.5 shadow-md flex items-center justify-center">
                                       <Check className="size-2 text-white" />
                                     </div>
                                   )}
@@ -2509,7 +2509,7 @@ export default function App() {
                                   onClick={() => setOrderSpeed(opt.value)}
                                   className={`flex flex-col items-center justify-center py-2.5 rounded-xl border text-xs font-semibold transition-all ${
                                     orderSpeed === opt.value
-                                    ? 'bg-rose-500/20 border-rose-500 text-rose-500'
+                                    ? 'bg-rose-500/20 border-rose-500 text-rose-700'
                                     : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-gray-300'
                                   }`}
                                 >
@@ -2548,11 +2548,11 @@ export default function App() {
                                   onClick={() => setPickupTime(slot)}
                                   className={`flex items-center justify-center py-2.5 rounded-xl border text-xs font-medium transition-all ${
                                     pickupTime === slot
-                                    ? 'bg-rose-500/20 border-rose-500 text-rose-400'
+                                    ? 'bg-rose-500/20 border-rose-500 text-rose-700'
                                     : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-gray-300'
                                   }`}
                                 >
-                                  <Clock className={`size-3.5 mr-2 ${pickupTime === slot ? 'text-rose-400' : 'text-gray-500'}`} />
+                                  <Clock className={`size-3.5 mr-2 ${pickupTime === slot ? 'text-rose-700' : 'text-gray-500'}`} />
                                   {slot === '09:00 - 12:00' ? '09 AM - 12 PM' :
                                    slot === '12:00 - 15:00' ? '12 PM - 03 PM' :
                                    slot === '15:00 - 18:00' ? '03 PM - 06 PM' : '06 PM - 09 PM'}
@@ -2585,7 +2585,7 @@ export default function App() {
                                     <span className="text-[12px] font-bold text-white tracking-wide uppercase drop-shadow-md">{cat.name}</span>
                                   </div>
                                   {activeCategory === cat.name && (
-                                    <div className="absolute top-1 right-1 bg-rose-500 rounded-full p-0.5 shadow-md">
+                                    <div className="absolute top-1 right-1 bg-rose-600 rounded-full p-0.5 shadow-md">
                                       <Check className="size-2.5 text-white" />
                                     </div>
                                   )}
@@ -2604,7 +2604,7 @@ export default function App() {
                                     <div key={key} className={`flex justify-between items-center bg-white p-3 rounded-xl border transition-all ${qty > 0 ? 'border-rose-500/50 shadow-[0_2px_8px_rgba(225,29,72,0.15)]' : 'border-gray-200'}`}>
                                       <div>
                                         <div className="text-xs font-bold text-gray-900">{item.name}</div>
-                                        <div className="text-[12px] text-rose-400 mt-0.5 font-semibold">₹{item.price} / pc</div>
+                                        <div className="text-[12px] text-rose-700 mt-0.5 font-semibold">₹{item.price} / pc</div>
                                       </div>
                                       <div className="flex items-center gap-3 bg-gray-50 rounded-full p-1 border border-gray-200 shadow-inner">
                                         <button 
@@ -2616,7 +2616,7 @@ export default function App() {
                                         <span className="text-xs font-extrabold text-gray-900 min-w-[12px] text-center">{qty}</span>
                                         <button 
                                           onClick={() => setSelectedItems(prev => ({ ...prev, [key]: qty + 1 }))}
-                                          className="size-6 bg-rose-500 rounded-full flex items-center justify-center text-white shadow-sm hover:scale-105 transition-all"
+                                          className="size-6 bg-rose-600 rounded-full flex items-center justify-center text-white shadow-sm hover:scale-105 transition-all"
                                         >
                                           <Plus className="size-3" />
                                         </button>
@@ -2670,7 +2670,7 @@ export default function App() {
                               <span className="font-bold text-gray-900">₹{calculateTotals().subtotal}</span>
                             </div>
                             {calculateTotals().discount > 0 && (
-                              <div className="flex justify-between text-emerald-400">
+                              <div className="flex justify-between text-emerald-700">
                                 <span>Discount ({appliedCoupon})</span>
                                 <span className="font-bold">-₹{calculateTotals().discount}</span>
                               </div>
@@ -2683,7 +2683,7 @@ export default function App() {
                               <span>GST (5%)</span>
                               <span className="font-bold text-gray-900">₹{calculateTotals().tax}</span>
                             </div>
-                            <div className="flex justify-between border-t border-gray-200 pt-1.5 text-xs font-bold text-rose-500">
+                            <div className="flex justify-between border-t border-gray-200 pt-1.5 text-xs font-bold text-rose-700">
                               <span>Estimated Total</span>
                               <span>₹{calculateTotals().total}</span>
                             </div>
@@ -2692,7 +2692,7 @@ export default function App() {
                           <button
                             onClick={handlePlaceOrder}
                             disabled={isCreatingCheckout}
-                            className="w-full bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 disabled:pointer-events-none text-white py-2.5 rounded-xl text-xs font-semibold shadow-md active:translate-y-0.5 text-center"
+                            className="w-full bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 disabled:pointer-events-none text-white py-2.5 rounded-xl text-xs font-semibold shadow-md active:translate-y-0.5 text-center"
                           >
                             {isCreatingCheckout ? 'Preparing checkout…' : 'Proceed to Digital Payment'}
                           </button>
@@ -2711,10 +2711,10 @@ export default function App() {
                                 <button
                                   key={svc}
                                   onClick={() => comingSoon ? customAlert(`${svc} is launching soon — Ironing is available to book right now!`) : setSelectedService(svc)}
-                                  className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all flex items-center gap-1.5 ${comingSoon ? 'bg-white border-gray-200 text-gray-400 cursor-not-allowed' : selectedService === svc ? 'bg-rose-500 border-rose-500 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}
+                                  className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all flex items-center gap-1.5 ${comingSoon ? 'bg-white border-gray-200 text-gray-600 cursor-not-allowed' : selectedService === svc ? 'bg-rose-600 border-rose-500 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}
                                 >
                                   {svc}
-                                  {comingSoon && <span className="text-[8px] bg-amber-100 text-amber-600 px-1 rounded-full font-bold">SOON</span>}
+                                  {comingSoon && <span className="text-[8px] bg-amber-100 text-amber-800 px-1 rounded-full font-bold">SOON</span>}
                                 </button>
                               );
                             })}
@@ -2731,7 +2731,7 @@ export default function App() {
                                     {group.items.map(item => (
                                       <div key={item.name} className="flex justify-between items-center bg-white p-3 rounded-xl border border-gray-200">
                                         <div className="text-xs font-bold text-gray-900">{item.name}</div>
-                                        <div className="text-sm font-extrabold text-rose-500">₹{item.price}</div>
+                                        <div className="text-sm font-extrabold text-rose-700">₹{item.price}</div>
                                       </div>
                                     ))}
                                   </div>
@@ -2752,7 +2752,7 @@ export default function App() {
                                 <button onClick={() => setSelectedOrderForTracking(null)} className="text-xs text-gray-500 hover:text-gray-900 flex items-center gap-1">
                                   <ArrowLeft className="size-3" /> Back
                                 </button>
-                                <span className="text-[12px] font-bold text-rose-500">{selectedOrderForTracking.id}</span>
+                                <span className="text-[12px] font-bold text-rose-700">{selectedOrderForTracking.id}</span>
                               </div>
 
                               {/* Order Tracking Progress bar */}
@@ -2772,9 +2772,9 @@ export default function App() {
                                   return (
                                     <div key={step.status} className="flex items-center gap-3 relative">
                                       {idx < 4 && (
-                                        <div className={`absolute left-2.5 top-6 w-0.5 h-6 ${stepIdx < currentIdx ? 'bg-rose-500' : 'bg-gray-200'}`}></div>
+                                        <div className={`absolute left-2.5 top-6 w-0.5 h-6 ${stepIdx < currentIdx ? 'bg-rose-600' : 'bg-gray-200'}`}></div>
                                       )}
-                                      <div className={`size-5 rounded-full flex items-center justify-center text-[12px] font-bold border-2 ${isActive ? 'bg-rose-500 border-rose-500 text-gray-900 shadow-sm' : 'border-gray-200 text-gray-500'}`}>
+                                      <div className={`size-5 rounded-full flex items-center justify-center text-[12px] font-bold border-2 ${isActive ? 'bg-rose-600 border-rose-500 text-gray-900 shadow-sm' : 'border-gray-200 text-gray-500'}`}>
                                         {isActive ? <Check className="size-2.5" /> : idx + 1}
                                       </div>
                                       <span className={`text-xs font-semibold ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
@@ -2795,13 +2795,13 @@ export default function App() {
                                   <div className="relative z-10 w-full px-8 flex items-center justify-between">
                                     <div className="size-6 bg-gray-200 rounded-full border-2 border-gray-300 flex items-center justify-center z-10"><MapPin className="size-3 text-gray-500" /></div>
                                     <div className="flex-1 h-0.5 bg-gray-200 relative overflow-hidden">
-                                      <div className={`absolute top-0 left-0 h-full bg-rose-500 transition-all duration-[3000ms] ${selectedOrderForTracking.status === 'Delivered' ? 'w-full' : 'w-1/2 animate-pulse'}`}></div>
+                                      <div className={`absolute top-0 left-0 h-full bg-rose-600 transition-all duration-[3000ms] ${selectedOrderForTracking.status === 'Delivered' ? 'w-full' : 'w-1/2 animate-pulse'}`}></div>
                                     </div>
                                     <div className="size-6 bg-emerald-900 rounded-full border-2 border-emerald-500 flex items-center justify-center z-10 shadow-[0_0_10px_rgba(16,185,129,0.5)]"><Check className="size-3 text-emerald-400" /></div>
                                     
                                     {/* Moving Courier Icon */}
                                     <div className={`absolute top-1/2 -translate-y-1/2 bg-white rounded-full p-1 shadow-lg border border-slate-200 z-20 transition-all duration-[3000ms] ${selectedOrderForTracking.status === 'Delivered' ? 'left-[calc(100%-2.5rem)]' : 'left-1/2 -translate-x-1/2'}`}>
-                                      <Navigation className="size-3 text-rose-500" />
+                                      <Navigation className="size-3 text-rose-700" />
                                     </div>
                                   </div>
                                   
@@ -2831,7 +2831,7 @@ export default function App() {
                                   onClick={() => setSelectedInvoice(selectedOrderForTracking)}
                                   className="w-full bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-900 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 mt-2"
                                 >
-                                  <FileText className="size-3.5 text-rose-500" /> View Digital Invoice
+                                  <FileText className="size-3.5 text-rose-700" /> View Digital Invoice
                                 </button>
                               )}
 
@@ -2847,7 +2847,7 @@ export default function App() {
                                     setSelectedOrderForTracking(null);
                                     triggerNotification('🛒 Items from previous order loaded! Ready to checkout.');
                                   }}
-                                  className="w-full bg-rose-500 hover:bg-rose-600 text-white py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 mt-2 shadow-sm transition-all"
+                                  className="w-full bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 mt-2 shadow-sm transition-all"
                                 >
                                   <RefreshCw className="size-3.5" /> Reorder this Basket
                                 </button>
@@ -2857,7 +2857,7 @@ export default function App() {
                                 <div className="grid grid-cols-2 gap-2 mt-2">
                                   <button 
                                     onClick={() => setShowCancelModal(true)}
-                                    className="w-full bg-gray-50 hover:bg-rose-950/50 border border-rose-500/30 text-rose-400 hover:text-rose-300 py-2 rounded-xl text-xs font-semibold transition-all"
+                                    className="w-full bg-gray-50 hover:bg-rose-950/50 border border-rose-500/30 text-rose-700 hover:text-rose-300 py-2 rounded-xl text-xs font-semibold transition-all"
                                   >
                                     Cancel Order
                                   </button>
@@ -2890,11 +2890,11 @@ export default function App() {
                                       <div>
                                         <div className="text-xs font-bold text-gray-900">{o.id}</div>
                                         <div className="text-[11px] text-gray-500 mt-0.5">{o.createdAt}</div>
-                                        <div className="text-[12px] font-semibold text-rose-500 mt-1">{o.status}</div>
+                                        <div className="text-[12px] font-semibold text-rose-700 mt-1">{o.status}</div>
                                       </div>
                                       <div className="text-right">
                                         <div className="text-xs font-extrabold text-gray-900">₹{o.total}</div>
-                                        <span className={`inline-block text-[11px] font-bold px-1.5 py-0.5 rounded mt-1 ${o.paymentStatus === 'Paid' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>
+                                        <span className={`inline-block text-[11px] font-bold px-1.5 py-0.5 rounded mt-1 ${o.paymentStatus === 'Paid' ? 'bg-emerald-500/10 text-emerald-700' : 'bg-amber-500/10 text-amber-700'}`}>
                                           {o.paymentStatus}
                                         </span>
                                       </div>
@@ -2924,11 +2924,11 @@ export default function App() {
                               href="tel:+919791019505" 
                               className="flex flex-col items-center justify-center gap-2 p-4 bg-rose-50 border border-rose-200 rounded-2xl text-center shadow-sm hover:bg-rose-100 transition-colors"
                             >
-                              <div className="size-8 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-600">
+                              <div className="size-8 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-700">
                                 <Phone className="size-4" strokeWidth={2.5} />
                               </div>
-                              <span className="text-[12px] font-bold text-rose-600">Call Us Directly</span>
-                              <span className="text-[11px] text-rose-500/80 -mt-1">+91 97910 19505</span>
+                              <span className="text-[12px] font-bold text-rose-700">Call Us Directly</span>
+                              <span className="text-[11px] text-rose-700/90 -mt-1">+91 97910 19505</span>
                             </a>
                             <a 
                               href="https://wa.me/919791019505" 
@@ -2936,11 +2936,11 @@ export default function App() {
                               rel="noreferrer" 
                               className="flex flex-col items-center justify-center gap-2 p-4 bg-emerald-50 border border-emerald-250 rounded-2xl text-center shadow-sm hover:bg-emerald-100 transition-colors"
                             >
-                              <div className="size-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-600">
+                              <div className="size-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-700">
                                 <Truck className="size-4" strokeWidth={2.5} />
                               </div>
-                              <span className="text-[12px] font-bold text-emerald-600">Chat with Us</span>
-                              <span className="text-[11px] text-emerald-500/80 -mt-1">Active on WhatsApp</span>
+                              <span className="text-[12px] font-bold text-emerald-700">Chat with Us</span>
+                              <span className="text-[11px] text-emerald-700/80 -mt-1">Active on WhatsApp</span>
                             </a>
                           </div>
 
@@ -3073,12 +3073,12 @@ export default function App() {
 
                           <div className="flex flex-col gap-3 pb-2">
                             {[
-                              { name: 'Bronze', discount: 15, price: 299, color: 'text-orange-300', bg: 'bg-orange-300/10', border: 'border-orange-300' },
+                              { name: 'Bronze', discount: 15, price: 299, color: 'text-orange-700', bg: 'bg-orange-300/10', border: 'border-orange-300' },
                               { name: 'Silver', discount: 25, price: 499, color: 'text-gray-700', bg: 'bg-slate-300/10', border: 'border-slate-300' },
-                              { name: 'Gold', discount: 35, price: 699, color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400' }
+                              { name: 'Gold', discount: 35, price: 699, color: 'text-amber-700', bg: 'bg-amber-400/10', border: 'border-amber-400' }
                             ].map(plan => (
                               <div key={plan.name} className={`border ${userSubscription === plan.name ? plan.border : 'border-gray-200'} bg-white rounded-xl p-4 relative overflow-hidden transition-all`}>
-                                {userSubscription === plan.name && <div className="absolute top-0 right-0 bg-emerald-500 text-white text-[11px] font-bold px-2 py-1.5 rounded-bl-lg">ACTIVE</div>}
+                                {userSubscription === plan.name && <div className="absolute top-0 right-0 bg-emerald-700 text-white text-[11px] font-bold px-2 py-1.5 rounded-bl-lg">ACTIVE</div>}
                                 <div className="flex justify-between items-center mb-2">
                                   <h4 className={`font-bold ${plan.color} text-sm flex items-center gap-1.5`}>
                                     <Star className="size-4" fill="currentColor" /> {plan.name} Plan
@@ -3089,7 +3089,7 @@ export default function App() {
                                 <button
                                   onClick={() => handleSubscribe(plan.name)}
                                   disabled={userSubscription === plan.name}
-                                  className={`w-full mt-3 py-2 rounded-lg text-xs font-bold ${userSubscription === plan.name ? 'bg-gray-200 text-gray-500' : 'bg-rose-500 hover:bg-rose-600 text-white shadow-sm'}`}
+                                  className={`w-full mt-3 py-2 rounded-lg text-xs font-bold ${userSubscription === plan.name ? 'bg-gray-200 text-gray-500' : 'bg-rose-600 hover:bg-rose-700 text-white shadow-sm'}`}
                                 >
                                   {userSubscription === plan.name ? `Active Plan (${plan.discount}% Discount)` : 'Subscribe Now'}
                                 </button>
@@ -3129,7 +3129,7 @@ export default function App() {
                           {/* Manage Addresses Section */}
                           <div className="bg-white border border-gray-200 rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
                             <h4 className="text-xs font-bold text-gray-950 flex items-center gap-1">
-                              <MapPin className="size-4 text-rose-500" /> Saved Addresses
+                              <MapPin className="size-4 text-rose-700" /> Saved Addresses
                             </h4>
                             <div className="flex flex-col gap-2 max-h-36 overflow-y-auto">
                               {(!currentCustomer.addresses || currentCustomer.addresses.length === 0) ? (
@@ -3154,7 +3154,7 @@ export default function App() {
                                           });
                                         });
                                       }}
-                                      className="text-rose-500 hover:text-rose-600 text-[12px] font-bold shrink-0 self-center"
+                                      className="text-rose-700 hover:text-rose-700 text-[12px] font-bold shrink-0 self-center"
                                     >
                                       Remove
                                     </button>
@@ -3171,7 +3171,7 @@ export default function App() {
                                     <button 
                                       key={lbl}
                                       onClick={() => setNewAddressLabel(lbl)}
-                                      className={`px-2.5 py-1.5 text-[11px] font-bold rounded-lg ${newAddressLabel === lbl ? 'bg-rose-500 text-white' : 'bg-gray-100 text-gray-500'}`}
+                                      className={`px-2.5 py-1.5 text-[11px] font-bold rounded-lg ${newAddressLabel === lbl ? 'bg-rose-600 text-white' : 'bg-gray-100 text-gray-500'}`}
                                     >
                                       {lbl}
                                     </button>
@@ -3185,12 +3185,12 @@ export default function App() {
                                   className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-[12px] text-gray-900 outline-none"
                                 />
                                 <div className="flex gap-2">
-                                  <button onClick={handleAddAddress} className="flex-1 bg-rose-500 hover:bg-rose-600 text-white py-1.5 rounded text-[12px] font-bold">Save</button>
+                                  <button onClick={handleAddAddress} className="flex-1 bg-rose-600 hover:bg-rose-700 text-white py-1.5 rounded text-[12px] font-bold">Save</button>
                                   <button onClick={() => setShowAddAddress(false)} className="flex-1 bg-gray-200 text-gray-700 py-1.5 rounded text-[12px] font-bold">Cancel</button>
                                 </div>
                               </div>
                             ) : (
-                              <button onClick={() => setShowAddAddress(true)} className="text-left text-[12px] font-bold text-rose-500 hover:underline">
+                              <button onClick={() => setShowAddAddress(true)} className="text-left text-[12px] font-bold text-rose-700 hover:underline">
                                 + Add New Address
                               </button>
                             )}
@@ -3202,10 +3202,10 @@ export default function App() {
                             className="w-full text-left p-3.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 rounded-2xl text-emerald-800 flex justify-between items-center shadow-sm"
                           >
                             <div className="flex items-center gap-2">
-                              <HelpCircle className="size-4 text-emerald-600" />
+                              <HelpCircle className="size-4 text-emerald-700" />
                               <span className="text-xs font-bold font-sans">Help & Support (FAQ)</span>
                             </div>
-                            <ChevronRight className="size-4 text-emerald-600" />
+                            <ChevronRight className="size-4 text-emerald-700" />
                           </button>
 
                           {/* App Settings / Information & Legal */}
@@ -3228,7 +3228,7 @@ export default function App() {
                           {/* Danger Zone: Delete Account */}
                           <div className="bg-rose-50/50 border border-rose-200 rounded-2xl p-4 flex flex-col gap-2 shadow-sm">
                             <h4 className="text-xs font-bold text-rose-800">Danger Zone</h4>
-                            <p className="text-[12px] text-gray-500 leading-relaxed">Permanently delete your profile and account information. This action is irreversible.</p>
+                            <p className="text-[12px] text-gray-600 leading-relaxed">Permanently delete your profile and account information. This action is irreversible.</p>
                             <button
                               onClick={() => {
                                 customConfirm('⚠️ WARNING: Deleting your account will remove your address list, purchase logs, and remaining wallet balance. Are you sure you want to proceed?', () => {
@@ -3286,17 +3286,17 @@ export default function App() {
                             }}
                             className="relative flex flex-col items-center gap-1.5 py-1 px-3 rounded-xl transition-all w-14"
                           >
-                            <div className={`relative flex items-center justify-center transition-all ${isActive ? 'text-rose-500' : 'text-gray-500 group-hover:text-gray-700'}`}>
+                            <div className={`relative flex items-center justify-center transition-all ${isActive ? 'text-rose-700' : 'text-gray-500 group-hover:text-gray-700'}`}>
                               <Icon className={`size-[18px] ${isActive ? 'fill-rose-500/10' : ''}`} strokeWidth={isActive ? 2.5 : 2} />
                               {isActive && (
                                 <div className="absolute -inset-1.5 bg-rose-500/10 rounded-full blur-sm" />
                               )}
                             </div>
-                            <span className={`text-[11px] font-bold tracking-wide transition-all ${isActive ? 'text-rose-500' : 'text-gray-500'}`}>
+                            <span className={`text-[11px] font-bold tracking-wide transition-all ${isActive ? 'text-rose-700' : 'text-gray-500'}`}>
                               {item.label}
                             </span>
                             {isActive && (
-                              <div className="absolute top-0 inset-x-0 mx-auto w-1 h-1 rounded-full bg-rose-500" />
+                              <div className="absolute top-0 inset-x-0 mx-auto w-1 h-1 rounded-full bg-rose-600" />
                             )}
                           </button>
                         );
@@ -3329,7 +3329,7 @@ export default function App() {
                     
                     <button 
                       onClick={() => setPaymentMethod('UPI')}
-                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${paymentMethod === 'UPI' ? 'bg-rose-500/10 border-rose-500 text-rose-500' : 'bg-white border-gray-200 text-gray-700'}`}
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${paymentMethod === 'UPI' ? 'bg-rose-500/10 border-rose-500 text-rose-700' : 'bg-white border-gray-200 text-gray-700'}`}
                     >
                       <CreditCard className="size-4 text-purple-500" />
                       <div className="text-xs font-semibold text-left">
@@ -3340,9 +3340,9 @@ export default function App() {
 
                     <button 
                       onClick={() => setPaymentMethod('Wallet')}
-                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${paymentMethod === 'Wallet' ? 'bg-rose-500/10 border-rose-500 text-rose-500' : 'bg-white border-gray-200 text-gray-700'}`}
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${paymentMethod === 'Wallet' ? 'bg-rose-500/10 border-rose-500 text-rose-700' : 'bg-white border-gray-200 text-gray-700'}`}
                     >
-                      <Wallet className="size-4 text-emerald-400" />
+                      <Wallet className="size-4 text-emerald-700" />
                       <div className="text-xs font-semibold text-left">
                         <span>PressGo Wallet</span>
                         <div className="text-[11px] opacity-75">Pay using your prepaid balance</div>
@@ -3351,7 +3351,7 @@ export default function App() {
 
                     <button 
                       onClick={() => setPaymentMethod('Card')}
-                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${paymentMethod === 'Card' ? 'bg-rose-500/10 border-rose-500 text-rose-500' : 'bg-white border-gray-200 text-gray-700'}`}
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${paymentMethod === 'Card' ? 'bg-rose-500/10 border-rose-500 text-rose-700' : 'bg-white border-gray-200 text-gray-700'}`}
                     >
                       <CreditCard className="size-4 text-blue-500" />
                       <div className="text-xs font-semibold text-left">
@@ -3362,9 +3362,9 @@ export default function App() {
 
                     <button 
                       onClick={() => setPaymentMethod('NetBanking')}
-                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${paymentMethod === 'NetBanking' ? 'bg-rose-500/10 border-rose-500 text-rose-500' : 'bg-white border-gray-200 text-gray-700'}`}
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${paymentMethod === 'NetBanking' ? 'bg-rose-500/10 border-rose-500 text-rose-700' : 'bg-white border-gray-200 text-gray-700'}`}
                     >
-                      <Landmark className="size-4 text-amber-500" />
+                      <Landmark className="size-4 text-amber-700" />
                       <div className="text-xs font-semibold text-left">
                         <span>NetBanking</span>
                         <div className="text-[11px] opacity-75">Pay directly through your bank account</div>
@@ -3373,9 +3373,9 @@ export default function App() {
 
                     <button 
                       onClick={() => setPaymentMethod('COD')}
-                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${paymentMethod === 'COD' ? 'bg-rose-500/10 border-rose-500 text-rose-500' : 'bg-white border-gray-200 text-gray-700'}`}
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${paymentMethod === 'COD' ? 'bg-rose-500/10 border-rose-500 text-rose-700' : 'bg-white border-gray-200 text-gray-700'}`}
                     >
-                      <Truck className="size-4 text-rose-500" />
+                      <Truck className="size-4 text-rose-700" />
                       <div className="text-xs font-semibold text-left">
                         <span>Pay On Pickup</span>
                         <div className="text-[11px] opacity-75">Pay cash or digital at pickup time</div>
@@ -3406,7 +3406,7 @@ export default function App() {
                           </div>
                           <div className="flex justify-between pt-0.5">
                             <span>UPI ID:</span>
-                            <span className="font-bold text-rose-500 select-all">{upiDetails.id}</span>
+                            <span className="font-bold text-rose-700 select-all">{upiDetails.id}</span>
                           </div>
                         </div>
                       </div>
@@ -3442,12 +3442,12 @@ export default function App() {
                     <div className="bg-white border border-gray-200 p-3 rounded-xl flex flex-col gap-2 mt-1 text-left text-xs animate-fade-in">
                       <div className="font-bold text-gray-900 flex items-center justify-between">
                         <span>💳 PressGo Wallet Balance</span>
-                        <span className="text-emerald-500">₹{currentCustomer?.walletBalance || 0}</span>
+                        <span className="text-emerald-700">₹{currentCustomer?.walletBalance || 0}</span>
                       </div>
                       
                       {(currentCustomer?.walletBalance || 0) < (confirmedQuote?.total ?? calculateTotals().total) ? (
                         <div className="flex flex-col gap-1.5 mt-1 border-t border-gray-100 pt-2">
-                          <p className="text-rose-500 text-[12px] font-bold">⚠️ Insufficient Wallet Balance (Need ₹{(confirmedQuote?.total ?? calculateTotals().total) - (currentCustomer?.walletBalance || 0)} more)</p>
+                          <p className="text-rose-700 text-[12px] font-bold">⚠️ Insufficient Wallet Balance (Need ₹{(confirmedQuote?.total ?? calculateTotals().total) - (currentCustomer?.walletBalance || 0)} more)</p>
                           <div className="flex gap-2 mt-1">
                             <input 
                               type="number"
@@ -3458,14 +3458,14 @@ export default function App() {
                             />
                             <button 
                               onClick={handleCheckoutAddFunds}
-                              className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[12px] px-3.5 py-1.5 rounded-lg transition-colors"
+                              className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[12px] px-3.5 py-1.5 rounded-lg transition-colors"
                             >
                               Add & Pay
                             </button>
                           </div>
                         </div>
                       ) : (
-                        <p className="text-emerald-500 text-[12px] mt-1">Balance is sufficient for this order.</p>
+                        <p className="text-emerald-700 text-[12px] mt-1">Balance is sufficient for this order.</p>
                       )}
                     </div>
                   )}
@@ -3473,7 +3473,7 @@ export default function App() {
                   <button
                     onClick={handleCheckoutSubmit}
                     disabled={isSubmittingOrder}
-                    className="w-full bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 disabled:pointer-events-none text-white font-bold py-3 rounded-xl text-xs tracking-wider uppercase text-center mt-2 shadow-md active:translate-y-0.5"
+                    className="w-full bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 disabled:pointer-events-none text-white font-bold py-3 rounded-xl text-xs tracking-wider uppercase text-center mt-2 shadow-md active:translate-y-0.5"
                   >
                     {isSubmittingOrder ? 'Processing…' : 'Confirm & Submit Order'}
                   </button>
@@ -3509,7 +3509,7 @@ export default function App() {
                         onClick={() => setAdminActiveTab(item.tab as any)}
                         className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${isActive ? 'bg-gray-50 border border-gray-200 text-gray-900' : 'text-gray-500 hover:text-gray-800'}`}
                       >
-                        <Icon className="size-3.5 text-rose-500" />
+                        <Icon className="size-3.5 text-rose-700" />
                         {item.label}
                       </button>
                     );
@@ -3538,12 +3538,12 @@ export default function App() {
                       <div className="bg-gray-50 border border-gray-200 p-4 rounded-2xl flex flex-col gap-1.5">
                         <span className="text-[12px] font-bold text-gray-500 uppercase">Total Revenue</span>
                         <div className="text-2xl font-extrabold text-gray-900">₹{totalRevenue.toFixed(2)}</div>
-                        <span className="text-[11px] text-emerald-500 font-semibold">100% digital payouts</span>
+                        <span className="text-[11px] text-emerald-700 font-semibold">100% digital payouts</span>
                       </div>
 
                       <div className="bg-gray-50 border border-gray-200 p-4 rounded-2xl flex flex-col gap-1.5">
                         <span className="text-[12px] font-bold text-gray-500 uppercase">Pending Pickups</span>
-                        <div className="text-2xl font-extrabold text-rose-500">
+                        <div className="text-2xl font-extrabold text-rose-700">
                           {orders.filter(o => o.status === 'Placed').length}
                         </div>
                         <span className="text-[11px] text-gray-500">Needs immediate assignment</span>
@@ -3551,7 +3551,7 @@ export default function App() {
 
                       <div className="bg-gray-50 border border-gray-200 p-4 rounded-2xl flex flex-col gap-1.5">
                         <span className="text-[12px] font-bold text-gray-500 uppercase">Active In-process</span>
-                        <div className="text-2xl font-extrabold text-amber-500">
+                        <div className="text-2xl font-extrabold text-amber-700">
                           {orders.filter(o => o.status === 'Picked Up' || o.status === 'Ironing').length}
                         </div>
                         <span className="text-[11px] text-gray-500">Undergoing ironing flow</span>
@@ -3559,10 +3559,10 @@ export default function App() {
 
                       <div className="bg-gray-50 border border-gray-200 p-4 rounded-2xl flex flex-col gap-1.5">
                         <span className="text-[12px] font-bold text-gray-500 uppercase">Completed orders</span>
-                        <div className="text-2xl font-extrabold text-emerald-500">
+                        <div className="text-2xl font-extrabold text-emerald-700">
                           {completedOrders.length}
                         </div>
-                        <span className="text-[11px] text-emerald-500 font-semibold">Delivered & Closed</span>
+                        <span className="text-[11px] text-emerald-700 font-semibold">Delivered & Closed</span>
                       </div>
 
                     </div>
@@ -3590,7 +3590,7 @@ export default function App() {
                               <tbody className="divide-y divide-slate-850">
                                 {orders.slice(0, 4).map(o => (
                                   <tr key={o.id} className="hover:bg-gray-100/50">
-                                    <td className="p-3 font-mono font-bold text-rose-500">{o.id}</td>
+                                    <td className="p-3 font-mono font-bold text-rose-700">{o.id}</td>
                                     <td className="p-3">
                                       <div className="font-semibold text-gray-900">{o.customerName}</div>
                                       <div className="text-[11px] text-gray-500">{o.customerPhone}</div>
@@ -3605,7 +3605,7 @@ export default function App() {
                                     </td>
                                     <td className="p-3 font-semibold text-gray-900">₹{o.total}</td>
                                     <td className="p-3">
-                                      <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-bold ${o.status === 'Delivered' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                                      <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-bold ${o.status === 'Delivered' ? 'bg-emerald-500/10 text-emerald-700' : 'bg-rose-500/10 text-rose-700'}`}>
                                         {o.status}
                                       </span>
                                     </td>
@@ -3646,8 +3646,8 @@ export default function App() {
                             {/* Order Details Left Column */}
                             <div className="flex-1 flex flex-col gap-2">
                               <div className="flex items-center gap-2">
-                                <span className="text-xs font-mono font-bold text-rose-500">{o.id}</span>
-                                <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${o.speed === 'Urgent' ? 'bg-red-500/20 text-red-400' : o.speed === 'Express' ? 'bg-amber-500/20 text-amber-400' : 'bg-gray-200 text-gray-500'}`}>
+                                <span className="text-xs font-mono font-bold text-rose-700">{o.id}</span>
+                                <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${o.speed === 'Urgent' ? 'bg-red-500/20 text-red-700' : o.speed === 'Express' ? 'bg-amber-500/20 text-amber-700' : 'bg-gray-200 text-gray-700'}`}>
                                   {o.speed} Delivery
                                 </span>
                               </div>
@@ -3671,7 +3671,7 @@ export default function App() {
                                   </div>
                                 ))}
                                 {o.specialInstructions && (
-                                  <div className="text-[11px] text-amber-400 italic mt-2">
+                                  <div className="text-[11px] text-amber-700 italic mt-2">
                                     *Instructions: {o.specialInstructions}
                                   </div>
                                 )}
@@ -3684,13 +3684,13 @@ export default function App() {
                                 <div className="text-sm font-extrabold text-gray-900">Total Value: ₹{o.total}</div>
                                 <div className="flex items-center gap-1.5 lg:justify-end mt-1 text-[12px]">
                                   <span>Payment:</span>
-                                  <span className={`font-bold ${o.paymentStatus === 'Paid' ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                  <span className={`font-bold ${o.paymentStatus === 'Paid' ? 'text-emerald-700' : 'text-amber-700'}`}>
                                     {o.paymentStatus} ({o.paymentMethod})
                                   </span>
                                   {o.paymentStatus === 'Pending' && (
                                     <button 
                                       onClick={() => markOrderPaid(o.id)}
-                                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-1.5 py-0.5 rounded text-[11px]"
+                                      className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-1.5 py-0.5 rounded text-[11px]"
                                     >
                                       Mark Paid
                                     </button>
@@ -3703,7 +3703,7 @@ export default function App() {
                                 {o.status === 'Placed' && (
                                   <button 
                                     onClick={() => updateOrderStatus(o.id, 'Picked Up')}
-                                    className="bg-rose-500 hover:bg-rose-600 text-white px-2.5 py-1.5 rounded-lg text-[12px] font-bold"
+                                    className="bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1.5 rounded-lg text-[12px] font-bold"
                                   >
                                     Accept & Pick Up
                                   </button>
@@ -3711,7 +3711,7 @@ export default function App() {
                                 {o.status === 'Picked Up' && (
                                   <button 
                                     onClick={() => updateOrderStatus(o.id, 'Ironing')}
-                                    className="bg-amber-500 hover:bg-amber-600 text-white px-2.5 py-1.5 rounded-lg text-[12px] font-bold"
+                                    className="bg-amber-600 hover:bg-amber-700 text-white px-2.5 py-1.5 rounded-lg text-[12px] font-bold"
                                   >
                                     Start Ironing
                                   </button>
@@ -3719,7 +3719,7 @@ export default function App() {
                                 {o.status === 'Ironing' && (
                                   <button 
                                     onClick={() => updateOrderStatus(o.id, 'Ready')}
-                                    className="bg-blue-500 hover:bg-blue-600 text-white px-2.5 py-1.5 rounded-lg text-[12px] font-bold"
+                                    className="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-lg text-[12px] font-bold"
                                   >
                                     Mark as Ready
                                   </button>
@@ -3727,7 +3727,7 @@ export default function App() {
                                 {o.status === 'Ready' && (
                                   <button 
                                     onClick={() => updateOrderStatus(o.id, 'Delivered')}
-                                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded-lg text-[12px] font-bold"
+                                    className="bg-emerald-700 hover:bg-emerald-800 text-white px-2.5 py-1.5 rounded-lg text-[12px] font-bold"
                                   >
                                     Mark as Delivered
                                   </button>
@@ -3742,7 +3742,7 @@ export default function App() {
                                 
                                 <button 
                                   onClick={() => deleteOrder(o.id)}
-                                  className="bg-red-500/10 hover:bg-red-500/20 text-red-500 px-2 py-1.5 rounded-lg text-[12px] font-bold"
+                                  className="bg-red-500/10 hover:bg-red-500/20 text-red-700 px-2 py-1.5 rounded-lg text-[12px] font-bold"
                                 >
                                   Delete
                                 </button>
@@ -3824,7 +3824,7 @@ export default function App() {
                             customAlert('Failed to save: ' + err.message);
                           }
                         }}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors shadow-md"
+                        className="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors shadow-md"
                       >
                         Save Banners to Database
                       </button>
@@ -3847,7 +3847,7 @@ export default function App() {
                           if (items.length === 0) return null;
                           return (
                             <div key={service} className="flex flex-col gap-2">
-                              <h4 className="text-xs font-extrabold text-rose-500 uppercase tracking-wide border-b border-gray-200 pb-1">{service}</h4>
+                              <h4 className="text-xs font-extrabold text-rose-700 uppercase tracking-wide border-b border-gray-200 pb-1">{service}</h4>
                               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                                 {items.map(item => {
                                   const key = `${item.serviceType}-${item.name}`;
@@ -3855,7 +3855,7 @@ export default function App() {
                                     <div key={key} className="flex flex-col gap-1 bg-white p-2.5 rounded-xl border border-gray-200">
                                       <label className="text-[11px] font-bold text-gray-500 flex items-center justify-between">
                                         <span>{item.name}</span>
-                                        <span className="text-[11px] bg-gray-100 text-gray-500 px-1 rounded-sm">{item.category}</span>
+                                        <span className="text-[11px] bg-gray-100 text-gray-600 px-1 rounded-sm">{item.category}</span>
                                       </label>
                                       <input 
                                         type="number"
@@ -3874,7 +3874,7 @@ export default function App() {
 
                       <button 
                         onClick={saveAdminPrices}
-                        className="bg-rose-500 hover:bg-rose-600 text-white py-2.5 rounded-xl text-xs font-semibold self-start px-6 shadow-md mt-2"
+                        className="bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-xl text-xs font-semibold self-start px-6 shadow-md mt-2"
                       >
                         Save Updated Rates
                       </button>
@@ -3955,7 +3955,7 @@ export default function App() {
 
                       <button 
                         onClick={saveUpiSettings}
-                        className="bg-rose-500 hover:bg-rose-600 text-white py-2.5 rounded-xl text-xs font-semibold self-start px-6 shadow-md mt-2"
+                        className="bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-xl text-xs font-semibold self-start px-6 shadow-md mt-2"
                       >
                         Save Settings
                       </button>
@@ -4128,7 +4128,7 @@ export default function App() {
                     onClick={() => setRescheduleTime(slot)}
                     className={`flex items-center justify-center py-2.5 rounded-xl border text-[12px] font-medium transition-all ${
                       rescheduleTime === slot
-                      ? 'bg-rose-500/20 border-rose-500 text-rose-400'
+                      ? 'bg-rose-500/20 border-rose-500 text-rose-700'
                       : 'bg-gray-50 border-gray-200 text-gray-500'
                     }`}
                   >
@@ -4147,7 +4147,7 @@ export default function App() {
               </button>
               <button 
                 onClick={handleRescheduleOrder}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl font-bold text-xs"
+                className="bg-emerald-700 hover:bg-emerald-800 text-white py-2.5 rounded-xl font-bold text-xs"
               >
                 Update Slot
               </button>
@@ -4157,7 +4157,7 @@ export default function App() {
       )}
 
       <footer className="border-t border-gray-200 bg-white px-6 py-4 text-center text-xs text-gray-500">
-        <p>© 2026 PressGo. <a href="/terms.html" target="_blank" rel="noreferrer" className="underline hover:text-rose-500">Terms</a> · <a href="/privacy.html" target="_blank" rel="noreferrer" className="underline hover:text-rose-500">Privacy</a></p>
+        <p>© 2026 PressGo. <a href="/terms.html" target="_blank" rel="noreferrer" className="underline hover:text-rose-700">Terms</a> · <a href="/privacy.html" target="_blank" rel="noreferrer" className="underline hover:text-rose-700">Privacy</a></p>
       </footer>
 
     </div>
