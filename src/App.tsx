@@ -1554,7 +1554,7 @@ export default function App() {
               </svg>
             </div>
             <div>
-              <h1 className="font-display text-xl font-semibold tracking-tight m-0 p-0 text-left bg-clip-text text-transparent bg-gradient-to-r from-rose-500 to-amber-500">PressGo</h1>
+              <h1 className="font-display text-xl font-semibold tracking-tight m-0 p-0 text-left bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-teal-500">PressGo</h1>
               <p className="text-xs text-gray-500 text-left font-medium">Premium Ironing & Care</p>
             </div>
           </div>
@@ -1592,8 +1592,8 @@ export default function App() {
               <div
                 className="flex-1 flex flex-col overflow-y-auto px-4 pt-8 pb-4"
                 style={!currentCustomer ? {
-                  background: 'radial-gradient(circle at 15% -10%, rgba(244,63,94,0.42), transparent 55%), radial-gradient(circle at 108% 15%, rgba(245,158,11,0.42), transparent 50%), linear-gradient(160deg, #FFEBD9 0%, #FFDCCC 45%, #FFC9B8 100%)'
-                } : { background: 'radial-gradient(circle at 15% 0%, rgba(244,63,94,0.10), transparent 45%), radial-gradient(circle at 100% 20%, rgba(245,158,11,0.12), transparent 40%), linear-gradient(180deg, #FFF7ED 0%, #FFF3E4 100%)' }}
+                  background: 'radial-gradient(circle at 15% -10%, rgba(37,99,235,0.40), transparent 55%), radial-gradient(circle at 108% 15%, rgba(6,182,212,0.42), transparent 50%), linear-gradient(160deg, #E3F3FF 0%, #D5EBFC 45%, #C7E6F5 100%)'
+                } : { background: 'radial-gradient(circle at 15% 0%, rgba(37,99,235,0.10), transparent 45%), radial-gradient(circle at 100% 20%, rgba(6,182,212,0.12), transparent 40%), linear-gradient(180deg, #F0F9FF 0%, #E8F6FC 100%)' }}
               >
                 
                 {/* Rider Portal View */}
@@ -1681,9 +1681,9 @@ export default function App() {
                       <>
                         {/* Brand mark — a custom hanger-and-steam glyph, not a stock icon */}
                         <div className="flex flex-col items-center gap-3 relative">
-                          <div className="absolute -top-6 size-40 bg-gradient-to-br from-rose-400 via-orange-300 to-amber-300 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
+                          <div className="absolute -top-6 size-40 bg-gradient-to-br from-blue-400 via-cyan-300 to-teal-300 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
 
-                          <div className="relative size-20 rounded-[24px] bg-gradient-to-br from-rose-600 via-rose-500 to-amber-500 shadow-lg shadow-rose-500/40 flex items-center justify-center border-[3px] border-white overflow-hidden">
+                          <div className="relative size-20 rounded-[24px] bg-gradient-to-br from-blue-600 via-cyan-500 to-teal-500 shadow-lg shadow-blue-500/40 flex items-center justify-center border-[3px] border-white overflow-hidden">
                             <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/35"></div>
                             <svg viewBox="0 0 48 48" className="size-11 relative z-10" fill="none">
                               {/* Steam rising off the hot tip */}
@@ -1697,11 +1697,11 @@ export default function App() {
                           </div>
 
                           <div className="text-center flex flex-col items-center gap-2 relative">
-                            <h2 className="font-display italic text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 via-orange-500 to-amber-600 tracking-tight drop-shadow-sm">PressGo</h2>
-                            <p className="flex items-center gap-2 text-sm font-extrabold text-rose-600 tracking-wide">
-                              <Sparkles className="size-3.5 text-amber-500 animate-spark shrink-0" />
+                            <h2 className="font-display italic text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-600 tracking-tight drop-shadow-sm">PressGo</h2>
+                            <p className="flex items-center gap-2 text-sm font-extrabold text-blue-600 tracking-wide">
+                              <Sparkles className="size-3.5 text-cyan-500 animate-spark shrink-0" />
                               <span className="text-shimmer">Pressed to perfection, picked up at your door.</span>
-                              <Sparkles className="size-3.5 text-amber-500 animate-spark shrink-0" style={{ animationDelay: '0.8s' }} />
+                              <Sparkles className="size-3.5 text-cyan-500 animate-spark shrink-0" style={{ animationDelay: '0.8s' }} />
                             </p>
                           </div>
                         </div>
@@ -1744,7 +1744,7 @@ export default function App() {
 
                         <button
                           onClick={() => setAuthStep('login')}
-                          className="w-full shrink-0 bg-rose-500 hover:bg-rose-600 text-white py-3 rounded-xl text-sm font-bold shadow-lg shadow-rose-500/30 active:translate-y-0.5"
+                          className="w-full shrink-0 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl text-sm font-bold shadow-lg shadow-blue-600/30 active:translate-y-0.5"
                         >
                           Get Started
                         </button>
