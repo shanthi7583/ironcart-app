@@ -1730,8 +1730,10 @@ export default function App() {
                             </svg>
                           </div>
 
-                          <div className="text-center flex flex-col items-center gap-2 relative">
-                            <h2 className="font-display italic text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-600 tracking-tight drop-shadow-sm">PressGo</h2>
+                          <div className="text-center flex flex-col items-center gap-3 relative">
+                            <div className="bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-600 rounded-2xl px-6 py-1.5 shadow-lg shadow-blue-500/30">
+                              <h2 className="font-display italic text-6xl font-bold text-white tracking-tight">PressGo</h2>
+                            </div>
                             <p className="flex items-center gap-2 text-sm font-extrabold text-blue-600 tracking-wide">
                               <Sparkles className="size-3.5 text-cyan-500 animate-spark shrink-0" />
                               <span className="text-shimmer">Pressed to perfection, picked up at your door.</span>
