@@ -1577,10 +1577,12 @@ export default function App() {
             <div className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-tr from-rose-500 to-amber-500 shadow-md relative overflow-hidden border border-white/20">
               <div className="absolute inset-0 bg-white/20 rotate-45 transform translate-x-[-10px]"></div>
               <svg viewBox="0 0 48 48" className="size-6 relative z-10" fill="none">
-                <path d="M34 6c0 2-3 2-3 4.5S34 13 34 15" stroke="white" strokeWidth="2.4" strokeLinecap="round" opacity="0.9" />
-                <path d="M40 8c0 2-3 2-3 4.5S40 15 40 17" stroke="white" strokeWidth="2.4" strokeLinecap="round" opacity="0.9" />
-                <path d="M17 20v-4a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v4" stroke="white" strokeWidth="2.8" strokeLinecap="round" fill="none" />
-                <path d="M8 22a2 2 0 0 1 2-2h14c9 0 15 4.5 15 9s-6 9-15 9H10a2 2 0 0 1-2-2Z" fill="white" />
+                <path d="M32 8c0 1.2-1.6 1.2-1.6 2.4s1.6 1.2 1.6 2.4" stroke="white" strokeWidth="2.4" strokeLinecap="round" opacity="0.9" />
+                <path d="M36 6c0 1.2-1.6 1.2-1.6 2.4s1.6 1.2 1.6 2.4" stroke="white" strokeWidth="2.4" strokeLinecap="round" opacity="0.9" />
+                <circle cx="24" cy="9" r="2" stroke="white" strokeWidth="2.8" />
+                <path d="M24 11v3" stroke="white" strokeWidth="2.8" strokeLinecap="round" />
+                <path d="M24 14 L9 27a2.5 2.5 0 0 0 1.5 4.5h27a2.5 2.5 0 0 0 1.5-4.5L24 14Z" stroke="white" strokeWidth="2.8" strokeLinejoin="round" strokeLinecap="round" />
+                <path d="M14.5 34h19" stroke="white" strokeWidth="2.8" strokeLinecap="round" />
               </svg>
             </div>
             <div>
@@ -1716,13 +1718,15 @@ export default function App() {
                           <div className="relative size-20 rounded-[24px] bg-gradient-to-br from-blue-600 via-cyan-500 to-teal-500 shadow-lg shadow-blue-500/40 flex items-center justify-center border-[3px] border-white overflow-hidden">
                             <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/35"></div>
                             <svg viewBox="0 0 48 48" className="size-11 relative z-10" fill="none">
-                              {/* Steam rising off the hot tip */}
-                              <path d="M34 6c0 2-3 2-3 4.5S34 13 34 15" stroke="white" strokeWidth="2.2" strokeLinecap="round" opacity="0.9" />
-                              <path d="M40 8c0 2-3 2-3 4.5S40 15 40 17" stroke="white" strokeWidth="2.2" strokeLinecap="round" opacity="0.9" />
-                              {/* Handle */}
-                              <path d="M17 20v-4a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v4" stroke="white" strokeWidth="2.6" strokeLinecap="round" fill="none" />
-                              {/* Iron body — flat back, tapering to a rounded point at the front */}
-                              <path d="M8 22a2 2 0 0 1 2-2h14c9 0 15 4.5 15 9s-6 9-15 9H10a2 2 0 0 1-2-2Z" fill="white" />
+                              {/* Steam rising off the hanger */}
+                              <path d="M32 8c0 1.2-1.6 1.2-1.6 2.4s1.6 1.2 1.6 2.4" stroke="white" strokeWidth="2.2" strokeLinecap="round" opacity="0.9" />
+                              <path d="M36 6c0 1.2-1.6 1.2-1.6 2.4s1.6 1.2 1.6 2.4" stroke="white" strokeWidth="2.2" strokeLinecap="round" opacity="0.9" />
+                              {/* Hook */}
+                              <circle cx="24" cy="9" r="2" stroke="white" strokeWidth="2.6" />
+                              <path d="M24 11v3" stroke="white" strokeWidth="2.6" strokeLinecap="round" />
+                              {/* Hanger body */}
+                              <path d="M24 14 L9 27a2.5 2.5 0 0 0 1.5 4.5h27a2.5 2.5 0 0 0 1.5-4.5L24 14Z" stroke="white" strokeWidth="2.6" strokeLinejoin="round" strokeLinecap="round" />
+                              <path d="M14.5 34h19" stroke="white" strokeWidth="2.6" strokeLinecap="round" />
                             </svg>
                           </div>
 
@@ -1806,10 +1810,12 @@ export default function App() {
                           <div className="flex items-center gap-2">
                             <div className="size-9 rounded-xl bg-gradient-to-br from-blue-600 via-cyan-500 to-teal-500 shadow-md flex items-center justify-center border-2 border-white shrink-0">
                               <svg viewBox="0 0 48 48" className="size-5" fill="none">
-                                <path d="M34 6c0 2-3 2-3 4.5S34 13 34 15" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.9" />
-                                <path d="M40 8c0 2-3 2-3 4.5S40 15 40 17" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.9" />
-                                <path d="M17 20v-4a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v4" stroke="white" strokeWidth="3.4" strokeLinecap="round" fill="none" />
-                                <path d="M8 22a2 2 0 0 1 2-2h14c9 0 15 4.5 15 9s-6 9-15 9H10a2 2 0 0 1-2-2Z" fill="white" />
+                                <path d="M32 8c0 1.2-1.6 1.2-1.6 2.4s1.6 1.2 1.6 2.4" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.9" />
+                                <path d="M36 6c0 1.2-1.6 1.2-1.6 2.4s1.6 1.2 1.6 2.4" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.9" />
+                                <circle cx="24" cy="9" r="2" stroke="white" strokeWidth="3.4" />
+                                <path d="M24 11v3" stroke="white" strokeWidth="3.4" strokeLinecap="round" />
+                                <path d="M24 14 L9 27a2.5 2.5 0 0 0 1.5 4.5h27a2.5 2.5 0 0 0 1.5-4.5L24 14Z" stroke="white" strokeWidth="3.4" strokeLinejoin="round" strokeLinecap="round" />
+                                <path d="M14.5 34h19" stroke="white" strokeWidth="3.4" strokeLinecap="round" />
                               </svg>
                             </div>
                             <span className="font-display text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-teal-600 tracking-tight">PressGo</span>
