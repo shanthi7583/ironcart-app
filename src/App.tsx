@@ -1630,14 +1630,13 @@ export default function App() {
                 <div className="absolute top-2 left-1/2 -translate-x-1/2 w-28 h-4 bg-gray-100 rounded-full z-20"></div>
               )}
 
-              {/* Inside Mobile App Viewport — the shell itself is now full page-width (see
-                  above), but letting every image/card inside stretch that wide made
-                  photos look panoramic/distorted and text lines absurdly long. Capping
-                  and centering the actual content column here keeps the shell's own
-                  background visible as a frame on wide screens without touching mobile
-                  at all (max-w-2xl only binds once the shell is wider than 672px). */}
+              {/* Inside Mobile App Viewport — full width all the way, no cap here (a
+                  capped/centered column left visible empty page background on either
+                  side, which read as unwanted white margins rather than a full page).
+                  Photo elements that would otherwise stretch panoramic-wide at this
+                  width (the hero carousel below) get their own max-width instead. */}
               <div
-                className="flex-1 flex flex-col overflow-y-auto px-4 pt-8 pb-4 w-full max-w-2xl mx-auto"
+                className="flex-1 flex flex-col overflow-y-auto px-4 pt-8 pb-4 w-full"
                 style={!currentCustomer ? {
                   background: 'radial-gradient(circle at 15% -10%, rgba(37,99,235,0.40), transparent 55%), radial-gradient(circle at 108% 15%, rgba(6,182,212,0.42), transparent 50%), linear-gradient(160deg, #E3F3FF 0%, #D5EBFC 45%, #C7E6F5 100%)'
                 } : { background: 'radial-gradient(circle at 15% 0%, rgba(37,99,235,0.10), transparent 45%), radial-gradient(circle at 100% 20%, rgba(6,182,212,0.12), transparent 40%), linear-gradient(180deg, #F0F9FF 0%, #E8F6FC 100%)' }}
@@ -1645,7 +1644,7 @@ export default function App() {
                 
                 {/* Rider Portal View */}
                 {viewMode === 'rider' ? (
-                  <div className="flex-1 flex flex-col gap-4 text-gray-900">
+                  <div className="flex-1 flex flex-col gap-4 text-gray-900 w-full max-w-lg mx-auto">
                     <div className="flex items-center justify-between pb-4 border-b border-gray-200">
                       <div>
                         <h2 className="text-xl font-bold">Rider Portal</h2>
@@ -1723,7 +1722,7 @@ export default function App() {
                     </div>
                   </div>
                 ) : !currentCustomer ? (
-                  <div className={`flex-1 flex flex-col gap-6 ${authStep === 'welcome' ? 'justify-start' : 'justify-center'}`}>
+                  <div className={`flex-1 flex flex-col gap-6 w-full max-w-lg mx-auto ${authStep === 'welcome' ? 'justify-start' : 'justify-center'}`}>
                     {authStep === 'welcome' ? (
                       <>
                         {/* Brand mark — a custom hanger-and-steam glyph, not a stock icon */}
@@ -1991,7 +1990,7 @@ export default function App() {
                   </div>
                 ) : (
                   // --- Active Customer Screens ---
-                  <div className="flex-1 flex flex-col justify-between">
+                  <div className="flex-1 flex flex-col justify-between w-full max-w-lg mx-auto">
                     
                     {/* Customer Top App Bar */}
                     <div className="flex items-center justify-between pb-3 border-b border-gray-200 mb-4">
