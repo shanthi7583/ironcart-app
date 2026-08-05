@@ -1453,7 +1453,14 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 text-gray-900 flex flex-col font-sans">
+    // On desktop the app is pinned to exactly one viewport (h-screen + overflow-hidden)
+    // so every screen — login, OTP, Home, Book, Orders, Profile — occupies the same
+    // fixed-size window and scrolls INTERNALLY. Without this the shell just grew to
+    // fit its content (the Home tab measured 1255px tall), so each screen was a
+    // different height and the whole page scrolled, which is why the post-login
+    // screens felt like a different size from the welcome/OTP ones. Mobile keeps
+    // natural min-h-screen page flow.
+    <div className="min-h-screen sm:h-screen sm:overflow-hidden bg-slate-100 text-gray-900 flex flex-col font-sans">
       {/* Firebase's invisible reCAPTCHA lives outside the phone-frame mockup on purpose.
           That wrapper clips anything past its edges — fine for an actually-invisible
           widget, but when Google decides a login looks risky enough to demand a real

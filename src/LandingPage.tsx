@@ -1,8 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ChevronRight, Truck, Sparkles, ShieldCheck, MapPin, Wallet,
   CalendarCheck, PackageCheck, CheckCircle2, Shirt, Menu, X
 } from 'lucide-react';
+
+// Rotating hero shots, mirroring how iztri.com's homepage cycles several images:
+// authentic close-ups of the actual work rather than posed stock portraits.
+// These are our own freely-licensed photos (Pexels) — deliberately NOT iztri's,
+// whose images are their copyrighted content.
+const HERO_IMAGES = [
+  { src: '/img-hero-ironing-action.jpg', alt: 'Close-up of a steam iron pressing a garment' },
+  { src: '/img-hero-pro-ironing.jpg', alt: 'Professional pressing freshly laundered linens' },
+  { src: '/img-folded-shirts-blue.jpg', alt: 'Freshly cleaned and neatly folded clothes' }
+];
 
 const SERVICES = [
   {
@@ -64,6 +74,12 @@ function Logo({ compact = false }: { compact?: boolean }) {
 
 export default function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [heroIndex, setHeroIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => setHeroIndex(i => (i + 1) % HERO_IMAGES.length), 4000);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <div className="min-h-screen bg-white text-gray-900 font-sans">
@@ -135,8 +151,26 @@ export default function LandingPage({ onGetStarted }: { onGetStarted: () => void
               </a>
             </div>
           </div>
-          <div className="relative aspect-[4/5] max-w-sm mx-auto w-full rounded-3xl overflow-hidden shadow-2xl shadow-blue-900/20">
-            <img src="/img-hero-fresh-laundry.jpg" alt="Freshly cleaned and folded clothes" className="absolute inset-0 w-full h-full object-cover" />
+          <div className="relative aspect-[4/3] w-full rounded-3xl overflow-hidden shadow-2xl shadow-blue-900/20">
+            {HERO_IMAGES.map((img, i) => (
+              <img
+                key={img.src}
+                src={img.src}
+                alt={img.alt}
+                className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-out"
+                style={{ opacity: i === heroIndex ? 1 : 0 }}
+              />
+            ))}
+            <div className="absolute bottom-3 right-4 flex gap-1.5">
+              {HERO_IMAGES.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setHeroIndex(i)}
+                  aria-label={`Show image ${i + 1}`}
+                  className={`h-1.5 rounded-full transition-all ${i === heroIndex ? 'w-5 bg-white' : 'w-1.5 bg-white/50'}`}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </section>
