@@ -1604,7 +1604,7 @@ export default function App() {
       </header>
 
       {/* Main Workspace Layout */}
-      <main className="flex-1 flex flex-col lg:flex-row p-0 sm:p-6 gap-6 justify-center max-w-7xl mx-auto w-full">
+      <main className="flex-1 min-h-0 flex flex-col lg:flex-row p-0 sm:p-6 gap-6 justify-center max-w-7xl mx-auto w-full">
 
         {/* --- 1. CUSTOMER & RIDER MOBILE APP VIEW ---
              Hidden on small screens while in dual (admin) mode — on an actual phone,
@@ -1612,7 +1612,7 @@ export default function App() {
              usable room for either. Admin gets the full screen; "Exit Admin View"
              still gets you back to the plain customer app. */}
         {['customer', 'dual', 'rider'].includes(viewMode) && (
-          <div className={`flex-1 flex-col items-center mx-auto ${viewMode === 'dual' ? 'max-w-[400px] hidden lg:flex' : 'w-full flex'}`}>
+          <div className={`flex-1 min-h-0 flex-col items-center mx-auto ${viewMode === 'dual' ? 'max-w-[400px] hidden lg:flex' : 'w-full flex'}`}>
 
             {/* Phone shell container — the decorative bezel/notch is only useful for the
                 admin's side-by-side "here's what the customer sees" preview (dual mode).
@@ -1622,7 +1622,7 @@ export default function App() {
                 Full-bleed on mobile, a plain full-height card (no fake bezel) on desktop. */}
             <div className={viewMode === 'dual'
               ? "w-full aspect-[9/19.5] border-8 border-gray-200 bg-slate-50 rounded-[40px] shadow-2xl flex flex-col overflow-hidden relative border-t-[12px] border-b-[12px]"
-              : "w-full min-h-[100dvh] sm:min-h-[calc(100vh-140px)] sm:my-4 bg-slate-50 sm:rounded-3xl sm:shadow-2xl sm:border sm:border-gray-200 flex flex-col overflow-hidden relative"
+              : "w-full flex-1 min-h-[100dvh] sm:min-h-0 sm:my-4 bg-slate-50 sm:rounded-3xl sm:shadow-2xl sm:border sm:border-gray-200 flex flex-col overflow-hidden relative"
             }>
 
               {/* Camera Notch simulation — dual-mode preview only */}
@@ -1630,9 +1630,14 @@ export default function App() {
                 <div className="absolute top-2 left-1/2 -translate-x-1/2 w-28 h-4 bg-gray-100 rounded-full z-20"></div>
               )}
 
-              {/* Inside Mobile App Viewport */}
+              {/* Inside Mobile App Viewport — the shell itself is now full page-width (see
+                  above), but letting every image/card inside stretch that wide made
+                  photos look panoramic/distorted and text lines absurdly long. Capping
+                  and centering the actual content column here keeps the shell's own
+                  background visible as a frame on wide screens without touching mobile
+                  at all (max-w-2xl only binds once the shell is wider than 672px). */}
               <div
-                className="flex-1 flex flex-col overflow-y-auto px-4 pt-8 pb-4"
+                className="flex-1 flex flex-col overflow-y-auto px-4 pt-8 pb-4 w-full max-w-2xl mx-auto"
                 style={!currentCustomer ? {
                   background: 'radial-gradient(circle at 15% -10%, rgba(37,99,235,0.40), transparent 55%), radial-gradient(circle at 108% 15%, rgba(6,182,212,0.42), transparent 50%), linear-gradient(160deg, #E3F3FF 0%, #D5EBFC 45%, #C7E6F5 100%)'
                 } : { background: 'radial-gradient(circle at 15% 0%, rgba(37,99,235,0.10), transparent 45%), radial-gradient(circle at 100% 20%, rgba(6,182,212,0.12), transparent 40%), linear-gradient(180deg, #F0F9FF 0%, #E8F6FC 100%)' }}
