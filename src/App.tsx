@@ -14,6 +14,7 @@ import { App as CapacitorApp } from '@capacitor/app'
 import { Browser } from '@capacitor/browser'
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication'
 import { PushNotifications } from '@capacitor/push-notifications'
+import LandingPage from './LandingPage'
 
 // The SDK's load() re-fetches/re-initializes Cashfree's checkout script, so this
 // caches one instance per mode instead of reloading it on every checkout attempt.
@@ -1438,6 +1439,18 @@ export default function App() {
     setShowAddAddress(false);
     setOrderAddress(newAddressText);
   };
+
+  // A fresh web visitor (not the installed native app, not mid-login, not already a
+  // customer, not admin/rider mode) sees a proper marketing homepage instead of the
+  // single-column app UI trying to double as one — matching how a native app's own
+  // web presence normally works: marketing site for visitors, the app itself for
+  // people who already have a reason to be in it. "Get Started" on that page just
+  // advances authStep to 'login', dropping into the exact same flow as before.
+  const showLandingPage = !Capacitor.isNativePlatform() && !currentCustomer && authStep === 'welcome' && viewMode === 'customer';
+
+  if (showLandingPage) {
+    return <LandingPage onGetStarted={() => setAuthStep('login')} />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-100 text-gray-900 flex flex-col font-sans">
