@@ -1622,7 +1622,7 @@ export default function App() {
                 Full-bleed on mobile, a plain full-height card (no fake bezel) on desktop. */}
             <div className={viewMode === 'dual'
               ? "w-full aspect-[9/19.5] border-8 border-gray-200 bg-slate-50 rounded-[40px] shadow-2xl flex flex-col overflow-hidden relative border-t-[12px] border-b-[12px]"
-              : "w-full flex-1 min-h-[100dvh] sm:min-h-0 sm:my-4 bg-slate-50 sm:rounded-3xl sm:shadow-2xl sm:border sm:border-gray-200 flex flex-col overflow-hidden relative"
+              : "w-full flex-1 min-h-[100dvh] sm:min-h-0 flex flex-col overflow-hidden relative"
             }>
 
               {/* Camera Notch simulation — dual-mode preview only */}
