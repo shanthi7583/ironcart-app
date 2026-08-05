@@ -29,7 +29,11 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="pressngo-app.vercel.app" android:pathPrefix="/payment-return" />
+                <data
+                    android:scheme="https"
+                    android:host="pressngo-app.vercel.app"
+                    android:pathPrefix="/payment-return"
+                />
             </intent-filter>
         </activity>
 
