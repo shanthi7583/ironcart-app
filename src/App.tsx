@@ -1612,7 +1612,7 @@ export default function App() {
              usable room for either. Admin gets the full screen; "Exit Admin View"
              still gets you back to the plain customer app. */}
         {['customer', 'dual', 'rider'].includes(viewMode) && (
-          <div className={`flex-1 flex-col items-center mx-auto ${viewMode === 'dual' ? 'max-w-[400px] hidden lg:flex' : 'max-w-2xl flex'}`}>
+          <div className={`flex-1 flex-col items-center mx-auto ${viewMode === 'dual' ? 'max-w-[400px] hidden lg:flex' : 'w-full flex'}`}>
 
             {/* Phone shell container — the decorative bezel/notch is only useful for the
                 admin's side-by-side "here's what the customer sees" preview (dual mode).
