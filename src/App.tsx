@@ -1604,7 +1604,7 @@ export default function App() {
       </header>
 
       {/* Main Workspace Layout */}
-      <main className="flex-1 flex flex-col lg:flex-row p-3 sm:p-6 gap-6 justify-center max-w-7xl mx-auto w-full">
+      <main className="flex-1 flex flex-col lg:flex-row p-0 sm:p-6 gap-6 justify-center max-w-7xl mx-auto w-full">
 
         {/* --- 1. CUSTOMER & RIDER MOBILE APP VIEW ---
              Hidden on small screens while in dual (admin) mode — on an actual phone,
@@ -1612,13 +1612,23 @@ export default function App() {
              usable room for either. Admin gets the full screen; "Exit Admin View"
              still gets you back to the plain customer app. */}
         {['customer', 'dual', 'rider'].includes(viewMode) && (
-          <div className={`flex-1 max-w-[400px] flex-col items-center ${viewMode === 'dual' ? 'hidden lg:flex' : 'flex'}`}>
+          <div className={`flex-1 flex-col items-center mx-auto ${viewMode === 'dual' ? 'max-w-[400px] hidden lg:flex' : 'max-w-2xl flex'}`}>
 
-            {/* Phone shell container */}
-            <div className="w-full aspect-[9/19.5] border-8 border-gray-200 bg-slate-50 rounded-[40px] shadow-2xl flex flex-col overflow-hidden relative border-t-[12px] border-b-[12px]">
-              
-              {/* Camera Notch simulation */}
-              <div className="absolute top-2 left-1/2 -translate-x-1/2 w-28 h-4 bg-gray-100 rounded-full z-20"></div>
+            {/* Phone shell container — the decorative bezel/notch is only useful for the
+                admin's side-by-side "here's what the customer sees" preview (dual mode).
+                For the real customer/rider experience this used to force every visitor,
+                including desktop browsers, into a tiny fixed-aspect phone silhouette —
+                looked like a toy on desktop and wasted screen edge on an actual phone.
+                Full-bleed on mobile, a plain full-height card (no fake bezel) on desktop. */}
+            <div className={viewMode === 'dual'
+              ? "w-full aspect-[9/19.5] border-8 border-gray-200 bg-slate-50 rounded-[40px] shadow-2xl flex flex-col overflow-hidden relative border-t-[12px] border-b-[12px]"
+              : "w-full min-h-[100dvh] sm:min-h-[calc(100vh-140px)] sm:my-4 bg-slate-50 sm:rounded-3xl sm:shadow-2xl sm:border sm:border-gray-200 flex flex-col overflow-hidden relative"
+            }>
+
+              {/* Camera Notch simulation — dual-mode preview only */}
+              {viewMode === 'dual' && (
+                <div className="absolute top-2 left-1/2 -translate-x-1/2 w-28 h-4 bg-gray-100 rounded-full z-20"></div>
+              )}
 
               {/* Inside Mobile App Viewport */}
               <div
@@ -1732,7 +1742,7 @@ export default function App() {
 
                           <div className="text-center flex flex-col items-center gap-3 relative">
                             <div className="bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-600 rounded-2xl px-6 py-1.5 shadow-lg shadow-blue-500/30">
-                              <h2 className="font-display italic text-6xl font-bold text-white tracking-tight">PressGo</h2>
+                              <h2 className="font-display italic text-4xl font-bold text-white tracking-tight">PressGo</h2>
                             </div>
                             <p className="flex items-center gap-2 text-sm font-extrabold text-blue-600 tracking-wide">
                               <Sparkles className="size-3.5 text-cyan-500 animate-spark shrink-0" />
@@ -2075,9 +2085,9 @@ export default function App() {
                                 <span className="text-lg">💳</span>
                                 <span className="text-sm font-bold text-gray-900">PressGo Wallet</span>
                               </div>
-                              <span className="font-display text-xl font-semibold text-emerald-700">₹{currentCustomer?.walletBalance || 0}</span>
+                              <span className="font-display text-xl font-semibold text-blue-700">₹{currentCustomer?.walletBalance || 0}</span>
                             </div>
-                            
+
                             {showAddMoney ? (
                               <div className="flex gap-2">
                                 <input
@@ -2087,11 +2097,11 @@ export default function App() {
                                   placeholder="Amount (₹)"
                                   className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-900 outline-none"
                                 />
-                                <button onClick={handleAddFunds} className="bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-2 rounded-lg text-xs font-bold transition-colors">Add</button>
+                                <button onClick={handleAddFunds} className="bg-blue-700 hover:bg-blue-800 text-white px-3 py-2 rounded-lg text-xs font-bold transition-colors">Add</button>
                                 <button onClick={() => setShowAddMoney(false)} className="bg-gray-200 hover:bg-gray-300 text-gray-900 px-3 py-2 rounded-lg text-xs font-bold transition-colors">Cancel</button>
                               </div>
                             ) : (
-                              <button onClick={() => setShowAddMoney(true)} className="w-full bg-gray-50 hover:bg-gray-200 border border-gray-200 text-emerald-700 text-xs font-bold py-2 rounded-lg transition-colors">
+                              <button onClick={() => setShowAddMoney(true)} className="w-full bg-gray-50 hover:bg-gray-200 border border-gray-200 text-blue-700 text-xs font-bold py-2 rounded-lg transition-colors">
                                 + Add Money to Wallet
                               </button>
                             )}
@@ -2972,13 +2982,13 @@ export default function App() {
                               href="https://wa.me/919791019505" 
                               target="_blank" 
                               rel="noreferrer" 
-                              className="flex flex-col items-center justify-center gap-2 p-4 bg-emerald-50 border border-emerald-250 rounded-2xl text-center shadow-sm hover:bg-emerald-100 transition-colors"
+                              className="flex flex-col items-center justify-center gap-2 p-4 bg-blue-50 border border-blue-200 rounded-2xl text-center shadow-sm hover:bg-blue-100 transition-colors"
                             >
-                              <div className="size-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-700">
+                              <div className="size-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-700">
                                 <Truck className="size-4" strokeWidth={2.5} />
                               </div>
-                              <span className="text-[12px] font-bold text-emerald-700">Chat with Us</span>
-                              <span className="text-[11px] text-emerald-700/80 -mt-1">Active on WhatsApp</span>
+                              <span className="text-[12px] font-bold text-blue-700">Chat with Us</span>
+                              <span className="text-[11px] text-blue-700/80 -mt-1">Active on WhatsApp</span>
                             </a>
                           </div>
 
@@ -3380,7 +3390,7 @@ export default function App() {
                       onClick={() => setPaymentMethod('Wallet')}
                       className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${paymentMethod === 'Wallet' ? 'bg-blue-500/10 border-blue-500 text-blue-700' : 'bg-white border-gray-200 text-gray-700'}`}
                     >
-                      <Wallet className="size-4 text-emerald-700" />
+                      <Wallet className="size-4 text-blue-700" />
                       <div className="text-xs font-semibold text-left">
                         <span>PressGo Wallet</span>
                         <div className="text-[11px] opacity-75">Pay using your prepaid balance</div>
@@ -3480,7 +3490,7 @@ export default function App() {
                     <div className="bg-white border border-gray-200 p-3 rounded-xl flex flex-col gap-2 mt-1 text-left text-xs animate-fade-in">
                       <div className="font-bold text-gray-900 flex items-center justify-between">
                         <span>💳 PressGo Wallet Balance</span>
-                        <span className="text-emerald-700">₹{currentCustomer?.walletBalance || 0}</span>
+                        <span className="text-blue-700">₹{currentCustomer?.walletBalance || 0}</span>
                       </div>
                       
                       {(currentCustomer?.walletBalance || 0) < (confirmedQuote?.total ?? calculateTotals().total) ? (
@@ -3503,7 +3513,7 @@ export default function App() {
                           </div>
                         </div>
                       ) : (
-                        <p className="text-emerald-700 text-[12px] mt-1">Balance is sufficient for this order.</p>
+                        <p className="text-blue-700 text-[12px] mt-1">Balance is sufficient for this order.</p>
                       )}
                     </div>
                   )}
