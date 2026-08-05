@@ -1065,6 +1065,26 @@ export default function App() {
       .catch(err => customAlert('API Connection Error: ' + err.message));
   };
 
+  // One-time (or occasional) resync: replaces the whole garment catalog with the
+  // current DEFAULT_PRICE_LIST, for when the database has drifted out of sync with
+  // the code's item list (see /api/admin/reseed-prices on the server for why that
+  // can happen even though prices normally seed themselves on a first empty read).
+  const reseedPriceCatalog = () => {
+    customConfirm('This replaces every garment price entry with the current full catalog. Existing custom price edits will be lost. Continue?', () => {
+      fetch(`${API_URL}/admin/reseed-prices`, {
+        method: 'POST',
+        headers: authHeaders()
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) return customAlert(data.error);
+          triggerNotification(`✅ Catalog resynced — removed ${data.removed}, added ${data.inserted} items.`);
+          return fetch(`${API_URL}/prices`).then(res => res.json()).then(setPriceList);
+        })
+        .catch(err => customAlert('API Connection Error: ' + err.message));
+    });
+  };
+
   const saveUpiSettings = () => {
     fetch(`${API_URL}/settings/upi`, {
       method: 'PUT',
@@ -3845,9 +3865,18 @@ export default function App() {
                 {/* PRICING RATES PANEL */}
                 {adminActiveTab === 'prices' && (
                   <div className="flex flex-col gap-4 text-left">
-                    <div>
-                      <h3 className="text-sm font-bold text-gray-900">Garment Price Rates Manager</h3>
-                      <p className="text-xs text-gray-500 mt-1">Configure pricing categories. Edits immediately apply to the customer booking forms.</p>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-sm font-bold text-gray-900">Garment Price Rates Manager</h3>
+                        <p className="text-xs text-gray-500 mt-1">Configure pricing categories. Edits immediately apply to the customer booking forms.</p>
+                      </div>
+                      <button
+                        onClick={reseedPriceCatalog}
+                        className="shrink-0 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 px-3 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1"
+                        title="Replace the whole catalog with the current default item list"
+                      >
+                        <RefreshCw className="size-3" /> Resync Catalog
+                      </button>
                     </div>
 
                     <div className="bg-gray-50 border border-gray-200 p-5 rounded-2xl flex flex-col gap-4">

@@ -268,28 +268,58 @@ const RIDER_PIN = process.env.RIDER_PIN || '8888';
 const OWNER_ALERT_PHONE = process.env.OWNER_ALERT_PHONE || '9791019505';
 const PLAN_PRICES = { Bronze: 299, Silver: 499, Gold: 699 };
 
-const DEFAULT_PRICE_LIST = [
-  { name: 'Shirt', price: 15, category: 'Apparel', serviceType: 'Ironing' },
-  { name: 'T-Shirt', price: 12, category: 'Apparel', serviceType: 'Ironing' },
-  { name: 'Pant', price: 15, category: 'Apparel', serviceType: 'Ironing' },
-  { name: 'Jeans', price: 18, category: 'Apparel', serviceType: 'Ironing' },
-  { name: 'Saree', price: 50, category: 'Apparel', serviceType: 'Ironing' },
-  { name: 'Kurta', price: 20, category: 'Apparel', serviceType: 'Ironing' },
-  { name: 'Salwar', price: 20, category: 'Apparel', serviceType: 'Ironing' },
-  { name: 'Blazer', price: 80, category: 'Outerwear', serviceType: 'Ironing' },
-  { name: 'Coat', price: 90, category: 'Outerwear', serviceType: 'Ironing' },
-  { name: 'Suit', price: 120, category: 'Outerwear', serviceType: 'Ironing' },
-  { name: 'School Uniform', price: 25, category: 'Apparel', serviceType: 'Ironing' },
-  { name: 'Bedsheet', price: 30, category: 'Bedding', serviceType: 'Ironing' },
-  { name: 'Pillow Cover', price: 10, category: 'Bedding', serviceType: 'Ironing' },
-  { name: 'Curtain', price: 60, category: 'Bedding', serviceType: 'Ironing' },
-  { name: 'Shirt', price: 50, category: 'Apparel', serviceType: 'Dry Cleaning' },
-  { name: 'Pant', price: 50, category: 'Apparel', serviceType: 'Dry Cleaning' },
-  { name: 'Suit', price: 250, category: 'Outerwear', serviceType: 'Dry Cleaning' },
-  { name: 'Shirt', price: 30, category: 'Apparel', serviceType: 'Laundry' },
-  { name: 'Pant', price: 30, category: 'Apparel', serviceType: 'Laundry' },
-  { name: 'Bedsheet', price: 60, category: 'Bedding', serviceType: 'Laundry' },
+// Mirrors BASE_GARMENTS in src/App.tsx — kept as a separate literal here (rather than
+// imported) because the client and server are different build targets, but the two
+// MUST stay in sync. They drifted once already: this list used to be a much smaller
+// 20-row Apparel/Outerwear/Bedding set left over from an early prototype, while the
+// client's list grew to this richer 35-item catalog — since the empty-table seed
+// below only ever fires once (never re-runs against a non-empty table), that drift
+// stayed permanently live in production until caught and fixed via
+// POST /api/admin/reseed-prices.
+const BASE_GARMENTS = [
+  { name: 'Baby Clothes', price: 10, category: 'Light Weight' },
+  { name: 'Kids Wear', price: 15, category: 'Light Weight' },
+  { name: 'Uniform', price: 20, category: 'Light Weight' },
+  { name: 'Legging', price: 15, category: 'Light Weight' },
+  { name: 'Pajama', price: 15, category: 'Light Weight' },
+  { name: 'Salwar', price: 20, category: 'Light Weight' },
+  { name: 'Kurta', price: 20, category: 'Light Weight' },
+  { name: 'T-Shirt', price: 15, category: 'Light Weight' },
+  { name: 'Trouser/Pant', price: 18, category: 'Light Weight' },
+  { name: 'Jacket', price: 50, category: 'Medium/Heavy' },
+  { name: 'Blazer', price: 80, category: 'Medium/Heavy' },
+  { name: 'Skirt', price: 25, category: 'Medium/Heavy' },
+  { name: 'Dhoti', price: 30, category: 'Medium/Heavy' },
+  { name: 'Party Top', price: 35, category: 'Medium/Heavy' },
+  { name: 'Silk Kurta', price: 40, category: 'Medium/Heavy' },
+  { name: 'Sweater', price: 60, category: 'Medium/Heavy' },
+  { name: 'Bridal Set', price: 250, category: 'Premium' },
+  { name: 'Designer Blouse', price: 60, category: 'Premium' },
+  { name: 'Designer Saree', price: 100, category: 'Premium' },
+  { name: 'Formal Suit', price: 120, category: 'Premium' },
+  { name: 'Lehenga', price: 200, category: 'Premium' },
+  { name: 'Sherwani', price: 250, category: 'Premium' },
+  { name: 'Silk Saree', price: 150, category: 'Premium' },
+  { name: 'Winter Coat', price: 150, category: 'Premium' },
+  { name: 'Cushion Cover', price: 15, category: 'Household' },
+  { name: 'Face Towel', price: 10, category: 'Household' },
+  { name: 'Handkerchief', price: 5, category: 'Household' },
+  { name: 'Kitchen Towel', price: 10, category: 'Household' },
+  { name: 'Pillow Cover', price: 15, category: 'Household' },
+  { name: 'Table Mat', price: 20, category: 'Household' },
+  { name: 'Bed Sheet', price: 40, category: 'Household' },
+  { name: 'Blanket', price: 100, category: 'Household' },
+  { name: 'Comforter', price: 120, category: 'Household' },
+  { name: 'Curtain', price: 80, category: 'Household' },
+  { name: 'Sofa Cover', price: 90, category: 'Household' },
 ];
+
+const DEFAULT_PRICE_LIST = [];
+BASE_GARMENTS.forEach(item => {
+  DEFAULT_PRICE_LIST.push({ ...item, serviceType: 'Ironing' });
+  DEFAULT_PRICE_LIST.push({ ...item, price: Math.round(item.price * 2.5), serviceType: 'Dry Cleaning' });
+  DEFAULT_PRICE_LIST.push({ ...item, price: Math.round(item.price * 1.5), serviceType: 'Laundry' });
+});
 
 const DEFAULT_CUSTOMERS = [
   {
