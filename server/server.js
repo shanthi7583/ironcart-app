@@ -532,6 +532,44 @@ app.get('/api/prices', async (req, res) => {
   res.json(DEFAULT_PRICE_LIST);
 });
 
+// 1.5 Re-sync the garment catalog to the current DEFAULT_PRICE_LIST (Admin only).
+// Unlike the empty-table seed above, this replaces whatever garment rows already
+// exist — for when the database has drifted from the code's item list (found in
+// production: an older, smaller Apparel/Outerwear/Bedding seed was still live even
+// though DEFAULT_PRICE_LIST had long since grown to the richer Light Weight/Medium-
+// Heavy/Premium/Household catalog, because the empty-table seed only ever triggers
+// once and never re-runs against a non-empty table). System rows (UPI/offers
+// settings) are left untouched.
+app.post('/api/admin/reseed-prices', authMiddleware, requireRole('admin'), async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Database not configured' });
+
+  const { data: existing, error: readError } = await supabase.from('prices').select('id').neq('category', 'system');
+  if (readError) {
+    console.error('Reseed: failed to read existing garment rows:', readError.message);
+    return res.status(500).json({ error: 'Could not read the existing catalog' });
+  }
+
+  if (existing.length > 0) {
+    const { error: deleteError } = await supabase.from('prices').delete().in('id', existing.map(r => r.id));
+    if (deleteError) {
+      console.error('Reseed: failed to delete stale garment rows:', deleteError.message);
+      return res.status(500).json({ error: 'Could not clear the existing catalog' });
+    }
+  }
+
+  const freshRows = DEFAULT_PRICE_LIST.map(item => ({
+    category: item.category, item_name: item.name, price: item.price, service_type: item.serviceType
+  }));
+  const { data: inserted, error: insertError } = await supabase.from('prices').insert(freshRows).select('id');
+  if (insertError) {
+    console.error('Reseed: failed to insert fresh catalog:', insertError.message);
+    return res.status(500).json({ error: 'Catalog was cleared but the fresh insert failed — please retry.' });
+  }
+
+  console.log(`Reseeded price catalog: removed ${existing.length} stale rows, inserted ${inserted.length} fresh rows.`);
+  res.json({ removed: existing.length, inserted: inserted.length });
+});
+
 // 2. Update prices (Admin) — now actually persists to Supabase instead of no-op success
 app.put('/api/prices', authMiddleware, requireRole('admin'), async (req, res) => {
   const updatedPrices = req.body;

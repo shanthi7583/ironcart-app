@@ -159,7 +159,7 @@ const CATEGORY_IMAGES: Record<string, string> = {
 };
 const FALLBACK_CATEGORY_IMAGE = '/img-category-premium.jpg';
 
-// Pre-login hero carousel — three rotating slides shown above the phone-number form.
+// Pre-login hero carousel — five rotating slides shown above the phone-number form.
 const LOGIN_HERO_SLIDES = [
   {
     img: '/img-steam-ironing.jpg',
@@ -172,9 +172,19 @@ const LOGIN_HERO_SLIDES = [
     subtitle: 'Schedule a pickup in seconds — we handle the rest, door to door.'
   },
   {
-    img: '/img-household-linens.jpg',
+    img: '/img-folded-shirts-blue.jpg',
     title: 'Fresh, Folded, On Time',
     subtitle: 'Every order quality-checked and delivered back within 24 hours.'
+  },
+  {
+    img: '/img-service-laundry.jpg',
+    title: 'State-of-the-Art Laundry Care',
+    subtitle: 'Modern equipment and trained hands, treating every load with real care.'
+  },
+  {
+    img: '/img-category-premium.jpg',
+    title: 'Formal Wear, Perfected',
+    subtitle: 'Suits, blazers and special-occasion wear — pressed sharp, every time.'
   }
 ];
 
@@ -364,7 +374,7 @@ export default function App() {
   useEffect(() => {
     const timer = setInterval(() => {
       setLoginHeroIndex(i => (i + 1) % LOGIN_HERO_SLIDES.length);
-    }, 4000);
+    }, 2800);
     return () => clearInterval(timer);
   }, []);
   const [notification, setNotification] = useState<string | null>(null);
@@ -1774,7 +1784,7 @@ export default function App() {
                             </button>
                           )}
                           <div className="flex items-center gap-2">
-                            <div className="size-9 rounded-xl bg-gradient-to-br from-rose-600 via-rose-500 to-amber-500 shadow-md flex items-center justify-center border-2 border-white shrink-0">
+                            <div className="size-9 rounded-xl bg-gradient-to-br from-blue-600 via-cyan-500 to-teal-500 shadow-md flex items-center justify-center border-2 border-white shrink-0">
                               <svg viewBox="0 0 48 48" className="size-5" fill="none">
                                 <path d="M34 6c0 2-3 2-3 4.5S34 13 34 15" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.9" />
                                 <path d="M40 8c0 2-3 2-3 4.5S40 15 40 17" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.9" />
@@ -1782,7 +1792,7 @@ export default function App() {
                                 <path d="M8 22a2 2 0 0 1 2-2h14c9 0 15 4.5 15 9s-6 9-15 9H10a2 2 0 0 1-2-2Z" fill="white" />
                               </svg>
                             </div>
-                            <span className="font-display text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-amber-600 tracking-tight">PressGo</span>
+                            <span className="font-display text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-teal-600 tracking-tight">PressGo</span>
                           </div>
                         </div>
 
