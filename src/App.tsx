@@ -162,7 +162,7 @@ const FALLBACK_CATEGORY_IMAGE = '/img-category-premium.jpg';
 // Pre-login hero carousel — five rotating slides shown above the phone-number form.
 const LOGIN_HERO_SLIDES = [
   {
-    img: '/img-steam-ironing.jpg',
+    img: '/img-steam-ironing-blue.jpg',
     title: 'Steam-Pressed to Perfection',
     subtitle: 'Fabric-safe steam care — no burns, no shine, just crisp results.'
   },
