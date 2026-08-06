@@ -25,3 +25,9 @@ dist-ssr
 
 .vercel
 .env*
+
+# Android release signing — NEVER commit these.
+# Losing the keystore means you can never publish an update to the app again.
+*.jks
+*.keystore
+keystore.properties
