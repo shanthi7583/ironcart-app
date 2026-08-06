@@ -1163,8 +1163,8 @@ app.post('/api/payments/create-order', authMiddleware, async (req, res) => {
             // intercepts it and routes straight back into the app instead of a
             // browser, same end result as a custom scheme without Cashfree rejecting it.
             return_url: req.headers.origin === 'https://localhost'
-              ? 'https://pressngo-app.vercel.app/payment-return?cf_order_id={order_id}'
-              : `${req.headers.origin || 'https://pressngo-app.vercel.app'}/?cf_order_id={order_id}`
+              ? 'https://pressgo.co.in/payment-return?cf_order_id={order_id}'
+              : `${req.headers.origin || 'https://pressgo.co.in'}/?cf_order_id={order_id}`
           }
         })
       });

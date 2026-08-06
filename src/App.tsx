@@ -195,7 +195,7 @@ export default function App() {
   // WebView host), so a relative '/api' would resolve to that local host instead of the
   // real backend — it must always use the absolute production URL there.
   const API_URL = Capacitor.isNativePlatform()
-    ? 'https://pressngo-app.vercel.app/api'
+    ? 'https://pressgo.co.in/api'
     : (import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL || 'http://localhost:5000/api'));
 
   // Signed session token issued by the backend after OTP or admin-PIN verification.
