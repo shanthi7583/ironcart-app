@@ -276,6 +276,11 @@ export default function App() {
             const [phone, id] = upiRow.icon.split('|');
             setUpiDetails({ phone, id });
           }
+          const supportRow = data.find((p: any) => p.category === 'system' && (p.item_name === 'support_contact' || p.name === 'support_contact'));
+          if (supportRow && supportRow.icon) {
+            const [phone, whatsapp] = supportRow.icon.split('|');
+            if (phone && whatsapp) setSupportContact({ phone, whatsapp });
+          }
           const offersRow = data.find((p: any) => p.category === 'system' && (p.item_name === 'flash_offers' || p.name === 'flash_offers'));
           if (offersRow && offersRow.icon) {
             try {
@@ -338,6 +343,15 @@ export default function App() {
     return saved ? JSON.parse(saved) : { phone: '9791019505', id: '9791019505@ybl' };
   });
 
+  // Customer-facing support contact, admin-configurable so handing support to someone
+  // else doesn't need a code change. The literals here are only the first-run fallback
+  // before the server's saved value arrives.
+  const [supportContact, setSupportContact] = useState<{ phone: string, whatsapp: string }>(() => {
+    const saved = localStorage.getItem('iron_support_contact');
+    return saved ? JSON.parse(saved) : { phone: '9791019505', whatsapp: '9791019505' };
+  });
+  const [editingSupport, setEditingSupport] = useState<{ phone: string, whatsapp: string } | null>(null);
+
   const [currentSlide, setCurrentSlide] = useState(0);
   const slideImages = [
     "/img-steam-ironing.jpg", // Steam Ironing
@@ -356,6 +370,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('iron_upi_details', JSON.stringify(upiDetails));
   }, [upiDetails]);
+
+  useEffect(() => {
+    localStorage.setItem('iron_support_contact', JSON.stringify(supportContact));
+  }, [supportContact]);
 
 
   // Customer Form / Auth State
@@ -1161,6 +1179,23 @@ export default function App() {
         triggerNotification('✅ UPI Settings Saved to Database!');
       })
       .catch(err => customAlert('API Connection Error: ' + err.message));
+  };
+
+  const saveSupportSettings = () => {
+    if (!editingSupport) return;
+    fetch(`${API_URL}/settings/support`, {
+      method: 'PUT',
+      headers: authHeaders(),
+      body: JSON.stringify(editingSupport)
+    })
+      .then(async res => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Failed to save');
+        setSupportContact(editingSupport);
+        setEditingSupport(null);
+        triggerNotification('✅ Support contact updated!');
+      })
+      .catch(err => customAlert(err.message));
   };
 
   const handleAdminAccess = () => {
@@ -3062,17 +3097,17 @@ export default function App() {
                           {/* Quick Support Actions */}
                           <div className="grid grid-cols-2 gap-3">
                             <a 
-                              href="tel:+919791019505" 
+                              href={`tel:+91${supportContact.phone}`}
                               className="flex flex-col items-center justify-center gap-2 p-4 bg-blue-50 border border-blue-200 rounded-2xl text-center shadow-sm hover:bg-blue-100 transition-colors"
                             >
                               <div className="size-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-700">
                                 <Phone className="size-4" strokeWidth={2.5} />
                               </div>
                               <span className="text-[12px] font-bold text-blue-700">Call Us Directly</span>
-                              <span className="text-[11px] text-blue-700/90 -mt-1">+91 97910 19505</span>
+                              <span className="text-[11px] text-blue-700/90 -mt-1">+91 {supportContact.phone}</span>
                             </a>
-                            <a 
-                              href="https://wa.me/919791019505" 
+                            <a
+                              href={`https://wa.me/91${supportContact.whatsapp}`}
                               target="_blank" 
                               rel="noreferrer" 
                               className="flex flex-col items-center justify-center gap-2 p-4 bg-blue-50 border border-blue-200 rounded-2xl text-center shadow-sm hover:bg-blue-100 transition-colors"
@@ -4103,12 +4138,73 @@ export default function App() {
                         </div>
                       </div>
 
-                      <button 
+                      <button
                         onClick={saveUpiSettings}
                         className="bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl text-xs font-semibold self-start px-6 shadow-md mt-2"
                       >
                         Save Settings
                       </button>
+                    </div>
+
+                    {/* Support contact — drives the customer-facing Call/WhatsApp buttons */}
+                    <div className="bg-gray-50 border border-gray-200 p-5 rounded-2xl flex flex-col gap-4 mt-4">
+                      <div>
+                        <h3 className="text-sm font-bold text-gray-900">Customer Support Contact</h3>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Powers the “Call Us Directly” and “Chat with Us” buttons customers see in the Support tab.
+                          Change these to hand support over to someone else — no app update needed.
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[12px] font-semibold text-gray-500">Support Phone (calls)</label>
+                          <input
+                            type="tel"
+                            inputMode="numeric"
+                            maxLength={10}
+                            value={(editingSupport ?? supportContact).phone}
+                            onChange={e => setEditingSupport({ ...(editingSupport ?? supportContact), phone: e.target.value.replace(/\D/g, '') })}
+                            placeholder="10-digit mobile number"
+                            className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 outline-none focus:border-blue-500"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[12px] font-semibold text-gray-500">WhatsApp Number</label>
+                          <input
+                            type="tel"
+                            inputMode="numeric"
+                            maxLength={10}
+                            value={(editingSupport ?? supportContact).whatsapp}
+                            onChange={e => setEditingSupport({ ...(editingSupport ?? supportContact), whatsapp: e.target.value.replace(/\D/g, '') })}
+                            placeholder="10-digit mobile number"
+                            className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 outline-none focus:border-blue-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="text-[12px] text-gray-600 bg-white border border-gray-200 rounded-xl px-3 py-2">
+                        Customers will see: <strong className="text-gray-900">+91 {(editingSupport ?? supportContact).phone || '—'}</strong>
+                        {' · '}WhatsApp <strong className="text-gray-900">+91 {(editingSupport ?? supportContact).whatsapp || '—'}</strong>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button
+                          onClick={saveSupportSettings}
+                          disabled={!editingSupport}
+                          className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-2.5 rounded-xl text-xs font-semibold self-start px-6 shadow-md"
+                        >
+                          Save Support Contact
+                        </button>
+                        {editingSupport && (
+                          <button
+                            onClick={() => setEditingSupport(null)}
+                            className="bg-gray-200 hover:bg-gray-300 text-gray-900 py-2.5 rounded-xl text-xs font-semibold self-start px-5"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}

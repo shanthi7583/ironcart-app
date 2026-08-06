@@ -640,6 +640,28 @@ app.put('/api/settings/upi', authMiddleware, requireRole('admin'), async (req, r
   res.json({ success: true });
 });
 
+// Customer-facing support contact (the "Call Us" / "Chat with Us" buttons). Was
+// hardcoded to the founder's personal number, which meant handing support to anyone
+// else required a code change and redeploy. Stored as a system setting like the UPI
+// details so it can be reassigned from the admin panel.
+app.put('/api/settings/support', authMiddleware, requireRole('admin'), async (req, res) => {
+  const { phone, whatsapp } = req.body;
+  // Indian mobile numbers: 10 digits starting 6-9. Validated here rather than trusting
+  // the client, since this value ends up in tel:/wa.me links shown to every customer.
+  const valid = v => /^[6-9]\d{9}$/.test(String(v || '').trim());
+  if (!valid(phone) || !valid(whatsapp)) {
+    return res.status(400).json({ error: 'Enter valid 10-digit mobile numbers for both fields.' });
+  }
+  if (supabase) {
+    const result = await upsertSystemSetting('support_contact', `${phone}|${whatsapp}`);
+    if (!result.ok) {
+      console.error('Support contact save failed:', result.error?.message);
+      return res.status(500).json({ error: 'Could not save support contact. Please try again.' });
+    }
+  }
+  res.json({ success: true });
+});
+
 app.put('/api/settings/flash-offers', authMiddleware, requireRole('admin'), async (req, res) => {
   const offers = req.body;
   if (!Array.isArray(offers)) return res.status(400).json({ error: 'Body must be an array of offers' });
