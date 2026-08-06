@@ -1559,7 +1559,7 @@ export default function App() {
     // different height and the whole page scrolled, which is why the post-login
     // screens felt like a different size from the welcome/OTP ones. Mobile keeps
     // natural min-h-screen page flow.
-    <div className="min-h-screen sm:h-screen sm:overflow-hidden bg-slate-100 text-gray-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-slate-100 text-gray-900 flex flex-col font-sans">
       {/* Firebase's invisible reCAPTCHA lives outside the phone-frame mockup on purpose.
           That wrapper clips anything past its edges — fine for an actually-invisible
           widget, but when Google decides a login looks risky enough to demand a real
@@ -1741,7 +1741,7 @@ export default function App() {
                 Full-bleed on mobile, a plain full-height card (no fake bezel) on desktop. */}
             <div className={viewMode === 'dual'
               ? "w-full aspect-[9/19.5] border-8 border-gray-200 bg-slate-50 rounded-[40px] shadow-2xl flex flex-col overflow-hidden relative border-t-[12px] border-b-[12px]"
-              : "w-full flex-1 min-h-[100dvh] sm:min-h-0 flex flex-col overflow-hidden relative"
+              : "w-full flex-1 min-h-[100dvh] sm:min-h-0 flex flex-col relative"
             }>
 
               {/* Camera Notch simulation — dual-mode preview only */}
@@ -1755,7 +1755,7 @@ export default function App() {
                   Photo elements that would otherwise stretch panoramic-wide at this
                   width (the hero carousel below) get their own max-width instead. */}
               <div
-                className="flex-1 flex flex-col overflow-y-auto px-4 pt-8 pb-4 w-full"
+                className="flex-1 flex flex-col overflow-y-auto sm:overflow-visible px-4 pt-8 pb-4 w-full"
                 style={!currentCustomer ? {
                   background: 'radial-gradient(circle at 15% -10%, rgba(37,99,235,0.40), transparent 55%), radial-gradient(circle at 108% 15%, rgba(6,182,212,0.42), transparent 50%), linear-gradient(160deg, #E3F3FF 0%, #D5EBFC 45%, #C7E6F5 100%)'
                 } : { background: 'radial-gradient(circle at 15% 0%, rgba(37,99,235,0.10), transparent 45%), radial-gradient(circle at 100% 20%, rgba(6,182,212,0.12), transparent 40%), linear-gradient(180deg, #F0F9FF 0%, #E8F6FC 100%)' }}
@@ -2114,7 +2114,7 @@ export default function App() {
                   </div>
                 ) : (
                   // --- Active Customer Screens ---
-                  <div className="flex-1 flex flex-col justify-between w-full max-w-lg mx-auto">
+                  <div className="flex-1 flex flex-col justify-between w-full max-w-lg sm:max-w-4xl mx-auto">
                     
                     {/* Customer Top App Bar */}
                     <div className="flex items-center justify-between pb-3 border-b border-gray-200 mb-4">
@@ -2161,7 +2161,7 @@ export default function App() {
                     </div>
 
                     {/* Customer Screen Switcher */}
-                    <div className="flex-1 flex flex-col overflow-y-auto">
+                    <div className="flex-1 flex flex-col overflow-y-auto sm:overflow-visible">
                       
                       {/* HOME TAB */}
                       {customerActiveTab === 'home' && (
@@ -2181,9 +2181,15 @@ export default function App() {
                             </p>
                           </div>
 
+                          {/* Everything below flows into two columns once there's room for
+                              it. On a phone this is a plain single-column stack exactly as
+                              before; on desktop it stops being a tall stretched ribbon of
+                              full-width cards. items-start keeps cards at their natural
+                              height instead of stretching to match their row partner. */}
+                          <div className="grid gap-4 lg:grid-cols-2 items-start">
 
                           {/* Promotional Slide Banner */}
-                          <div className="bg-gradient-to-r from-blue-700 to-teal-500 rounded-2xl p-0 text-left shadow-lg shadow-blue-600/15 relative overflow-hidden h-48 flex items-center justify-center group animate-slide-up stagger-1">
+                          <div className="lg:col-span-2 bg-gradient-to-r from-blue-700 to-teal-500 rounded-2xl p-0 text-left shadow-lg shadow-blue-600/15 relative overflow-hidden h-48 lg:h-64 flex items-center justify-center group animate-slide-up stagger-1">
                             <div className="absolute inset-0 flex transition-transform duration-1000 ease-in-out" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
                               {slideImages.map((src, index) => (
                                 <div key={index} className="relative w-full h-full shrink-0">
@@ -2436,8 +2442,7 @@ export default function App() {
                             </div>
                           )}
 
-
-
+                          </div>
                         </div>
                       )}
 
