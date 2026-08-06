@@ -3492,8 +3492,15 @@ export default function App() {
 
             {/* Our own in-app checkout modal — the customer picks a method here, then Cashfree's own widget opens for UPI/Card/NetBanking */}
             {showCheckoutModal && (
-              <div className="absolute inset-0 bg-white/90 z-40 flex items-end justify-center p-4 rounded-[40px]">
-                <div className="w-full bg-gray-50 border border-gray-200 rounded-3xl p-5 text-left flex flex-col gap-4 animate-slide-up">
+              // fixed, not absolute: this used to be absolutely positioned inside the
+              // phone-frame mockup (hence the old rounded-[40px] matching its bezel),
+              // which only worked while that frame was a fixed-height box. Once the
+              // shell grew to its content height, inset-0 spanned the whole ~1200px
+              // page and items-end parked the panel below the fold — invisible, but
+              // still covering every tab and swallowing clicks. Every other modal here
+              // already uses fixed inset-0; this is now consistent with them.
+              <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+                <div className="w-full max-w-md max-h-[85vh] overflow-y-auto bg-gray-50 border border-gray-200 rounded-3xl p-5 text-left flex flex-col gap-4 animate-slide-up shadow-2xl">
                   
                   {/* Checkout Header */}
                   <div className="flex items-center justify-between pb-3 border-b border-gray-200">
