@@ -1428,7 +1428,7 @@ export default function App() {
     }
   };
 
-  // Cashfree's return_url for native is a custom URL scheme (com.vastracare.app://
+  // Cashfree's return_url for native is a custom URL scheme (in.co.pressgo.app://
   // payment-return?cf_order_id=...) since its own WebView origin, "https://localhost",
   // can never be whitelisted as a real website — see return_url in server.js. Android
   // routes that scheme back into this same app (singleTask launchMode) as an

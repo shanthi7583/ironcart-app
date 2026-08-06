@@ -1,4 +1,4 @@
-package com.vastracare.app;
+package in.co.pressgo.app;
 
 import android.os.Bundle;
 import android.webkit.WebView;

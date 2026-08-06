@@ -3,7 +3,7 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.vastracare.app",
+      "package_name": "in.co.pressgo.app",
       "sha256_cert_fingerprints": [
         "A0:0E:7D:75:30:CC:1F:93:08:7E:56:48:BF:50:F7:14:C4:ED:FE:41:88:E5:C9:BE:AC:92:AF:82:A5:B0:8F:5B"
       ]

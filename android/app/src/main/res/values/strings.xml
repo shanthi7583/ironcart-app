@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">PressGo</string>
     <string name="title_activity_main">PressGo</string>
-    <string name="package_name">com.vastracare.app</string>
-    <string name="custom_url_scheme">com.vastracare.app</string>
+    <string name="package_name">in.co.pressgo.app</string>
+    <string name="custom_url_scheme">in.co.pressgo.app</string>
 </resources>
