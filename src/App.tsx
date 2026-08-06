@@ -490,6 +490,7 @@ export default function App() {
   // rejected as a rapid duplicate (auth/too-many-requests) and popped a scary
   // "Could not send OTP" alert — so users saw an error AND then received the code.
   const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const [modalConfig, setModalConfig] = useState<{title: string, message: string, type: 'alert'|'confirm', onConfirm?: ()=>void} | null>(null);
@@ -572,6 +573,17 @@ export default function App() {
     }
   };
 
+  // Firebase's raw verification errors are developer-facing ("Firebase: Error
+  // (auth/invalid-verification-code)."), which is what customers were being shown.
+  const reportVerifyError = (err: unknown): string => {
+    const code = (err as { code?: string })?.code || '';
+    if (code.includes('invalid-verification-code')) return 'That code doesn\'t match. Please check it and try again.';
+    if (code.includes('code-expired')) return 'That code has expired. Please request a new one.';
+    if (code.includes('network-request-failed')) return 'Network problem — check your connection and try again.';
+    if (code.includes('too-many-requests')) return 'Too many attempts. Please wait a few minutes and try again.';
+    return 'Could not verify that code. Please try again.';
+  };
+
   const handleSendOTP = async () => {
     if (!authPhone || authPhone.length < 10) {
       customAlert('Please enter a valid 10-digit mobile number');
@@ -592,7 +604,7 @@ export default function App() {
           nativeVerificationIdRef.current = event.verificationId;
           setAuthStep('otp');
           setResendCooldown(30);
-          triggerNotification(`💬 OTP sent to +91 ${authPhone}!`);
+          triggerNotification(`💬 Please enter the 6-digit code sent to +91 ${authPhone}`);
           setIsSendingOtp(false);
           cleanup();
         });
@@ -635,7 +647,7 @@ export default function App() {
           setFirebaseConfirmation(confirmationResult);
           setAuthStep('otp');
           setResendCooldown(30);
-          triggerNotification(`💬 OTP sent to +91 ${authPhone}!`);
+          triggerNotification(`💬 Please enter the 6-digit code sent to +91 ${authPhone}`);
           setIsSendingOtp(false);
         })
         .catch(err => {
@@ -674,10 +686,21 @@ export default function App() {
   };
 
   const handleVerifyOTP = () => {
+    // Same re-entry guard as sending: a verification code is single-use, so a
+    // double-tap would spend it on the first call and the second would come back
+    // "invalid code" for a code that was actually correct.
+    if (isVerifyingOtp) return;
+    if (!authOTP || authOTP.length < 6) {
+      customAlert('Please enter the full 6-digit code.');
+      return;
+    }
+    setIsVerifyingOtp(true);
+
     if (Capacitor.isNativePlatform()) {
       if (!nativeVerificationIdRef.current) {
         customAlert('Your verification session expired. Please request a new OTP.');
         setAuthStep('login');
+        setIsVerifyingOtp(false);
         return;
       }
       FirebaseAuthentication.confirmVerificationCode({
@@ -690,14 +713,16 @@ export default function App() {
           await completeFirebaseLogin(idToken);
         })
         .catch(err => {
-          customAlert(err.message || 'Invalid OTP. Please try again.');
-        });
+          customAlert(reportVerifyError(err));
+        })
+        .finally(() => setIsVerifyingOtp(false));
       return;
     }
 
     if (!firebaseConfirmation) {
       customAlert('Your verification session expired. Please request a new OTP.');
       setAuthStep('login');
+      setIsVerifyingOtp(false);
       return;
     }
 
@@ -707,8 +732,9 @@ export default function App() {
         await completeFirebaseLogin(idToken);
       })
       .catch(err => {
-        customAlert(err.message || 'Invalid OTP. Please try again.');
-      });
+        customAlert(reportVerifyError(err));
+      })
+      .finally(() => setIsVerifyingOtp(false));
   };
 
   const handleRegister = () => {
@@ -1964,6 +1990,9 @@ export default function App() {
                       <div className="flex flex-col gap-4">
                         <div className="flex flex-col gap-1.5 text-left">
                           <label className="text-[12px] font-bold text-gray-500 uppercase">Enter Verification OTP</label>
+                          <p className="text-[11px] text-gray-600 -mt-0.5 normal-case font-normal">
+                            Please enter the 6-digit code we sent to <strong className="text-gray-900">+91 {authPhone}</strong>
+                          </p>
                           <input 
                             type="password"
                             maxLength={6}
@@ -1975,9 +2004,10 @@ export default function App() {
                         </div>
                         <button 
                           onClick={handleVerifyOTP}
-                          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md active:translate-y-0.5"
+                          disabled={isVerifyingOtp}
+                          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white py-2.5 rounded-xl text-sm font-semibold shadow-md active:translate-y-0.5"
                         >
-                          Verify & Continue
+                          {isVerifyingOtp ? 'Verifying…' : 'Verify & Continue'}
                         </button>
                         <p className="text-[11px] text-gray-500 -mt-1">Didn't get a code? You can request a new one once the timer below finishes.</p>
                         <div className="flex justify-between items-center text-xs text-gray-500 mt-1">
