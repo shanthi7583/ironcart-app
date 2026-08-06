@@ -360,6 +360,10 @@ export default function App() {
 
   // Customer Form / Auth State
   const [authStep, setAuthStep] = useState<'welcome' | 'login' | 'otp' | 'register'>('welcome');
+  // Mirrors authStep for async OTP callbacks, which would otherwise close over a
+  // stale value and can't tell whether the code was already successfully sent.
+  const authStepRef = useRef(authStep);
+  useEffect(() => { authStepRef.current = authStep; }, [authStep]);
   const [authPhone, setAuthPhone] = useState('');
   const [authName, setAuthName] = useState('');
   const [authApartment, setAuthApartment] = useState('');
@@ -480,6 +484,12 @@ export default function App() {
   const [gatewayOrderData, setGatewayOrderData] = useState<any>(null);
   const [confirmedQuote, setConfirmedQuote] = useState<{ subtotal: number, discount: number, tax: number, total: number, couponApplied: string } | null>(null);
   const [isCreatingCheckout, setIsCreatingCheckout] = useState(false);
+  // Guards against firing a second OTP request while the first is still in flight.
+  // Firebase phone auth takes several seconds, so an impatient double-tap used to
+  // send two requests: the first succeeded and dispatched the SMS, the second was
+  // rejected as a rapid duplicate (auth/too-many-requests) and popped a scary
+  // "Could not send OTP" alert — so users saw an error AND then received the code.
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const [modalConfig, setModalConfig] = useState<{title: string, message: string, type: 'alert'|'confirm', onConfirm?: ()=>void} | null>(null);
@@ -543,11 +553,32 @@ export default function App() {
     }
   }, [currentCustomer, authStep]);
 
+  // Turns a Firebase auth error code into something a customer can act on, instead
+  // of the same generic "try again later" for every failure. Deliberately suppressed
+  // entirely if we've already advanced to the OTP step — that means an earlier
+  // request already sent the code, so an error from a duplicate request would be
+  // both wrong and alarming.
+  const reportOtpError = (err: unknown) => {
+    if (authStepRef.current === 'otp') return;
+    const code = (err as { code?: string })?.code || '';
+    if (code === 'auth/too-many-requests') {
+      customAlert('Too many attempts from this number. Please wait a few minutes before requesting another code.');
+    } else if (code === 'auth/invalid-phone-number') {
+      customAlert('That phone number doesn\'t look right. Please check it and try again.');
+    } else if (code === 'auth/network-request-failed') {
+      customAlert('Network problem — check your connection and try again.');
+    } else {
+      customAlert('Could not send OTP right now. Please try again in a moment.');
+    }
+  };
+
   const handleSendOTP = async () => {
     if (!authPhone || authPhone.length < 10) {
       customAlert('Please enter a valid 10-digit mobile number');
       return;
     }
+    if (isSendingOtp) return;
+    setIsSendingOtp(true);
 
     if (Capacitor.isNativePlatform()) {
       let codeSentListener: { remove: () => void } | null = null;
@@ -562,24 +593,28 @@ export default function App() {
           setAuthStep('otp');
           setResendCooldown(30);
           triggerNotification(`💬 OTP sent to +91 ${authPhone}!`);
+          setIsSendingOtp(false);
           cleanup();
         });
         failedListener = await FirebaseAuthentication.addListener('phoneVerificationFailed', event => {
           console.error('Native phone verification failed:', event.message);
-          customAlert('Could not send OTP right now. Please try again in a moment.');
+          reportOtpError(event);
+          setIsSendingOtp(false);
           cleanup();
         });
         await FirebaseAuthentication.signInWithPhoneNumber({ phoneNumber: `+91${authPhone}` });
       } catch (err) {
         console.error('Native phone sign-in failed:', err);
         cleanup();
-        customAlert('Could not send OTP right now. Please try again in a moment.');
+        reportOtpError(err);
+        setIsSendingOtp(false);
       }
       return;
     }
 
     if (!firebaseAuth) {
       customAlert('Sign-in is not available right now. Please try again in a moment.');
+      setIsSendingOtp(false);
       return;
     }
 
@@ -601,19 +636,22 @@ export default function App() {
           setAuthStep('otp');
           setResendCooldown(30);
           triggerNotification(`💬 OTP sent to +91 ${authPhone}!`);
+          setIsSendingOtp(false);
         })
         .catch(err => {
           console.error('Firebase send OTP failed:', err);
           recaptchaVerifierRef.current?.clear();
           recaptchaVerifierRef.current = null;
           recaptchaRenderPromiseRef.current = null;
-          customAlert('Could not send OTP right now. Please try again in a moment.');
+          reportOtpError(err);
+          setIsSendingOtp(false);
         });
     } catch (err) {
       console.error('Firebase RecaptchaVerifier setup failed:', err);
       recaptchaVerifierRef.current?.clear();
       recaptchaVerifierRef.current = null;
       recaptchaRenderPromiseRef.current = null;
+      setIsSendingOtp(false);
       customAlert('Could not send OTP right now. Please try again in a moment.');
     }
   };
@@ -1879,9 +1917,10 @@ export default function App() {
                         </div>
                         <button
                           onClick={handleSendOTP}
-                          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md active:translate-y-0.5"
+                          disabled={isSendingOtp}
+                          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white py-2.5 rounded-xl text-sm font-semibold shadow-md active:translate-y-0.5"
                         >
-                          Send OTP Verification
+                          {isSendingOtp ? 'Sending OTP…' : 'Send OTP Verification'}
                         </button>
 
                         {/* Admin Login Gateway Switcher */}
@@ -1944,10 +1983,10 @@ export default function App() {
                         <div className="flex justify-between items-center text-xs text-gray-500 mt-1">
                           <button
                             onClick={handleSendOTP}
-                            disabled={resendCooldown > 0}
+                            disabled={resendCooldown > 0 || isSendingOtp}
                             className="text-blue-700 hover:underline disabled:text-gray-400 disabled:no-underline disabled:cursor-not-allowed"
                           >
-                            {resendCooldown > 0 ? `Resend OTP in ${resendCooldown}s` : 'Resend OTP'}
+                            {isSendingOtp ? 'Sending…' : resendCooldown > 0 ? `Resend OTP in ${resendCooldown}s` : 'Resend OTP'}
                           </button>
                           <button onClick={() => { setAuthOTP(''); setAuthStep('login'); }} className="text-blue-700 hover:underline">Change Number</button>
                         </div>
