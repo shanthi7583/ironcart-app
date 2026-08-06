@@ -2114,7 +2114,7 @@ export default function App() {
                   </div>
                 ) : (
                   // --- Active Customer Screens ---
-                  <div className="flex-1 flex flex-col justify-between w-full max-w-lg sm:max-w-4xl mx-auto">
+                  <div className="flex-1 flex flex-col justify-between w-full max-w-lg sm:max-w-2xl mx-auto">
                     
                     {/* Customer Top App Bar */}
                     <div className="flex items-center justify-between pb-3 border-b border-gray-200 mb-4">
@@ -2181,15 +2181,16 @@ export default function App() {
                             </p>
                           </div>
 
-                          {/* Everything below flows into two columns once there's room for
-                              it. On a phone this is a plain single-column stack exactly as
-                              before; on desktop it stops being a tall stretched ribbon of
-                              full-width cards. items-start keeps cards at their natural
-                              height instead of stretching to match their row partner. */}
-                          <div className="grid gap-4 lg:grid-cols-2 items-start">
+                          {/* Deliberately a single column, not a grid. A two-column layout
+                              was tried here and read as scattered: these cards have wildly
+                              different natural heights (a wallet strip next to a tall
+                              category picker), so side-by-side leaves ragged gaps with no
+                              visual rhythm. One column at a comfortable reading width is
+                              the standard treatment for a mobile-first app on desktop. */}
+                          <div className="flex flex-col gap-4">
 
                           {/* Promotional Slide Banner */}
-                          <div className="lg:col-span-2 bg-gradient-to-r from-blue-700 to-teal-500 rounded-2xl p-0 text-left shadow-lg shadow-blue-600/15 relative overflow-hidden h-48 lg:h-64 flex items-center justify-center group animate-slide-up stagger-1">
+                          <div className="bg-gradient-to-r from-blue-700 to-teal-500 rounded-2xl p-0 text-left shadow-lg shadow-blue-600/15 relative overflow-hidden h-48 lg:h-56 flex items-center justify-center group animate-slide-up stagger-1">
                             <div className="absolute inset-0 flex transition-transform duration-1000 ease-in-out" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
                               {slideImages.map((src, index) => (
                                 <div key={index} className="relative w-full h-full shrink-0">

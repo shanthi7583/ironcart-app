@@ -9,6 +9,7 @@ import {
 // These are our own freely-licensed photos (Pexels) — deliberately NOT iztri's,
 // whose images are their copyrighted content.
 const HERO_IMAGES = [
+  { src: '/img-hero-steam-machine.jpg', alt: 'Modern handheld garment steamer finishing a shirt' },
   { src: '/img-hero-ironing-action.jpg', alt: 'Close-up of a steam iron pressing a garment' },
   { src: '/img-hero-pro-ironing.jpg', alt: 'Professional pressing freshly laundered linens' },
   { src: '/img-folded-shirts-blue.jpg', alt: 'Freshly cleaned and neatly folded clothes' }
