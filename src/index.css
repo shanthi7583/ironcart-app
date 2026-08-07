@@ -1,11 +1,28 @@
 @import "tailwindcss";
 
+/* Manrope and Fraunces are served with a unicode-range that claims the rupee sign
+   (U+20B9) but, on older builds, ship no glyph for it. The browser therefore never
+   falls back — it draws ₹ with zero advance width, printed on top of the next
+   character, so "₹38.25" reads as a mangled "38.25". Measured on Android System
+   WebView 92: ₹ is 0px wide in Manrope against 8.28px in sans-serif.
+
+   This family covers exactly one character and nothing else, so putting it first in
+   the stack diverts only ₹ to a system font that genuinely has it, while every other
+   character still falls through to Manrope. Every listed face is a stock Android or
+   desktop font, so there's nothing extra to download. */
+@font-face {
+  font-family: "RupeeFallback";
+  src: local("Noto Sans"), local("Roboto"), local("Droid Sans"),
+       local("Segoe UI"), local("Helvetica Neue"), local("Arial");
+  unicode-range: U+20B9;
+}
+
 @theme {
   /* Fraunces for anything that should feel considered — the brand name, big
      numbers, section headings. Manrope for everything read at speed. Neither
      is the "Playfair + Inter" pairing every template reaches for. */
-  --font-display: "Fraunces", ui-serif, Georgia, serif;
-  --font-sans: "Manrope", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "RupeeFallback", "Fraunces", ui-serif, Georgia, serif;
+  --font-sans: "RupeeFallback", "Manrope", ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 
 body {
