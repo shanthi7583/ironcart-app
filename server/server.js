@@ -290,7 +290,12 @@ async function computeQuote({ cartItems, couponCode, customerPhone, speed }) {
   let activePlan = 'None';
   let freeOrderCredits = 0;
   if (customerPhone && supabase) {
-    const { data, error } = await supabase.from('customers').select('active_plan, free_order_credits').eq('phone', customerPhone).single();
+    // select('*') rather than naming columns: asking for a column that doesn't exist
+    // yet fails the entire select, and this lookup degrades to "no subscription" on
+    // error — so naming free_order_credits before its migration had run silently
+    // stripped every Prime member's discount in production. A whole row costs nothing
+    // extra here and cannot break when the schema moves ahead of, or behind, the code.
+    const { data, error } = await supabase.from('customers').select('*').eq('phone', customerPhone).single();
     // Deliberately degrades to "no subscription discount" rather than failing the
     // whole quote/checkout over a transient lookup error - worst case a subscriber
     // pays full price once, which is recoverable, versus blocking checkout entirely.
