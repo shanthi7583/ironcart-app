@@ -281,6 +281,14 @@ export default function App() {
             const [phone, whatsapp] = supportRow.icon.split('|');
             if (phone && whatsapp) setSupportContact({ phone, whatsapp });
           }
+          const pricingRow = data.find((p: any) => p.category === 'system' && (p.item_name === 'pricing_rules' || p.name === 'pricing_rules'));
+          if (pricingRow && pricingRow.icon) {
+            try {
+              const parsed = JSON.parse(pricingRow.icon);
+              setPricingRules(prev => ({ ...prev, ...parsed }));
+              setEditingPricing(prev => ({ ...prev, ...parsed }));
+            } catch(e) {}
+          }
           const offersRow = data.find((p: any) => p.category === 'system' && (p.item_name === 'flash_offers' || p.name === 'flash_offers'));
           if (offersRow && offersRow.icon) {
             try {
@@ -415,6 +423,12 @@ export default function App() {
   const [selectedService, setSelectedService] = useState<'Ironing' | 'Dry Cleaning' | 'Laundry'>('Ironing');
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState('');
+
+  // Mirrors PRICING_DEFAULTS on the server. These are display estimates only — the
+  // server recomputes every one of them authoritatively before anything is charged.
+  const PRICING_FALLBACK = { welcomePercent: 0.25, welcomeMinOrder: 150, freeDeliveryAbove: 250, deliveryFee: 30 };
+  const [pricingRules, setPricingRules] = useState(PRICING_FALLBACK);
+  const [editingPricing, setEditingPricing] = useState(PRICING_FALLBACK);
 
   const [orderSpeed, setOrderSpeed] = useState<'Normal' | 'Express' | 'Urgent'>('Normal');
   const [pickupDate, setPickupDate] = useState('');
@@ -551,6 +565,15 @@ export default function App() {
   // it still failed with auth/invalid-app-credential). The native plugin uses Play
   // Integrity attestation instead, which has no such WebView-trust problem.
   const nativeVerificationIdRef = useRef<string | null>(null);
+  // The native Firebase SDK reports phone verification purely through events, and it
+  // has failure modes where it emits neither phoneCodeSent nor phoneVerificationFailed
+  // — e.g. when Play Integrity rejects the build and the reCAPTCHA fallback activity
+  // dies without a result. Without this watchdog the button sticks on "Sending OTP…"
+  // forever and the customer has no way forward.
+  const nativeOtpWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Set when Cashfree's return_url brings us back, so the foreground-resume handler
+  // knows the payment was already settled and leaves it alone.
+  const cashfreeReturnHandledRef = useRef(false);
 
   // Pre-warm the invisible reCAPTCHA as soon as the login screen mounts — building it
   // lazily on the first "Send OTP" tap made that first attempt eat several extra
@@ -614,9 +637,21 @@ export default function App() {
       let codeSentListener: { remove: () => void } | null = null;
       let failedListener: { remove: () => void } | null = null;
       const cleanup = () => {
+        if (nativeOtpWatchdogRef.current) {
+          clearTimeout(nativeOtpWatchdogRef.current);
+          nativeOtpWatchdogRef.current = null;
+        }
         codeSentListener?.remove();
         failedListener?.remove();
       };
+      nativeOtpWatchdogRef.current = setTimeout(() => {
+        console.error('Native phone verification timed out with no SDK callback');
+        cleanup();
+        setIsSendingOtp(false);
+        if (authStepRef.current !== 'otp') {
+          customAlert('Could not send OTP right now. Please check your connection and try again.');
+        }
+      }, 45000);
       try {
         codeSentListener = await FirebaseAuthentication.addListener('phoneCodeSent', event => {
           nativeVerificationIdRef.current = event.verificationId;
@@ -852,20 +887,39 @@ export default function App() {
           discount += item.price * qty * catDiscountPercent;
         }
       });
-    } else {
-      if (appliedCoupon === 'WELCOME50') discount = 50;
-      else if (appliedCoupon === 'FIRST10') discount = subtotal * 0.10;
     }
-    
+
+    // The server applies whichever single discount saves the most, so mirror that here
+    // rather than letting the estimate disagree with the amount actually charged.
+    let discountLabel = userSubscription !== 'None' && discount > 0 ? `${userSubscription} Prime` : '';
+
+    const isFirstOrder = orders.length === 0;
+    if (isFirstOrder && subtotal >= pricingRules.welcomeMinOrder) {
+      const welcome = subtotal * pricingRules.welcomePercent;
+      if (welcome > discount) {
+        discount = welcome;
+        discountLabel = 'First order';
+      }
+    }
+
+    const couponValue = appliedCoupon === 'WELCOME50' ? 50 : appliedCoupon === 'FIRST10' ? subtotal * 0.10 : 0;
+    if (couponValue > discount) {
+      discount = couponValue;
+      discountLabel = appliedCoupon;
+    }
+
     // Ensure discount doesn't exceed subtotal
     if (discount > subtotal) discount = subtotal;
     discount = parseFloat(discount.toFixed(2));
 
-    const taxableAmount = Math.max(0, subtotal - discount + markup);
+    // Charged on the order value before discounts, matching the server.
+    const deliveryFee = subtotal > 0 && subtotal < pricingRules.freeDeliveryAbove ? pricingRules.deliveryFee : 0;
+
+    const taxableAmount = Math.max(0, subtotal - discount + markup + deliveryFee);
     const tax = parseFloat((taxableAmount * 0.05).toFixed(2)); // 5% GST
     const total = parseFloat((taxableAmount + tax).toFixed(2));
 
-    return { subtotal, discount, markup, tax, total, totalItems };
+    return { subtotal, discount, markup, deliveryFee, tax, total, totalItems, discountLabel };
   };
 
   // --- Order Submission ---
@@ -1015,7 +1069,10 @@ export default function App() {
       fetch(`${API_URL}/payments/create-order`, {
         method: 'POST',
         headers: authHeaders(),
-        body: JSON.stringify({ cartItems: buildCartItems(), couponCode: appliedCoupon, currency: 'INR', paymentMethods: methodCode, speed: orderSpeed })
+        // orderDraft is the safety net: the server stashes it against the gateway order
+        // so Cashfree's webhook can still create this order if the customer never makes
+        // it back here (closed tab, lost connection, dead battery).
+        body: JSON.stringify({ cartItems: buildCartItems(), couponCode: appliedCoupon, currency: 'INR', paymentMethods: methodCode, speed: orderSpeed, orderDraft: buildNewOrder() })
       })
         .then(async res => {
           const restrictedOrder = await res.json().catch(() => ({}));
@@ -1194,6 +1251,27 @@ export default function App() {
         setSupportContact(editingSupport);
         setEditingSupport(null);
         triggerNotification('✅ Support contact updated!');
+      })
+      .catch(err => customAlert(err.message));
+  };
+
+  const savePricingSettings = () => {
+    fetch(`${API_URL}/settings/pricing`, {
+      method: 'PUT',
+      headers: authHeaders(),
+      // The form works in whole percent (25); the server stores a fraction.
+      body: JSON.stringify({
+        welcomePercent: Math.round(editingPricing.welcomePercent * 100),
+        welcomeMinOrder: editingPricing.welcomeMinOrder,
+        freeDeliveryAbove: editingPricing.freeDeliveryAbove,
+        deliveryFee: editingPricing.deliveryFee
+      })
+    })
+      .then(async res => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Failed to save');
+        setPricingRules(editingPricing);
+        triggerNotification('✅ Offer & delivery settings updated!');
       })
       .catch(err => customAlert(err.message));
   };
@@ -1474,9 +1552,66 @@ export default function App() {
     CapacitorApp.addListener('appUrlOpen', (event: { url: string }) => {
       const cfOrderId = new URL(event.url).searchParams.get('cf_order_id');
       if (cfOrderId) {
+        cashfreeReturnHandledRef.current = true;
         Browser.close().catch(() => {}); // best-effort — dismiss the checkout tab now that we're back
         resolvePendingCashfreeAction(cfOrderId);
       }
+    }).then((handle: { remove: () => void }) => { removeListener = () => handle.remove(); });
+    return () => removeListener?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // appUrlOpen above only fires when Cashfree actually redirects back. If the customer
+  // taps the Custom Tab's close/back button instead, nothing fires at all and the
+  // checkout button sits on "Processing…" forever with no way out — verified on device.
+  // So on every return to the foreground, settle any still-pending gateway order by
+  // asking our server what Cashfree says: paid means finish it (the redirect was simply
+  // lost), not paid means they backed out, so release the button and say so plainly.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    let removeListener: (() => void) | undefined;
+    CapacitorApp.addListener('appStateChange', ({ isActive }: { isActive: boolean }) => {
+      if (!isActive) return;
+      // Let appUrlOpen win when both are coming; it fires within a few hundred ms.
+      setTimeout(async () => {
+        if (cashfreeReturnHandledRef.current) {
+          cashfreeReturnHandledRef.current = false;
+          return;
+        }
+        const pendingRaw =
+          localStorage.getItem('pendingCashfreeOrder') ||
+          localStorage.getItem('pendingCashfreeWalletTopup') ||
+          localStorage.getItem('pendingCashfreeSubscription');
+        if (!pendingRaw) {
+          setIsSubmittingOrder(false);
+          return;
+        }
+        let gatewayOrderId = '';
+        try { gatewayOrderId = JSON.parse(pendingRaw).gatewayOrderId || ''; } catch { /* corrupt entry — treat as cancelled */ }
+        if (!gatewayOrderId) {
+          setIsSubmittingOrder(false);
+          return;
+        }
+        try {
+          const res = await fetch(`${API_URL}/payments/status/${encodeURIComponent(gatewayOrderId)}`, { headers: authHeaders() });
+          const { paid } = await res.json();
+          if (paid) {
+            resolvePendingCashfreeAction(gatewayOrderId);
+            return;
+          }
+        } catch (err) {
+          // Couldn't reach the server — leave the pending entry in place so a later
+          // return can still settle it rather than silently dropping a real payment.
+          console.error('Payment status check failed:', err);
+          setIsSubmittingOrder(false);
+          return;
+        }
+        localStorage.removeItem('pendingCashfreeOrder');
+        localStorage.removeItem('pendingCashfreeWalletTopup');
+        localStorage.removeItem('pendingCashfreeSubscription');
+        setIsSubmittingOrder(false);
+        customAlert('Payment was not completed. Nothing has been charged — you can pick a payment method and try again.');
+      }, 1200);
     }).then((handle: { remove: () => void }) => { removeListener = () => handle.remove(); });
     return () => removeListener?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2208,8 +2343,10 @@ export default function App() {
                             </div>
                             <div className="relative z-10 px-5 w-full">
                               <h4 className="font-display italic font-bold text-xl text-white drop-shadow-md">Premium Garment Pressing</h4>
-                              <p className="text-[13px] text-white/95 mt-1.5 max-w-[220px] leading-relaxed drop-shadow-md">Get 50% off on your first order. Professional steam care starts at just ₹12/item.</p>
-                              <span className="inline-block bg-white text-blue-600 text-[11px] font-bold px-2.5 py-1 rounded-full mt-3 shadow-sm">Code: WELCOME50</span>
+                              <p className="text-[13px] text-white/95 mt-1.5 max-w-[220px] leading-relaxed drop-shadow-md">
+                                Get {Math.round(pricingRules.welcomePercent * 100)}% off your first order of ₹{pricingRules.welcomeMinOrder} or more. Professional steam care from ₹10/item.
+                              </p>
+                              <span className="inline-block bg-white text-blue-600 text-[11px] font-bold px-2.5 py-1 rounded-full mt-3 shadow-sm">Applied automatically at checkout</span>
                             </div>
                           </div>
 
@@ -2853,7 +2990,7 @@ export default function App() {
                             </div>
                             {calculateTotals().discount > 0 && (
                               <div className="flex justify-between text-emerald-700">
-                                <span>Discount ({appliedCoupon})</span>
+                                <span>Discount{calculateTotals().discountLabel ? ` (${calculateTotals().discountLabel})` : ''}</span>
                                 <span className="font-bold">-₹{calculateTotals().discount}</span>
                               </div>
                             )}
@@ -2861,6 +2998,19 @@ export default function App() {
                               <span>{orderSpeed} Speed Markup</span>
                               <span className="font-bold text-gray-900">₹{calculateTotals().markup}</span>
                             </div>
+                            <div className="flex justify-between">
+                              <span>Pickup &amp; Delivery</span>
+                              {calculateTotals().deliveryFee > 0
+                                ? <span className="font-bold text-gray-900">₹{calculateTotals().deliveryFee}</span>
+                                : <span className="font-bold text-emerald-700">FREE</span>}
+                            </div>
+                            {/* Nudge rather than a silent charge: the customer can see exactly
+                                how much more would make the pickup free. */}
+                            {calculateTotals().deliveryFee > 0 && (
+                              <p className="text-[11px] text-blue-700">
+                                Add ₹{Math.ceil(pricingRules.freeDeliveryAbove - calculateTotals().subtotal)} more for free pickup &amp; delivery.
+                              </p>
+                            )}
                             <div className="flex justify-between">
                               <span>GST (5%)</span>
                               <span className="font-bold text-gray-900">₹{calculateTotals().tax}</span>
@@ -4218,6 +4368,68 @@ export default function App() {
                           </button>
                         )}
                       </div>
+                    </div>
+
+                    <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 flex flex-col gap-3 mt-4">
+                      <div>
+                        <h3 className="text-sm font-bold text-gray-900">First-Order Offer &amp; Delivery</h3>
+                        <p className="text-[12px] text-gray-500">
+                          The welcome discount applies automatically on a customer's first order — there's no code to type or share.
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[12px] font-semibold text-gray-500">Welcome Discount (%)</label>
+                          <input
+                            type="number" min={0} max={100}
+                            value={Math.round(editingPricing.welcomePercent * 100)}
+                            onChange={e => setEditingPricing({ ...editingPricing, welcomePercent: (Number(e.target.value) || 0) / 100 })}
+                            className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 outline-none focus:border-blue-500"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[12px] font-semibold text-gray-500">Minimum Order for Offer (₹)</label>
+                          <input
+                            type="number" min={0}
+                            value={editingPricing.welcomeMinOrder}
+                            onChange={e => setEditingPricing({ ...editingPricing, welcomeMinOrder: Number(e.target.value) || 0 })}
+                            className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 outline-none focus:border-blue-500"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[12px] font-semibold text-gray-500">Free Delivery Above (₹)</label>
+                          <input
+                            type="number" min={0}
+                            value={editingPricing.freeDeliveryAbove}
+                            onChange={e => setEditingPricing({ ...editingPricing, freeDeliveryAbove: Number(e.target.value) || 0 })}
+                            className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 outline-none focus:border-blue-500"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[12px] font-semibold text-gray-500">Delivery Fee Below That (₹)</label>
+                          <input
+                            type="number" min={0}
+                            value={editingPricing.deliveryFee}
+                            onChange={e => setEditingPricing({ ...editingPricing, deliveryFee: Number(e.target.value) || 0 })}
+                            className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 outline-none focus:border-blue-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="text-[12px] text-gray-600 bg-white border border-gray-200 rounded-xl px-3 py-2">
+                        A first order of <strong className="text-gray-900">₹{editingPricing.welcomeMinOrder}</strong> gets
+                        {' '}<strong className="text-gray-900">₹{Math.round(editingPricing.welcomeMinOrder * editingPricing.welcomePercent)}</strong> off
+                        {' · '}orders under <strong className="text-gray-900">₹{editingPricing.freeDeliveryAbove}</strong> pay
+                        {' '}<strong className="text-gray-900">₹{editingPricing.deliveryFee}</strong> pickup &amp; delivery
+                      </div>
+
+                      <button
+                        onClick={savePricingSettings}
+                        className="bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl text-xs font-semibold self-start px-6 shadow-md"
+                      >
+                        Save Offer &amp; Delivery
+                      </button>
                     </div>
                   </div>
                 )}

@@ -31,3 +31,7 @@ dist-ssr
 *.jks
 *.keystore
 keystore.properties
+
+# Debug/release APKs are build output, not source.
+*.apk
+*.aab

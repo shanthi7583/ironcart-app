@@ -13,7 +13,9 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
-app.use(express.json());
+// Keep the untouched bytes around: Cashfree signs the raw payload, so the webhook has
+// to hash exactly what was sent, not a re-serialisation of the parsed object.
+app.use(express.json({ verify: (req, _res, buf) => { req.rawBody = buf; } }));
 
 // Initialize Supabase Client
 // Prefer a service role key (server-only, never shipped to the browser) so backend
@@ -183,6 +185,59 @@ const COUPONS = {
   FIRST10: { type: 'percent', value: 0.10 }
 };
 
+// Acquisition and delivery economics, overridable from the admin panel (stored as a
+// system row like the support contact) so these can be tuned without a redeploy.
+//
+// welcomePercent    — off a customer's *first* order. Deliberately a percentage, not a
+//                     flat amount: at ₹10–20 an item a flat discount can exceed a small
+//                     first order entirely, and it's capped at the subtotal, so trial
+//                     orders were coming out free while still costing a round trip.
+// welcomeMinOrder   — low enough that a genuine trial order (~10 garments) reaches it.
+// freeDeliveryAbove — applies to everyone, not just new customers. Small orders never
+//                     paid for their own pickup and return.
+const PRICING_DEFAULTS = {
+  welcomePercent: 0.25,
+  welcomeMinOrder: 150,
+  freeDeliveryAbove: 250,
+  deliveryFee: 30
+};
+
+async function getPricingSettings() {
+  if (!supabase) return { ...PRICING_DEFAULTS };
+  const { data, error } = await supabase
+    .from('prices')
+    .select('icon')
+    .eq('category', 'system')
+    .eq('item_name', 'pricing_rules')
+    .limit(1);
+  if (error || !data || data.length === 0) return { ...PRICING_DEFAULTS };
+  try {
+    return { ...PRICING_DEFAULTS, ...JSON.parse(data[0].icon) };
+  } catch {
+    return { ...PRICING_DEFAULTS };
+  }
+}
+
+// A first order is one where this phone has no earlier order that wasn't cancelled.
+// Checked server-side against real order history — the previous WELCOME50 code had no
+// such check at all, so any customer could reuse it on every order indefinitely.
+async function isFirstOrder(customerPhone) {
+  if (!customerPhone || !supabase) return false;
+  const { data, error } = await supabase
+    .from('orders')
+    .select('id')
+    .eq('customer_phone', customerPhone)
+    .neq('status', 'Cancelled')
+    .limit(1);
+  // On a lookup failure, decline the discount rather than hand it out — a customer
+  // wrongly charged full price can be refunded; one wrongly discounted cannot.
+  if (error) {
+    console.error(`First-order lookup failed for ${customerPhone}, pricing without the welcome discount:`, error.message);
+    return false;
+  }
+  return !data || data.length === 0;
+}
+
 const SUBSCRIPTION_DISCOUNTS = {
   Bronze: { 'Light Weight': 0.05, 'Medium/Heavy': 0.10, 'Premium': 0.15, 'Household': 0.10 },
   Silver: { 'Light Weight': 0.10, 'Medium/Heavy': 0.20, 'Premium': 0.30, 'Household': 0.15 },
@@ -238,27 +293,53 @@ async function computeQuote({ cartItems, couponCode, customerPhone, speed }) {
     activePlan = data?.active_plan || 'None';
   }
 
-  let discount = 0;
-  let couponApplied = '';
+  const rules = await getPricingSettings();
+
+  // Every discount the customer could qualify for, then apply the single best one.
+  // Picking the largest means a Prime member placing their first order is never worse
+  // off than they'd be today, whichever way the welcome offer moves.
+  const candidates = [];
+
   if (activePlan !== 'None' && SUBSCRIPTION_DISCOUNTS[activePlan]) {
+    let planDiscount = 0;
     for (const it of items) {
       const pct = SUBSCRIPTION_DISCOUNTS[activePlan][it.category] || 0;
-      discount += it.price * it.qty * pct;
+      planDiscount += it.price * it.qty * pct;
     }
-  } else if (couponCode && COUPONS[couponCode]) {
-    const c = COUPONS[couponCode];
-    discount = c.type === 'flat' ? c.value : subtotal * c.value;
-    couponApplied = couponCode;
+    if (planDiscount > 0) candidates.push({ amount: planDiscount, label: `${activePlan} Prime` });
   }
+
+  if (rules.welcomePercent > 0 && subtotal >= rules.welcomeMinOrder && await isFirstOrder(customerPhone)) {
+    candidates.push({ amount: subtotal * rules.welcomePercent, label: 'First order' });
+  }
+
+  if (couponCode && COUPONS[couponCode]) {
+    const c = COUPONS[couponCode];
+    candidates.push({ amount: c.type === 'flat' ? c.value : subtotal * c.value, label: couponCode });
+  }
+
+  const best = candidates.sort((a, b) => b.amount - a.amount)[0];
+  let discount = best ? best.amount : 0;
+  // couponApplied stays the promo-code name only — other code keys off it — while
+  // discountLabel names whatever the saving actually came from, so the checkout summary
+  // no longer shows an empty "Discount ()" for plan and first-order discounts.
+  const couponApplied = best && best.label === couponCode ? couponCode : '';
+  const discountLabel = best ? best.label : '';
+
   if (discount > subtotal) discount = subtotal;
   discount = Math.round(discount * 100) / 100;
 
-  const taxable = Math.max(0, subtotal - discount + markup);
+  // Charged on what was ordered, before discounts — a discount shouldn't move an order
+  // below the threshold and start costing delivery it had already earned for free.
+  const deliveryFee = subtotal > 0 && subtotal < rules.freeDeliveryAbove ? rules.deliveryFee : 0;
+
+  const taxable = Math.max(0, subtotal - discount + markup + deliveryFee);
   const tax = Math.round(taxable * 0.05 * 100) / 100;
   const total = Math.round((taxable + tax) * 100) / 100;
 
   return {
-    subtotal, discount, markup, tax, total, couponApplied,
+    subtotal, discount, markup, deliveryFee, tax, total, couponApplied, discountLabel,
+    freeDeliveryAbove: rules.freeDeliveryAbove,
     items: items.map(({ name, qty, price }) => ({ name, qty, price }))
   };
 }
@@ -662,6 +743,36 @@ app.put('/api/settings/support', authMiddleware, requireRole('admin'), async (re
   res.json({ success: true });
 });
 
+// Welcome-offer and delivery economics. Kept adjustable from the admin panel because
+// these are the numbers most likely to need tuning once real order volume shows what
+// the average basket and the true cost of a pickup actually are.
+app.put('/api/settings/pricing', authMiddleware, requireRole('admin'), async (req, res) => {
+  const { welcomePercent, welcomeMinOrder, freeDeliveryAbove, deliveryFee } = req.body;
+
+  const num = (v, min, max) => {
+    const n = Number(v);
+    return Number.isFinite(n) && n >= min && n <= max ? n : null;
+  };
+  // Percent arrives as a whole number from the admin form (25), stored as a fraction.
+  const pct = num(welcomePercent, 0, 100);
+  const minOrder = num(welcomeMinOrder, 0, 100000);
+  const freeAbove = num(freeDeliveryAbove, 0, 100000);
+  const fee = num(deliveryFee, 0, 10000);
+  if (pct === null || minOrder === null || freeAbove === null || fee === null) {
+    return res.status(400).json({ error: 'Enter a welcome discount of 0-100%, and non-negative amounts for the order and delivery values.' });
+  }
+
+  const rules = { welcomePercent: pct / 100, welcomeMinOrder: minOrder, freeDeliveryAbove: freeAbove, deliveryFee: fee };
+  if (supabase) {
+    const result = await upsertSystemSetting('pricing_rules', JSON.stringify(rules));
+    if (!result.ok) {
+      console.error('Pricing rules save failed:', result.error?.message);
+      return res.status(500).json({ error: 'Could not save pricing rules. Please try again.' });
+    }
+  }
+  res.json({ success: true, rules });
+});
+
 app.put('/api/settings/flash-offers', authMiddleware, requireRole('admin'), async (req, res) => {
   const offers = req.body;
   if (!Array.isArray(offers)) return res.status(400).json({ error: 'Body must be an array of offers' });
@@ -706,6 +817,56 @@ app.get('/api/orders/mine', authMiddleware, requireRole('customer'), async (req,
   }
   res.json([]);
 });
+
+// Writes the order row and fires the customer/owner alerts. Shared by the normal
+// checkout route and the Cashfree webhook, so an order created from a webhook is
+// identical to one created by the app — same columns, same notifications.
+async function persistOrder(newOrder, customerPhone, quote, paymentStatus) {
+  if (supabase) {
+    const orderData = {
+      id: newOrder.id,
+      customer_phone: customerPhone,
+      customer_name: newOrder.customerName,
+      apartment_no: newOrder.apartmentNo,
+      address: newOrder.address,
+      status: newOrder.status || 'Placed',
+      payment_status: paymentStatus,
+      payment_method: newOrder.paymentMethod || 'Cash',
+      pickup_date: newOrder.pickupDate,
+      pickup_time: newOrder.pickupTime,
+      subtotal: quote.subtotal,
+      total: quote.total,
+      items: quote.items,
+      special_instructions: newOrder.specialInstructions,
+      cancel_reason: null,
+      delivery_timeline: []
+    };
+    const { error: insertError } = await supabase.from('orders').insert([orderData]);
+    if (insertError) {
+      // Never tell the customer "order placed" when it wasn't actually saved —
+      // this previously happened silently whenever the total had a fractional
+      // amount (which 5% GST produces almost every time).
+      console.error('Order insert failed:', insertError.message);
+      return { error: 'We could not save your order. Please try again — you have not been charged.' };
+    }
+  }
+
+  waitUntil(sendNotification('whatsapp', customerPhone, `Hi ${newOrder.customerName}, your PressGo order ${newOrder.id} of ₹${quote.total} was placed! Pickup scheduled for ${newOrder.pickupDate} (${newOrder.pickupTime}).`));
+  waitUntil(sendNotification('sms', OWNER_ALERT_PHONE, `Owner Alert: New order ${newOrder.id} received from ${newOrder.customerName} (${newOrder.apartmentNo}).`));
+  waitUntil(sendPushNotification(customerPhone, 'Order placed', `Your order ${newOrder.id} of ₹${quote.total} was placed. Pickup on ${newOrder.pickupDate} (${newOrder.pickupTime}).`, { orderId: newOrder.id, status: 'Placed' }));
+
+  return {
+    order: {
+      ...newOrder,
+      customerPhone,
+      paymentStatus,
+      subtotal: quote.subtotal,
+      total: quote.total,
+      items: quote.items,
+      couponApplied: quote.couponApplied
+    }
+  };
+}
 
 // 4. Create new order (Customer checkout, or Admin/Rider walk-in booking)
 app.post('/api/orders', authMiddleware, requireRole('customer', 'admin', 'rider'), async (req, res) => {
@@ -756,51 +917,32 @@ app.post('/api/orders', authMiddleware, requireRole('customer', 'admin', 'rider'
     }
   }
 
-  if (supabase) {
-    const orderData = {
-      id: newOrder.id,
-      customer_phone: customerPhone,
-      customer_name: newOrder.customerName,
-      apartment_no: newOrder.apartmentNo,
-      address: newOrder.address,
-      status: newOrder.status || 'Placed',
-      payment_status: paymentStatus,
-      payment_method: newOrder.paymentMethod || 'Cash',
-      pickup_date: newOrder.pickupDate,
-      pickup_time: newOrder.pickupTime,
-      subtotal: quote.subtotal,
-      total: quote.total,
-      items: quote.items,
-      special_instructions: newOrder.specialInstructions,
-      cancel_reason: null,
-      delivery_timeline: []
-    };
-    const { error: insertError } = await supabase.from('orders').insert([orderData]);
-    if (insertError) {
-      // Never tell the customer "order placed" when it wasn't actually saved —
-      // this previously happened silently whenever the total had a fractional
-      // amount (which 5% GST produces almost every time).
-      console.error('Order insert failed:', insertError.message);
-      return res.status(500).json({ error: 'We could not save your order. Please try again — you have not been charged.' });
+  // Gateway-paid orders race the Cashfree webhook, which can create the same order
+  // from its own copy of the draft. The pending_orders row is the claim token: delete
+  // it and we own the creation. If it's already gone the webhook may have beaten us,
+  // so look for the order it would have written and hand that back instead of writing
+  // a second one. A miss on both means the draft was never stored (its save is
+  // non-fatal), and creating normally is correct.
+  if (supabase && newOrder.cashfreeOrderId) {
+    const { data: claimed } = await supabase
+      .from('pending_orders')
+      .delete()
+      .eq('gateway_order_id', newOrder.cashfreeOrderId)
+      .select();
+    if (!claimed || claimed.length === 0) {
+      const { data: existing } = await supabase
+        .from('orders')
+        .select('*')
+        .ilike('payment_method', `%${newOrder.cashfreeOrderId}%`)
+        .limit(1);
+      if (existing && existing.length > 0) return res.status(200).json(mapOrderToFrontend(existing[0]));
     }
   }
 
-  const responseOrder = {
-    ...newOrder,
-    customerPhone,
-    paymentStatus,
-    subtotal: quote.subtotal,
-    total: quote.total,
-    items: quote.items,
-    couponApplied: quote.couponApplied
-  };
+  const saved = await persistOrder(newOrder, customerPhone, quote, paymentStatus);
+  if (saved.error) return res.status(500).json({ error: saved.error });
 
-  // Dispatch alerts
-  waitUntil(sendNotification('whatsapp', customerPhone, `Hi ${newOrder.customerName}, your PressGo order ${newOrder.id} of ₹${quote.total} was placed! Pickup scheduled for ${newOrder.pickupDate} (${newOrder.pickupTime}).`));
-  waitUntil(sendNotification('sms', OWNER_ALERT_PHONE, `Owner Alert: New order ${newOrder.id} received from ${newOrder.customerName} (${newOrder.apartmentNo}).`));
-  waitUntil(sendPushNotification(customerPhone, 'Order placed', `Your order ${newOrder.id} of ₹${quote.total} was placed. Pickup on ${newOrder.pickupDate} (${newOrder.pickupTime}).`, { orderId: newOrder.id, status: 'Placed' }));
-
-  res.status(201).json(responseOrder);
+  res.status(201).json(saved.order);
 });
 
 // 5. Update order status (Admin/Rider control; a customer may only cancel their own order)
@@ -1118,7 +1260,7 @@ app.delete('/api/customers/:phone', authMiddleware, async (req, res) => {
 
 // 9. Payment order creation simulation / Live Cashfree Order session
 app.post('/api/payments/create-order', authMiddleware, async (req, res) => {
-  const { cartItems, couponCode, planName, currency, paymentMethods, speed } = req.body;
+  const { cartItems, couponCode, planName, currency, paymentMethods, speed, orderDraft } = req.body;
   let amount;
   let quote = null;
 
@@ -1196,6 +1338,29 @@ app.post('/api/payments/create-order', authMiddleware, async (req, res) => {
         return res.status(500).json({ error: 'Cashfree order creation failed: ' + (cfData.message || 'Unknown error') });
       }
       console.log(`🏦 Live Cashfree Order Registered: ${gatewayOrderId} for ₹${amount}`);
+
+      // Stash the order the customer is about to pay for, so the webhook can still
+      // create it if their device never makes it back — closed tab, dead battery, lost
+      // connection. Without this the money is taken and no order exists anywhere.
+      // Only for cart checkouts; wallet top-ups and plan purchases have no order draft.
+      if (supabase && orderDraft && Array.isArray(orderDraft.cartItems)) {
+        const { error: draftError } = await supabase.from('pending_orders').upsert([{
+          gateway_order_id: gatewayOrderId,
+          customer_phone: req.user.phone,
+          // Mirror exactly what the app would have POSTed, including the "(Txn: …)"
+          // suffix — that string is how an order is later traced back to its gateway
+          // payment, and the duplicate check in POST /orders matches on it.
+          draft: {
+            ...orderDraft,
+            cashfreeOrderId: gatewayOrderId,
+            paymentMethod: `${orderDraft.paymentMethod} (Txn: ${gatewayOrderId})`
+          }
+        }]);
+        // Non-fatal: the customer can still pay and the normal return path still works.
+        // It only costs us the safety net, so log loudly rather than blocking checkout.
+        if (draftError) console.error('Pending order draft save failed:', draftError.message);
+      }
+
       return res.json({
         gatewayOrderId,
         paymentSessionId: cfData.payment_session_id,
@@ -1247,6 +1412,89 @@ app.get('/api/payments/cashfree-redirect', (req, res) => {
 </form>
 <script>document.getElementById('cf').submit();</script>
 </body></html>`);
+});
+
+// Cashfree calls this the moment a payment settles, independently of the customer's
+// device. It's the only path that survives them closing the tab, losing signal or
+// running out of battery between paying and getting back to the app.
+//
+// The pending_orders row doubles as a single-use claim: whoever deletes it first is
+// the one that creates the order. Supabase returns the deleted rows, so an empty
+// result means the app's own return path already handled it and this webhook is a
+// no-op. That's what stops a duplicate order when both paths fire, which is the
+// normal case rather than the exception.
+app.post('/api/payments/webhook', async (req, res) => {
+  const signature = req.headers['x-webhook-signature'];
+  const timestamp = req.headers['x-webhook-timestamp'];
+
+  if (!cashfreeConfigured || !signature || !timestamp || !req.rawBody) {
+    return res.status(400).json({ error: 'Bad webhook request' });
+  }
+
+  // Cashfree signs timestamp + raw body with the secret key.
+  const expected = crypto
+    .createHmac('sha256', CASHFREE_SECRET_KEY)
+    .update(timestamp + req.rawBody.toString('utf8'))
+    .digest('base64');
+
+  const given = Buffer.from(String(signature));
+  const mine = Buffer.from(expected);
+  if (given.length !== mine.length || !crypto.timingSafeEqual(given, mine)) {
+    console.error('Cashfree webhook signature mismatch — ignoring');
+    return res.status(401).json({ error: 'Invalid signature' });
+  }
+
+  // Always 200 past this point: a non-2xx makes Cashfree retry, and every failure
+  // below is either "nothing to do" or something a retry cannot fix.
+  const type = req.body?.type;
+  const cfOrderId = req.body?.data?.order?.order_id;
+  if (type !== 'PAYMENT_SUCCESS_WEBHOOK' || !cfOrderId) return res.json({ received: true });
+  if (!supabase) return res.json({ received: true });
+
+  const { data: claimed, error: claimError } = await supabase
+    .from('pending_orders')
+    .delete()
+    .eq('gateway_order_id', cfOrderId)
+    .select();
+
+  if (claimError) {
+    console.error('Pending order claim failed:', claimError.message);
+    return res.json({ received: true });
+  }
+  if (!claimed || claimed.length === 0) return res.json({ received: true }); // already handled
+
+  const { draft, customer_phone: customerPhone } = claimed[0];
+
+  // Same independent verification the checkout route does — the signature proves
+  // Cashfree sent this, but the amount still has to match our own quote.
+  const quote = await computeQuote({ cartItems: draft.cartItems, couponCode: draft.couponCode, customerPhone, speed: draft.speed });
+  const confirmedAmount = await fetchConfirmedCashfreeAmount(cfOrderId);
+  const paid = confirmedAmount !== null && Math.abs(confirmedAmount - quote.total) < 0.01;
+
+  const saved = await persistOrder(draft, customerPhone, quote, paid ? 'Paid' : 'Pending');
+  if (saved.error) {
+    // Put it back so a Cashfree retry can try again rather than losing the order.
+    await supabase.from('pending_orders').upsert([claimed[0]]);
+    console.error('Webhook order creation failed:', saved.error);
+    return res.status(500).json({ error: 'Could not save order' });
+  }
+
+  console.log(`🔔 Order ${draft.id} created from Cashfree webhook (${cfOrderId})`);
+  res.json({ received: true });
+});
+
+// Was a given gateway order actually paid? The native app needs this when it comes
+// back to the foreground without Cashfree's return_url having fired — i.e. the
+// customer backed out of the Chrome Custom Tab, or the redirect was lost. Without it
+// the app can't tell "cancelled" from "paid but the redirect never arrived", and it
+// would either strand a real payment or claim success for one that never happened.
+// Deliberately returns nothing but a boolean: order ids are unguessable, but there's
+// no reason to expose amounts to whoever holds one.
+app.get('/api/payments/status/:cashfreeOrderId', authMiddleware, requireRole('customer'), async (req, res) => {
+  const { cashfreeOrderId } = req.params;
+  if (!cashfreeConfigured) return res.json({ paid: false });
+  const confirmedAmount = await fetchConfirmedCashfreeAmount(cashfreeOrderId);
+  res.json({ paid: confirmedAmount !== null });
 });
 
 // 10. Verify a Cashfree payment and credit the customer's wallet server-side.
