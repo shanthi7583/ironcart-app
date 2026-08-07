@@ -25,6 +25,49 @@ const LEGACY_TARGETS: Targets = {
   edge: 87 << 16
 }
 
+// Tailwind writes gradients as `--tw-gradient-position: to right in oklab` and then
+// `background-image: linear-gradient(var(--tw-gradient-stops))`. The `in <colorspace>`
+// interpolation hint is Chrome 111+, so anything older fails to parse the whole
+// declaration and the element ends up with no background at all — the flash-offer
+// banner became white text on nothing. Lightning CSS can't rescue this because the
+// colour space is behind a var(), invisible to static analysis.
+//
+// Dropping the hint leaves the gradient interpolating in sRGB. For the two- and
+// three-stop brand gradients here that's visually indistinguishable, and it parses
+// everywhere. Scoped to the gradient custom property so it can't touch the
+// color-mix(in oklab, …) declarations, which already have proper rgba() fallbacks.
+export function stripGradientColorSpace(css: string): string {
+  return css.replace(
+    /(--tw-gradient-position:\s*[^;}]*?)\s+in\s+(oklab|oklch|srgb|srgb-linear|lab|lch|hsl|hwb)\b/gi,
+    '$1'
+  )
+}
+
+// Tailwind v4 positions things with the standalone `rotate`, `scale` and `translate`
+// properties rather than composing one `transform`. Those are Chrome 104+, so on
+// anything older every transform utility is silently ignored — including
+// `-translate-x-1/2`, which is load-bearing for centring, so this misplaces elements
+// rather than merely dropping polish.
+//
+// `rotate` is emitted as a literal (`rotate:45deg`) with no custom property to read
+// back, so mirror it into one first. Then a single @supports block rebuilds the whole
+// thing as a classic `transform`. The guard means browsers that understand the modern
+// properties never see it, so they can't apply the movement twice.
+export function addTransformFallback(css: string): string {
+  const mirrored = css.replace(
+    /(^|[;{])rotate:\s*([^;}]+)/g,
+    (_m, lead, value) => `${lead}--tw-rotate:${value};rotate:${value}`
+  )
+  return (
+    mirrored +
+    '@supports not (translate:0px){' +
+    '[class*="translate-"],[class*="rotate-"],[class*="scale-"]{' +
+    'transform:translate(var(--tw-translate-x,0),var(--tw-translate-y,0)) ' +
+    'rotate(var(--tw-rotate,0deg)) ' +
+    'scaleX(var(--tw-scale-x,1)) scaleY(var(--tw-scale-y,1))}}'
+  )
+}
+
 // Layers can nest, so recurse rather than trying to match with one regex.
 export function flattenCascadeLayers(css: string): string {
   css = css.replace(/@layer[^;{]*;/g, '') // the `@layer theme, base, …;` ordering statement
@@ -64,7 +107,7 @@ export function legacyCss(): Plugin {
           typeof asset.source === 'string' ? asset.source : Buffer.from(asset.source).toString('utf8')
         const { code } = transform({
           filename: fileName,
-          code: Buffer.from(flattenCascadeLayers(original)),
+          code: Buffer.from(addTransformFallback(stripGradientColorSpace(flattenCascadeLayers(original)))),
           minify: true,
           targets: LEGACY_TARGETS
         })
