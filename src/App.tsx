@@ -430,6 +430,12 @@ export default function App() {
   const [pricingRules, setPricingRules] = useState(PRICING_FALLBACK);
   const [editingPricing, setEditingPricing] = useState(PRICING_FALLBACK);
 
+  // Margin analysis: what each garment costs to service versus what it's priced at.
+  const [marginReport, setMarginReport] = useState<any>(null);
+  const [editingCosts, setEditingCosts] = useState<{
+    processingPerGarment: number; deliveryCostPerTrip: number; avgBasketSize: number; targetMarginPct: number;
+  } | null>(null);
+
   const [orderSpeed, setOrderSpeed] = useState<'Normal' | 'Express' | 'Urgent'>('Normal');
   const [pickupDate, setPickupDate] = useState('');
   const [pickupTime, setPickupTime] = useState('');
@@ -1251,6 +1257,43 @@ export default function App() {
         setSupportContact(editingSupport);
         setEditingSupport(null);
         triggerNotification('✅ Support contact updated!');
+      })
+      .catch(err => customAlert(err.message));
+  };
+
+  const loadMargins = () => {
+    fetch(`${API_URL}/admin/margins`, { headers: authHeaders() })
+      .then(async res => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Could not load margins');
+        setMarginReport(data);
+        setEditingCosts({
+          processingPerGarment: data.model.processingPerGarment,
+          deliveryCostPerTrip: data.model.deliveryCostPerTrip,
+          avgBasketSize: data.model.avgBasketSize,
+          targetMarginPct: data.model.targetMarginPct
+        });
+      })
+      .catch(err => customAlert(err.message));
+  };
+
+  const saveCostSettings = () => {
+    if (!editingCosts) return;
+    fetch(`${API_URL}/settings/costs`, {
+      method: 'PUT',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        processingPerGarment: editingCosts.processingPerGarment,
+        deliveryCostPerTrip: editingCosts.deliveryCostPerTrip,
+        avgBasketSize: editingCosts.avgBasketSize,
+        targetMargin: editingCosts.targetMarginPct
+      })
+    })
+      .then(async res => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Failed to save');
+        triggerNotification('✅ Cost model updated!');
+        loadMargins();
       })
       .catch(err => customAlert(err.message));
   };
@@ -4430,6 +4473,91 @@ export default function App() {
                       >
                         Save Offer &amp; Delivery
                       </button>
+                    </div>
+
+                    <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 flex flex-col gap-3 mt-4">
+                      <div>
+                        <h3 className="text-sm font-bold text-gray-900">Margin Check</h3>
+                        <p className="text-[12px] text-gray-500">
+                          What each garment costs you to service, against what you charge. The trip is usually
+                          the biggest cost — a bigger average basket lifts margin more than any price rise.
+                        </p>
+                      </div>
+
+                      {!marginReport ? (
+                        <button
+                          onClick={loadMargins}
+                          className="bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl text-xs font-semibold self-start px-6 shadow-md"
+                        >
+                          Run Margin Check
+                        </button>
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {([
+                              ['Processing cost / garment (₹)', 'processingPerGarment'],
+                              ['Delivery cost / trip (₹)', 'deliveryCostPerTrip'],
+                              ['Average basket (garments)', 'avgBasketSize'],
+                              ['Target margin (%)', 'targetMarginPct']
+                            ] as const).map(([label, key]) => (
+                              <div key={key} className="flex flex-col gap-1">
+                                <label className="text-[12px] font-semibold text-gray-500">{label}</label>
+                                <input
+                                  type="number" min={0}
+                                  value={editingCosts ? (editingCosts as any)[key] : 0}
+                                  onChange={e => setEditingCosts(prev => prev && ({ ...prev, [key]: Number(e.target.value) || 0 }))}
+                                  className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 outline-none focus:border-blue-500"
+                                />
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="text-[12px] text-gray-600 bg-white border border-gray-200 rounded-xl px-3 py-2">
+                            Delivery adds <strong className="text-gray-900">₹{marginReport.model.deliveryPerGarment}</strong> per garment at this basket size
+                            {' · '}
+                            {marginReport.summary.belowTarget === 0
+                              ? <strong className="text-emerald-700">every item hits your target</strong>
+                              : <strong className="text-red-700">{marginReport.summary.belowTarget} of {marginReport.summary.total} items are below target</strong>}
+                          </div>
+
+                          <button
+                            onClick={saveCostSettings}
+                            className="bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl text-xs font-semibold self-start px-6 shadow-md"
+                          >
+                            Recalculate
+                          </button>
+
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-[12px] min-w-[420px]">
+                              <thead>
+                                <tr className="text-gray-500 text-left">
+                                  <th className="font-semibold pb-1.5 pr-2">Item</th>
+                                  <th className="font-semibold pb-1.5 pr-2 text-right">Price</th>
+                                  <th className="font-semibold pb-1.5 pr-2 text-right">Cost</th>
+                                  <th className="font-semibold pb-1.5 pr-2 text-right">Margin</th>
+                                  <th className="font-semibold pb-1.5 text-right">For target</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {marginReport.items.slice(0, 12).map((it: any) => (
+                                  <tr key={it.category + it.name} className="border-t border-gray-200">
+                                    <td className="py-1.5 pr-2 text-gray-900">{it.name}</td>
+                                    <td className="py-1.5 pr-2 text-right tabular-nums text-gray-900">₹{it.price}</td>
+                                    <td className="py-1.5 pr-2 text-right tabular-nums text-gray-500">₹{it.cost}</td>
+                                    <td className={`py-1.5 pr-2 text-right tabular-nums font-bold ${it.belowTarget ? 'text-red-700' : 'text-emerald-700'}`}>
+                                      {it.marginPct}%
+                                    </td>
+                                    <td className="py-1.5 text-right tabular-nums text-blue-700">₹{it.suggested}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                          <p className="text-[11px] text-gray-500">
+                            Lowest margins first. These costs are estimates until you replace them with your real figures.
+                          </p>
+                        </>
+                      )}
                     </div>
                   </div>
                 )}

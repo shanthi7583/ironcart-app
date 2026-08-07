@@ -815,6 +815,89 @@ app.put('/api/settings/support', authMiddleware, requireRole('admin'), async (re
   res.json({ success: true });
 });
 
+// --- Unit economics ---
+//
+// What a garment costs to service, so a price can be checked against a target margin
+// instead of guessed. Every figure here is an editable estimate, not a measurement —
+// the defaults are a bottom-up model for a Bangalore operation with no route density
+// yet, and they should be replaced with real numbers as soon as there are any.
+//
+// The dominant cost is the trip, not the ironing: a 45 rupee round trip spread over a
+// 10-garment basket adds 4.50 per garment, against roughly 3 for the labour. That is
+// why basket size moves margin far more than any per-item price change does.
+const COST_DEFAULTS = {
+  processingPerGarment: 6.5,   // labour + power + consumables + allocated overhead
+  deliveryCostPerTrip: 45,     // rider payment and fuel, pickup and drop
+  avgBasketSize: 10,           // garments per order
+  targetMargin: 0.30,
+  // Heavier and more delicate work takes proportionally longer to press and handle.
+  effort: { 'Light Weight': 1, 'Medium/Heavy': 2.2, 'Premium': 4.5, 'Household': 1.6 }
+};
+
+async function getCostSettings() {
+  if (!supabase) return { ...COST_DEFAULTS };
+  const { data, error } = await supabase
+    .from('prices').select('icon')
+    .eq('category', 'system').eq('item_name', 'cost_model').limit(1);
+  if (error || !data || data.length === 0) return { ...COST_DEFAULTS };
+  try {
+    const saved = JSON.parse(data[0].icon);
+    return { ...COST_DEFAULTS, ...saved, effort: { ...COST_DEFAULTS.effort, ...(saved.effort || {}) } };
+  } catch {
+    return { ...COST_DEFAULTS };
+  }
+}
+
+app.put('/api/settings/costs', authMiddleware, requireRole('admin'), async (req, res) => {
+  const { processingPerGarment, deliveryCostPerTrip, avgBasketSize, targetMargin } = req.body;
+  const num = (v, min, max) => { const n = Number(v); return Number.isFinite(n) && n >= min && n <= max ? n : null; };
+  const p = num(processingPerGarment, 0, 10000);
+  const d = num(deliveryCostPerTrip, 0, 100000);
+  const b = num(avgBasketSize, 1, 1000);
+  const m = num(targetMargin, 0, 95);
+  if (p === null || d === null || b === null || m === null) {
+    return res.status(400).json({ error: 'Enter non-negative costs, a basket size of at least 1, and a margin between 0 and 95%.' });
+  }
+  const model = { processingPerGarment: p, deliveryCostPerTrip: d, avgBasketSize: b, targetMargin: m / 100 };
+  if (supabase) {
+    const result = await upsertSystemSetting('cost_model', JSON.stringify(model));
+    if (!result.ok) {
+      console.error('Cost model save failed:', result.error?.message);
+      return res.status(500).json({ error: 'Could not save the cost model. Please try again.' });
+    }
+  }
+  res.json({ success: true, model });
+});
+
+// Every item priced against what it costs to service, so under-priced lines are
+// visible rather than discovered at the end of a month.
+app.get('/api/admin/margins', authMiddleware, requireRole('admin'), async (req, res) => {
+  const c = await getCostSettings();
+  const catalog = await getPriceCatalog();
+  const deliveryPerGarment = c.deliveryCostPerTrip / c.avgBasketSize;
+
+  const items = catalog.map(item => {
+    const cost = c.processingPerGarment * (c.effort[item.category] || 1) + deliveryPerGarment;
+    const margin = item.price > 0 ? (item.price - cost) / item.price : 0;
+    return {
+      name: item.name,
+      category: item.category,
+      price: item.price,
+      cost: Math.round(cost * 100) / 100,
+      marginPct: Math.round(margin * 1000) / 10,
+      suggested: Math.ceil(cost / (1 - c.targetMargin)),
+      belowTarget: margin < c.targetMargin
+    };
+  });
+
+  const below = items.filter(i => i.belowTarget);
+  res.json({
+    model: { ...c, targetMarginPct: Math.round(c.targetMargin * 100), deliveryPerGarment: Math.round(deliveryPerGarment * 100) / 100 },
+    summary: { total: items.length, belowTarget: below.length },
+    items: items.sort((a, b) => a.marginPct - b.marginPct)
+  });
+});
+
 // Which migrations have actually been applied. Added because schema drift has caused
 // three separate live problems — a missing fcm_token silently disabled push, a missing
 // pending_orders left interrupted payments unrecoverable, and a missing
