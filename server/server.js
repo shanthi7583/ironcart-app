@@ -203,6 +203,11 @@ const PRICING_DEFAULTS = {
   welcomeMinOrder: 150,
   freeDeliveryAbove: 250,
   deliveryFee: 30,
+  // Speed is the least price-sensitive thing on offer — nobody comparison-shops
+  // urgency — and it costs almost nothing extra to provide. Both competitors charge
+  // roughly triple for it; +20%/+50% was leaving that margin on the table.
+  expressMarkup: 1.0,
+  urgentMarkup: 2.0,
   // Campaign: "your first 2 orders are free, up to ₹100 each". A credit covers the
   // whole order up to the cap and carries free pickup regardless of size, since the
   // offer promises that outright.
@@ -285,9 +290,11 @@ async function computeQuote({ cartItems, couponCode, customerPhone, speed }) {
     items.push({ name: `${p.serviceType} - ${p.name}`, qty, price: p.price, category: p.category });
   }
 
+  const rules = await getPricingSettings();
+
   // Only trust our own enum of speeds — an unrecognized value is priced as Normal
   // rather than trusting whatever the client sent.
-  const markupMultiplier = speed === 'Urgent' ? 0.5 : speed === 'Express' ? 0.2 : 0;
+  const markupMultiplier = speed === 'Urgent' ? rules.urgentMarkup : speed === 'Express' ? rules.expressMarkup : 0;
   const markup = Math.round(subtotal * markupMultiplier * 100) / 100;
 
   let activePlan = 'None';
@@ -307,8 +314,6 @@ async function computeQuote({ cartItems, couponCode, customerPhone, speed }) {
     activePlan = data?.active_plan || 'None';
     freeOrderCredits = data?.free_order_credits || 0;
   }
-
-  const rules = await getPricingSettings();
 
   // Every discount the customer could qualify for, then apply the single best one.
   // Picking the largest means a Prime member placing their first order is never worse
@@ -1048,22 +1053,29 @@ app.post('/api/admin/campaign/send', authMiddleware, requireRole('admin'), async
 // these are the numbers most likely to need tuning once real order volume shows what
 // the average basket and the true cost of a pickup actually are.
 app.put('/api/settings/pricing', authMiddleware, requireRole('admin'), async (req, res) => {
-  const { welcomePercent, welcomeMinOrder, freeDeliveryAbove, deliveryFee } = req.body;
+  const { welcomePercent, welcomeMinOrder, freeDeliveryAbove, deliveryFee, expressMarkup, urgentMarkup } = req.body;
 
   const num = (v, min, max) => {
     const n = Number(v);
     return Number.isFinite(n) && n >= min && n <= max ? n : null;
   };
-  // Percent arrives as a whole number from the admin form (25), stored as a fraction.
+  // Percentages arrive as whole numbers from the admin form (25, 100) and are stored
+  // as fractions.
   const pct = num(welcomePercent, 0, 100);
   const minOrder = num(welcomeMinOrder, 0, 100000);
   const freeAbove = num(freeDeliveryAbove, 0, 100000);
   const fee = num(deliveryFee, 0, 10000);
-  if (pct === null || minOrder === null || freeAbove === null || fee === null) {
-    return res.status(400).json({ error: 'Enter a welcome discount of 0-100%, and non-negative amounts for the order and delivery values.' });
+  const express = num(expressMarkup, 0, 1000);
+  const urgent = num(urgentMarkup, 0, 1000);
+  if (pct === null || minOrder === null || freeAbove === null || fee === null || express === null || urgent === null) {
+    return res.status(400).json({ error: 'Enter a welcome discount of 0-100%, speed markups of 0-1000%, and non-negative amounts for the order and delivery values.' });
   }
 
-  const rules = { welcomePercent: pct / 100, welcomeMinOrder: minOrder, freeDeliveryAbove: freeAbove, deliveryFee: fee };
+  const rules = {
+    welcomePercent: pct / 100, welcomeMinOrder: minOrder,
+    freeDeliveryAbove: freeAbove, deliveryFee: fee,
+    expressMarkup: express / 100, urgentMarkup: urgent / 100
+  };
   if (supabase) {
     const result = await upsertSystemSetting('pricing_rules', JSON.stringify(rules));
     if (!result.ok) {

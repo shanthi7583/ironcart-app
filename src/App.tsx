@@ -427,7 +427,7 @@ export default function App() {
 
   // Mirrors PRICING_DEFAULTS on the server. These are display estimates only — the
   // server recomputes every one of them authoritatively before anything is charged.
-  const PRICING_FALLBACK = { welcomePercent: 0.25, welcomeMinOrder: 150, freeDeliveryAbove: 250, deliveryFee: 30 };
+  const PRICING_FALLBACK = { welcomePercent: 0.25, welcomeMinOrder: 150, freeDeliveryAbove: 250, deliveryFee: 30, expressMarkup: 1.0, urgentMarkup: 2.0 };
   const [pricingRules, setPricingRules] = useState(PRICING_FALLBACK);
   const [editingPricing, setEditingPricing] = useState(PRICING_FALLBACK);
 
@@ -864,7 +864,7 @@ export default function App() {
     // Standard has no surcharge; Express/Urgent add a turnaround premium. Purely a
     // client-side estimate for display — the server independently recomputes this
     // same way from the authoritative price catalog before it's ever charged.
-    const markupMultiplier = orderSpeed === 'Urgent' ? 0.5 : orderSpeed === 'Express' ? 0.2 : 0;
+    const markupMultiplier = orderSpeed === 'Urgent' ? pricingRules.urgentMarkup : orderSpeed === 'Express' ? pricingRules.expressMarkup : 0;
     const markup = parseFloat((subtotal * markupMultiplier).toFixed(2));
     
     // Apply discount to subtotal
@@ -1305,7 +1305,9 @@ export default function App() {
         welcomePercent: Math.round(editingPricing.welcomePercent * 100),
         welcomeMinOrder: editingPricing.welcomeMinOrder,
         freeDeliveryAbove: editingPricing.freeDeliveryAbove,
-        deliveryFee: editingPricing.deliveryFee
+        deliveryFee: editingPricing.deliveryFee,
+        expressMarkup: Math.round(editingPricing.expressMarkup * 100),
+        urgentMarkup: Math.round(editingPricing.urgentMarkup * 100)
       })
     })
       .then(async res => {
@@ -2861,8 +2863,8 @@ export default function App() {
                             <div className="grid grid-cols-3 gap-2">
                               {([
                                 { value: 'Normal' as const, label: 'Standard', sub: 'No extra cost' },
-                                { value: 'Express' as const, label: 'Express', sub: '+20%' },
-                                { value: 'Urgent' as const, label: 'Urgent', sub: '+50%' }
+                                { value: 'Express' as const, label: 'Express', sub: `+${Math.round(pricingRules.expressMarkup * 100)}%` },
+                                { value: 'Urgent' as const, label: 'Urgent', sub: `+${Math.round(pricingRules.urgentMarkup * 100)}%` }
                               ]).map(opt => (
                                 <button
                                   key={opt.value}
@@ -4434,6 +4436,24 @@ export default function App() {
                             type="number" min={0}
                             value={editingPricing.deliveryFee}
                             onChange={e => setEditingPricing({ ...editingPricing, deliveryFee: Number(e.target.value) || 0 })}
+                            className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 outline-none focus:border-blue-500"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[12px] font-semibold text-gray-500">Express Markup (%)</label>
+                          <input
+                            type="number" min={0}
+                            value={Math.round(editingPricing.expressMarkup * 100)}
+                            onChange={e => setEditingPricing({ ...editingPricing, expressMarkup: (Number(e.target.value) || 0) / 100 })}
+                            className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 outline-none focus:border-blue-500"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[12px] font-semibold text-gray-500">Urgent Markup (%)</label>
+                          <input
+                            type="number" min={0}
+                            value={Math.round(editingPricing.urgentMarkup * 100)}
+                            onChange={e => setEditingPricing({ ...editingPricing, urgentMarkup: (Number(e.target.value) || 0) / 100 })}
                             className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 outline-none focus:border-blue-500"
                           />
                         </div>
