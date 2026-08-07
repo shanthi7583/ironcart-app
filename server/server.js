@@ -199,7 +199,12 @@ const PRICING_DEFAULTS = {
   welcomePercent: 0.25,
   welcomeMinOrder: 150,
   freeDeliveryAbove: 250,
-  deliveryFee: 30
+  deliveryFee: 30,
+  // Campaign: "your first 2 orders are free, up to ₹100 each". A credit covers the
+  // whole order up to the cap and carries free pickup regardless of size, since the
+  // offer promises that outright.
+  campaignFreeOrders: 2,
+  campaignMaxPerOrder: 100
 };
 
 async function getPricingSettings() {
@@ -283,14 +288,16 @@ async function computeQuote({ cartItems, couponCode, customerPhone, speed }) {
   const markup = Math.round(subtotal * markupMultiplier * 100) / 100;
 
   let activePlan = 'None';
+  let freeOrderCredits = 0;
   if (customerPhone && supabase) {
-    const { data, error } = await supabase.from('customers').select('active_plan').eq('phone', customerPhone).single();
+    const { data, error } = await supabase.from('customers').select('active_plan, free_order_credits').eq('phone', customerPhone).single();
     // Deliberately degrades to "no subscription discount" rather than failing the
     // whole quote/checkout over a transient lookup error - worst case a subscriber
     // pays full price once, which is recoverable, versus blocking checkout entirely.
     // Logged so it's visible instead of silently invisible.
     if (error) console.error(`Subscription lookup failed for ${customerPhone}, pricing without a discount:`, error.message);
     activePlan = data?.active_plan || 'None';
+    freeOrderCredits = data?.free_order_credits || 0;
   }
 
   const rules = await getPricingSettings();
@@ -309,7 +316,17 @@ async function computeQuote({ cartItems, couponCode, customerPhone, speed }) {
     if (planDiscount > 0) candidates.push({ amount: planDiscount, label: `${activePlan} Prime` });
   }
 
-  if (rules.welcomePercent > 0 && subtotal >= rules.welcomeMinOrder && await isFirstOrder(customerPhone)) {
+  // A campaign credit replaces the welcome discount rather than stacking with it.
+  // Stacking would take a first order close to zero while still costing two round
+  // trips, so whoever holds a credit simply doesn't get the percentage offer as well.
+  const usingCampaignCredit = freeOrderCredits > 0 && rules.campaignMaxPerOrder > 0;
+  if (usingCampaignCredit) {
+    candidates.push({
+      amount: Math.min(subtotal, rules.campaignMaxPerOrder),
+      label: 'Free order',
+      campaign: true
+    });
+  } else if (rules.welcomePercent > 0 && subtotal >= rules.welcomeMinOrder && await isFirstOrder(customerPhone)) {
     candidates.push({ amount: subtotal * rules.welcomePercent, label: 'First order' });
   }
 
@@ -331,7 +348,11 @@ async function computeQuote({ cartItems, couponCode, customerPhone, speed }) {
 
   // Charged on what was ordered, before discounts — a discount shouldn't move an order
   // below the threshold and start costing delivery it had already earned for free.
-  const deliveryFee = subtotal > 0 && subtotal < rules.freeDeliveryAbove ? rules.deliveryFee : 0;
+  // The campaign promises free pickup outright, so a credit waives it at any size.
+  const redeemingCredit = !!(best && best.campaign);
+  const deliveryFee = redeemingCredit || subtotal === 0 || subtotal >= rules.freeDeliveryAbove
+    ? 0
+    : rules.deliveryFee;
 
   const taxable = Math.max(0, subtotal - discount + markup + deliveryFee);
   const tax = Math.round(taxable * 0.05 * 100) / 100;
@@ -340,6 +361,9 @@ async function computeQuote({ cartItems, couponCode, customerPhone, speed }) {
   return {
     subtotal, discount, markup, deliveryFee, tax, total, couponApplied, discountLabel,
     freeDeliveryAbove: rules.freeDeliveryAbove,
+    // Order creation reads this to burn the credit — only once the order is actually
+    // saved, so an abandoned checkout never costs the customer one of their two.
+    redeemingCredit,
     items: items.map(({ name, qty, price }) => ({ name, qty, price }))
   };
 }
@@ -421,6 +445,49 @@ const DEFAULT_CUSTOMERS = [
 // welcome messages, etc.) are unaffected — they never awaited this and still don't
 // have to; failing to notify about an already-successful action is a lesser issue
 // than the OTP route silently telling a customer "sent" when nothing went out.
+// Marketing goes out over the WhatsApp Business API when one is configured, and only
+// then. WhatsApp permits business-initiated marketing solely through pre-approved
+// templates on a real Business API account; blasting it from an ordinary number gets
+// that number banned, which would take out order notifications and support at the
+// same time.
+//
+// Note this is a genuinely different channel from sendNotification below: despite the
+// 'whatsapp' argument it accepts, that function sends SMS through Fast2SMS. Nothing
+// in this app has ever sent a real WhatsApp message.
+const WHATSAPP_API_URL = process.env.WHATSAPP_API_URL;
+const WHATSAPP_API_TOKEN = process.env.WHATSAPP_API_TOKEN;
+const WHATSAPP_TEMPLATE = process.env.WHATSAPP_TEMPLATE_NAME;
+const whatsappConfigured = !!(WHATSAPP_API_URL && WHATSAPP_API_TOKEN && WHATSAPP_TEMPLATE);
+
+async function sendCampaignMessage(phone, message) {
+  if (whatsappConfigured) {
+    try {
+      const res = await fetch(WHATSAPP_API_URL, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${WHATSAPP_API_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          to: `91${phone}`,
+          type: 'template',
+          template: { name: WHATSAPP_TEMPLATE, language: { code: 'en' } }
+        })
+      });
+      if (!res.ok) {
+        console.error('WhatsApp send failed:', res.status, (await res.text()).slice(0, 200));
+        return { ok: false };
+      }
+      return { ok: true, channel: 'whatsapp' };
+    } catch (err) {
+      console.error('WhatsApp send error:', err.message);
+      return { ok: false };
+    }
+  }
+  // No WhatsApp account wired up: fall back to SMS. Promotional SMS in India needs
+  // DLT registration and is blocked to DND numbers, so expect partial delivery.
+  const result = await sendNotification('sms', phone, message);
+  return { ok: !!result?.ok, channel: 'sms' };
+}
+
 const sendNotification = (type, phone, message) => {
   const timestamp = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   console.log(`\n======================================================`);
@@ -743,6 +810,124 @@ app.put('/api/settings/support', authMiddleware, requireRole('admin'), async (re
   res.json({ success: true });
 });
 
+// --- Website leads and the first-order campaign ---
+
+const CONSENT_TEXT = 'I agree to receive offers and updates from PressGo on WhatsApp/SMS.';
+
+// The campaign message. Kept here so the copy that goes out is reviewable in one
+// place rather than assembled at three call sites.
+function campaignMessage(name) {
+  const hi = name ? `Hi ${name}! ` : '';
+  return `${hi}Thinking about that pile of ironing? This is the perfect time to try PressGo.
+
+Your first 2 steam ironing orders are FREE (up to Rs.100 off each), with free pickup & delivery, back to you in 24 hours.
+
+Open the PressGo app to schedule a pickup: https://pressgo.co.in
+
+Reply STOP to unsubscribe.`;
+}
+
+// Public: someone on the marketing site leaving their details. Deliberately records
+// the exact consent wording and the moment it was given — without that there's no
+// defence if a recipient reports the message, and no way to prove opt-in to a
+// WhatsApp provider during template review.
+app.post('/api/leads', async (req, res) => {
+  const { name, phone, consent } = req.body;
+  if (!/^[6-9]\d{9}$/.test(String(phone || '').trim())) {
+    return res.status(400).json({ error: 'Enter a valid 10-digit mobile number.' });
+  }
+  if (consent !== true) {
+    return res.status(400).json({ error: 'Please tick the box to receive offers from us.' });
+  }
+  if (!supabase) return res.json({ success: true });
+
+  const { error } = await supabase.from('leads').upsert([{
+    phone: String(phone).trim(),
+    name: String(name || '').trim().slice(0, 80) || null,
+    consent: true,
+    consent_text: CONSENT_TEXT,
+    consent_at: new Date().toISOString(),
+    source: 'website',
+    unsubscribed: false
+  }], { onConflict: 'phone' });
+
+  if (error) {
+    console.error('Lead capture failed:', error.message);
+    return res.status(500).json({ error: 'Could not save your details. Please try again.' });
+  }
+  res.json({ success: true });
+});
+
+// Public unsubscribe, so "Reply STOP" has somewhere to land and the app can offer a
+// real opt-out link. No auth: knowing the number is the whole point, and the only
+// action possible is switching someone off.
+app.post('/api/leads/unsubscribe', async (req, res) => {
+  const { phone } = req.body;
+  if (!/^[6-9]\d{9}$/.test(String(phone || '').trim())) return res.status(400).json({ error: 'Invalid number' });
+  if (supabase) {
+    const { error } = await supabase.from('leads').update({ unsubscribed: true }).eq('phone', String(phone).trim());
+    if (error) console.error('Unsubscribe failed:', error.message);
+  }
+  res.json({ success: true });
+});
+
+// Admin-triggered campaign send. Deliberately NOT on a timer: an automatic weekly
+// blast is exactly what gets a sender number reported and banned, and the message
+// has to go through an approved template on a real WhatsApp Business API account
+// before it should run unattended at all.
+//
+// Guards, all of them load-bearing:
+//   - only leads with recorded consent and no unsubscribe
+//   - only leads not messaged within minIntervalDays
+//   - never anyone who already registered as a customer (they aren't a lead any more)
+//   - a hard cap per run, so a mistake can't message the whole list
+app.post('/api/admin/campaign/send', authMiddleware, requireRole('admin'), async (req, res) => {
+  const dryRun = req.body?.dryRun !== false; // opt in to really sending
+  const minIntervalDays = Number(req.body?.minIntervalDays) || 30;
+  const limit = Math.min(Number(req.body?.limit) || 50, 200);
+
+  if (!supabase) return res.status(503).json({ error: 'Campaign needs a database connection' });
+
+  const cutoff = new Date(Date.now() - minIntervalDays * 86400000).toISOString();
+  const { data: leads, error } = await supabase
+    .from('leads')
+    .select('phone, name, last_sent_at')
+    .eq('consent', true)
+    .eq('unsubscribed', false)
+    .or(`last_sent_at.is.null,last_sent_at.lt.${cutoff}`)
+    .limit(limit);
+
+  if (error) {
+    console.error('Campaign lead fetch failed:', error.message);
+    return res.status(500).json({ error: 'Could not load leads' });
+  }
+
+  const { data: existing } = await supabase.from('customers').select('phone');
+  const alreadyCustomers = new Set((existing || []).map(c => c.phone));
+  const targets = (leads || []).filter(l => !alreadyCustomers.has(l.phone));
+
+  if (dryRun) {
+    return res.json({
+      dryRun: true,
+      wouldSend: targets.length,
+      sample: campaignMessage(targets[0]?.name),
+      recipients: targets.map(t => t.phone)
+    });
+  }
+
+  let sent = 0;
+  for (const lead of targets) {
+    const result = await sendCampaignMessage(lead.phone, campaignMessage(lead.name));
+    if (!result.ok) continue;
+    sent++;
+    await supabase.from('leads').update({
+      last_sent_at: new Date().toISOString(),
+      send_count: (lead.send_count || 0) + 1
+    }).eq('phone', lead.phone);
+  }
+  res.json({ dryRun: false, attempted: targets.length, sent });
+});
+
 // Welcome-offer and delivery economics. Kept adjustable from the admin panel because
 // these are the numbers most likely to need tuning once real order volume shows what
 // the average basket and the true cost of a pickup actually are.
@@ -849,6 +1034,15 @@ async function persistOrder(newOrder, customerPhone, quote, paymentStatus) {
       console.error('Order insert failed:', insertError.message);
       return { error: 'We could not save your order. Please try again — you have not been charged.' };
     }
+  }
+
+  // Burn the campaign credit only now the row is safely written. Decrementing earlier
+  // would silently eat one of the customer's two free orders on a failed insert.
+  if (quote.redeemingCredit && supabase) {
+    const { data: cust } = await supabase.from('customers').select('free_order_credits').eq('phone', customerPhone).single();
+    const remaining = Math.max(0, (cust?.free_order_credits || 0) - 1);
+    const { error: creditError } = await supabase.from('customers').update({ free_order_credits: remaining }).eq('phone', customerPhone);
+    if (creditError) console.error('Free-order credit decrement failed:', creditError.message);
   }
 
   waitUntil(sendNotification('whatsapp', customerPhone, `Hi ${newOrder.customerName}, your PressGo order ${newOrder.id} of ₹${quote.total} was placed! Pickup scheduled for ${newOrder.pickupDate} (${newOrder.pickupTime}).`));
