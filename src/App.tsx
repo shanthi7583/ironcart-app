@@ -421,8 +421,9 @@ export default function App() {
 
   // Customer Placing Order State
   const [selectedService, setSelectedService] = useState<'Ironing' | 'Dry Cleaning' | 'Laundry'>('Ironing');
-  const [couponCode, setCouponCode] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState('');
+  // Still sent to the server on every quote so a future campaign code works end to
+  // end without replumbing; there is simply no way to set it while COUPONS is empty.
+  const appliedCoupon = '';
 
   // Mirrors PRICING_DEFAULTS on the server. These are display estimates only — the
   // server recomputes every one of them authoritatively before anything is charged.
@@ -908,11 +909,8 @@ export default function App() {
       }
     }
 
-    const couponValue = appliedCoupon === 'WELCOME50' ? 50 : appliedCoupon === 'FIRST10' ? subtotal * 0.10 : 0;
-    if (couponValue > discount) {
-      discount = couponValue;
-      discountLabel = appliedCoupon;
-    }
+    // No promo codes are active — the welcome discount applies automatically instead.
+    // See COUPONS in server.js for why the old shareable codes were withdrawn.
 
     // Ensure discount doesn't exceed subtotal
     if (discount > subtotal) discount = subtotal;
@@ -3001,29 +2999,10 @@ export default function App() {
                             />
                           </div>
 
-                          {/* Coupon Code */}
-                          <div className="flex gap-2">
-                            <input 
-                              type="text"
-                              value={couponCode}
-                              onChange={e => setCouponCode(e.target.value.toUpperCase())}
-                              placeholder="Enter Promo Code"
-                              className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 outline-none flex-1 uppercase"
-                            />
-                            <button 
-                              onClick={() => {
-                                if (couponCode === 'WELCOME50' || couponCode === 'FIRST10') {
-                                  setAppliedCoupon(couponCode);
-                                  customAlert('Coupon Applied!');
-                                } else {
-                                  customAlert('Invalid or Expired Coupon');
-                                }
-                              }}
-                              className="bg-gray-200 hover:bg-gray-300 text-gray-900 px-3 py-2 rounded-xl text-xs font-semibold"
-                            >
-                              Apply
-                            </button>
-                          </div>
+                          {/* No promo-code box: there are no active codes, and every
+                              discount the customer qualifies for is applied for them.
+                              A box that can only ever reject what's typed into it is
+                              worse than no box at all. */}
 
                           {/* Price calculation summary */}
                           <div className="bg-white border border-gray-200 p-3 rounded-xl flex flex-col gap-1 text-[12px] text-gray-500">

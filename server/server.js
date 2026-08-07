@@ -180,10 +180,13 @@ async function fetchConfirmedCashfreeAmount(cashfreeOrderId) {
 }
 
 // --- Authoritative pricing (never trust a total the client sends) ---
-const COUPONS = {
-  WELCOME50: { type: 'flat', value: 50 },
-  FIRST10: { type: 'percent', value: 0.10 }
-};
+// Deliberately empty. WELCOME50 and FIRST10 had no first-order check and no usage
+// cap, so anyone who learned a code could reuse it on every order indefinitely — and
+// since a discount is capped at the subtotal, WELCOME50 on a small basket took the
+// garments to zero. The welcome discount is applied automatically now, so a shareable
+// code earns nothing and only carries the risk. The mechanism stays in place for a
+// future campaign that has real limits behind it.
+const COUPONS = {};
 
 // Acquisition and delivery economics, overridable from the admin panel (stored as a
 // system row like the support contact) so these can be tuned without a redeploy.
