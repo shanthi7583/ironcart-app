@@ -815,6 +815,31 @@ app.put('/api/settings/support', authMiddleware, requireRole('admin'), async (re
   res.json({ success: true });
 });
 
+// Which migrations have actually been applied. Added because schema drift has caused
+// three separate live problems — a missing fcm_token silently disabled push, a missing
+// pending_orders left interrupted payments unrecoverable, and a missing
+// free_order_credits stripped every Prime member's discount — and in each case there
+// was no way to check other than waiting for the symptom.
+app.get('/api/admin/schema-check', authMiddleware, requireRole('admin'), async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'No database connection' });
+
+  const probe = async (table, column) => {
+    const { error } = await supabase.from(table).select(column || '*').limit(1);
+    return error ? { ok: false, detail: error.message } : { ok: true };
+  };
+
+  res.json({
+    'orders':                      await probe('orders'),
+    'customers':                   await probe('customers'),
+    'customers.fcm_token':         await probe('customers', 'fcm_token'),
+    'customers.free_order_credits': await probe('customers', 'free_order_credits'),
+    'pending_orders':              await probe('pending_orders'),
+    'leads':                       await probe('leads'),
+    'wallet_transactions':         await probe('wallet_transactions'),
+    'prices':                      await probe('prices')
+  });
+});
+
 // --- Website leads and the first-order campaign ---
 
 const CONSENT_TEXT = 'I agree to receive offers and updates from PressGo on WhatsApp/SMS.';
