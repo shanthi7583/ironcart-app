@@ -427,7 +427,7 @@ export default function App() {
 
   // Mirrors PRICING_DEFAULTS on the server. These are display estimates only — the
   // server recomputes every one of them authoritatively before anything is charged.
-  const PRICING_FALLBACK = { welcomePercent: 0.25, welcomeMinOrder: 150, freeDeliveryAbove: 250, deliveryFee: 30, expressMarkup: 1.0, urgentMarkup: 2.0 };
+  const PRICING_FALLBACK = { welcomePercent: 0.25, welcomeMinOrder: 150, freeDeliveryAbove: 250, deliveryFee: 30, expressMarkup: 1.0, urgentMarkup: 2.0, primeEnabled: false };
   const [pricingRules, setPricingRules] = useState(PRICING_FALLBACK);
   const [editingPricing, setEditingPricing] = useState(PRICING_FALLBACK);
 
@@ -1306,6 +1306,7 @@ export default function App() {
         welcomeMinOrder: editingPricing.welcomeMinOrder,
         freeDeliveryAbove: editingPricing.freeDeliveryAbove,
         deliveryFee: editingPricing.deliveryFee,
+        primeEnabled: editingPricing.primeEnabled,
         expressMarkup: Math.round(editingPricing.expressMarkup * 100),
         urgentMarkup: Math.round(editingPricing.urgentMarkup * 100)
       })
@@ -3627,7 +3628,12 @@ export default function App() {
                       {[
                         { tab: 'home', label: 'Home', icon: Smartphone },
                         { tab: 'order', label: 'Book', icon: Plus },
-                        { tab: 'subscriptions', label: 'Prime', icon: Star },
+                        // Prime is hidden unless switched on in admin. The plan cards
+                        // promised a flat 35% while the engine gave 15% on the light
+                        // garments people actually send, and at a 27.5% base margin no
+                        // percentage-discount plan can be worth its own monthly fee.
+                        // Existing plan holders keep their discount either way.
+                        ...(pricingRules.primeEnabled ? [{ tab: 'subscriptions', label: 'Prime', icon: Star }] : []),
                         { tab: 'history', label: 'Orders', icon: ShoppingBag },
                         { tab: 'profile', label: 'Profile', icon: User }
                       ].map(item => {
@@ -4458,6 +4464,19 @@ export default function App() {
                           />
                         </div>
                       </div>
+
+                      <label className="flex items-start gap-2.5 text-[12px] text-gray-600 bg-white border border-gray-200 rounded-xl px-3 py-2.5 leading-snug">
+                        <input
+                          type="checkbox"
+                          checked={editingPricing.primeEnabled}
+                          onChange={e => setEditingPricing({ ...editingPricing, primeEnabled: e.target.checked })}
+                          className="mt-0.5 size-4 shrink-0 accent-blue-600"
+                        />
+                        <span>
+                          <strong className="text-gray-900">Sell Prime plans</strong> — off for launch. Customers on an existing
+                          plan keep their discount either way; this only controls whether anyone new can buy one.
+                        </span>
+                      </label>
 
                       <div className="text-[12px] text-gray-600 bg-white border border-gray-200 rounded-xl px-3 py-2">
                         A first order of <strong className="text-gray-900">₹{editingPricing.welcomeMinOrder}</strong> gets

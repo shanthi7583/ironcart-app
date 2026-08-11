@@ -208,6 +208,8 @@ const PRICING_DEFAULTS = {
   // roughly triple for it; +20%/+50% was leaving that margin on the table.
   expressMarkup: 1.0,
   urgentMarkup: 2.0,
+  // Prime is off by default. See the subscriptions/activate guard for why.
+  primeEnabled: false,
   // Campaign: "your first 2 orders are free, up to ₹100 each". A credit covers the
   // whole order up to the cap and carries free pickup regardless of size, since the
   // offer promises that outright.
@@ -1053,7 +1055,7 @@ app.post('/api/admin/campaign/send', authMiddleware, requireRole('admin'), async
 // these are the numbers most likely to need tuning once real order volume shows what
 // the average basket and the true cost of a pickup actually are.
 app.put('/api/settings/pricing', authMiddleware, requireRole('admin'), async (req, res) => {
-  const { welcomePercent, welcomeMinOrder, freeDeliveryAbove, deliveryFee, expressMarkup, urgentMarkup } = req.body;
+  const { welcomePercent, welcomeMinOrder, freeDeliveryAbove, deliveryFee, expressMarkup, urgentMarkup, primeEnabled } = req.body;
 
   const num = (v, min, max) => {
     const n = Number(v);
@@ -1074,7 +1076,8 @@ app.put('/api/settings/pricing', authMiddleware, requireRole('admin'), async (re
   const rules = {
     welcomePercent: pct / 100, welcomeMinOrder: minOrder,
     freeDeliveryAbove: freeAbove, deliveryFee: fee,
-    expressMarkup: express / 100, urgentMarkup: urgent / 100
+    expressMarkup: express / 100, urgentMarkup: urgent / 100,
+    primeEnabled: primeEnabled === true
   };
   if (supabase) {
     const result = await upsertSystemSetting('pricing_rules', JSON.stringify(rules));
@@ -1868,6 +1871,19 @@ app.get('/api/wallet/transactions', authMiddleware, requireRole('customer'), asy
 // 11. Activate a Prime subscription plan — only after a verified payment.
 app.post('/api/subscriptions/activate', authMiddleware, requireRole('customer'), async (req, res) => {
   const { planName, cashfreeOrderId } = req.body;
+
+  // Prime is withdrawn from sale. The plan cards advertised a flat 35% while the
+  // engine gave 15% on light garments — the ones customers actually send — and at a
+  // 27.5% base margin no percentage-discount plan can be worth its own monthly fee:
+  // Gold saved 3 rupees a garment against a 699 fee, so a customer needed 233
+  // garments a month just to break even. Guarded here as well as hidden in the UI, so
+  // a stale client or a direct call cannot sell one. Existing holders keep their
+  // discount — computeQuote reads active_plan regardless of this flag.
+  const pricingRules = await getPricingSettings();
+  if (!pricingRules.primeEnabled) {
+    return res.status(403).json({ error: 'Prime plans are not available at the moment.' });
+  }
+
   const planPrice = PLAN_PRICES[planName];
   if (!planPrice) return res.status(400).json({ error: 'Unknown plan' });
 
