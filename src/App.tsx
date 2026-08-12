@@ -1070,13 +1070,18 @@ export default function App() {
       // picked, create a fresh, correctly-restricted order for it before opening
       // checkout, so the customer only ever sees the one method they chose.
       const methodCode = paymentMethod === 'UPI' ? 'upi' : paymentMethod === 'Card' ? 'cc,dc' : 'nb';
+      // Built ONCE and reused for both the server-side draft and the local pending
+      // entry. buildNewOrder mints a fresh random ORD- id on every call, so calling it
+      // twice gave the webhook and the return path different primary keys — both
+      // inserts then succeeded and a single payment produced two orders 53ms apart.
+      const gatewayDraft = buildNewOrder();
       fetch(`${API_URL}/payments/create-order`, {
         method: 'POST',
         headers: authHeaders(),
         // orderDraft is the safety net: the server stashes it against the gateway order
         // so Cashfree's webhook can still create this order if the customer never makes
         // it back here (closed tab, lost connection, dead battery).
-        body: JSON.stringify({ cartItems: buildCartItems(), couponCode: appliedCoupon, currency: 'INR', paymentMethods: methodCode, speed: orderSpeed, orderDraft: buildNewOrder() })
+        body: JSON.stringify({ cartItems: buildCartItems(), couponCode: appliedCoupon, currency: 'INR', paymentMethods: methodCode, speed: orderSpeed, orderDraft: gatewayDraft })
       })
         .then(async res => {
           const restrictedOrder = await res.json().catch(() => ({}));
@@ -1097,7 +1102,11 @@ export default function App() {
           if (Capacitor.isNativePlatform()) {
             localStorage.setItem('pendingCashfreeOrder', JSON.stringify({
               gatewayOrderId: restrictedOrder.gatewayOrderId,
-              order: buildNewOrder({ orderId: restrictedOrder.gatewayOrderId })
+              order: {
+                ...gatewayDraft,
+                cashfreeOrderId: restrictedOrder.gatewayOrderId,
+                paymentMethod: `${paymentMethod} (Txn: ${restrictedOrder.gatewayOrderId})`
+              }
             }));
             await Browser.open({ url: `${API_URL}/payments/cashfree-redirect?session_id=${encodeURIComponent(restrictedOrder.paymentSessionId)}` });
             return;

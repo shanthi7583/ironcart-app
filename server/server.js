@@ -1173,6 +1173,16 @@ async function persistOrder(newOrder, customerPhone, quote, paymentStatus) {
       delivery_timeline: []
     };
     const { error: insertError } = await supabase.from('orders').insert([orderData]);
+    // 23505 is a unique-violation: this order id already exists, which means the other
+    // path — the app's return handler or the Cashfree webhook — got there first. Both
+    // now carry the same id, so the loser of that race lands here. It is a success, not
+    // a failure: the order exists and the customer must not be told otherwise, nor have
+    // the alerts fired at them twice.
+    if (insertError && insertError.code === '23505') {
+      console.log(`Order ${newOrder.id} already created by the other payment path — no duplicate written.`);
+      const { data: existing } = await supabase.from('orders').select('*').eq('id', newOrder.id).limit(1);
+      return { order: existing && existing[0] ? mapOrderToFrontend(existing[0]) : { ...newOrder, customerPhone, paymentStatus }, duplicate: true };
+    }
     if (insertError) {
       // Never tell the customer "order placed" when it wasn't actually saved —
       // this previously happened silently whenever the total had a fractional
