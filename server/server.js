@@ -840,12 +840,23 @@ app.put('/api/settings/support', authMiddleware, requireRole('admin'), async (re
 // 10-garment basket adds 4.50 per garment, against roughly 3 for the labour. That is
 // why basket size moves margin far more than any per-item price change does.
 const COST_DEFAULTS = {
-  processingPerGarment: 6.5,   // labour + power + consumables + allocated overhead
-  deliveryCostPerTrip: 45,     // rider payment and fuel, pickup and drop
+  // Outsourced: the vendor's rate card charges ₹10 to steam iron a light garment.
+  // Effort multipliers below scale that for heavier and more delicate work.
+  processingPerGarment: 10,
+  // A rider on ₹700/day plus ~₹100 fuel, completing about 20 stops a day. Each order
+  // takes two stops — one to collect, one to return — so that is 10 orders a day and
+  // ₹80 an order. An earlier ₹45 here was a guess with nothing behind it and it made
+  // the catalogue look considerably healthier than it is. Revise this down as routes
+  // tighten: density, not per-item price, is what moves this number.
+  deliveryCostPerTrip: 80,
   avgBasketSize: 10,           // garments per order
   targetMargin: 0.30,
-  // Heavier and more delicate work takes proportionally longer to press and handle.
-  effort: { 'Light Weight': 1, 'Medium/Heavy': 2.2, 'Premium': 4.5, 'Household': 1.6 }
+  // Anchored to the vendor's own rate card rather than invented: they charge ₹10 for a
+  // shirt or trouser, ₹15 for a ladies' long top, ₹50 for a saree and ₹100 for a suit
+  // pair. Household is a blend — ₹10 a pillow cover against ₹40 a bed cover — so it
+  // sits between the two. Crude by category, since the vendor prices per item, but far
+  // closer than a guess.
+  effort: { 'Light Weight': 1, 'Medium/Heavy': 1.5, 'Premium': 5, 'Household': 1.5 }
 };
 
 async function getCostSettings() {
