@@ -73,82 +73,12 @@ function Logo({ compact = false }: { compact?: boolean }) {
   );
 }
 
-// The consent checkbox is unticked by default and the submit stays disabled until
-// it's ticked. That isn't decoration: a marketing message sent without recorded
-// opt-in is what gets a sender number reported and banned, and WhatsApp requires
-// proof of opt-in before it will approve a marketing template at all. The exact
-// wording shown here is stored against the lead server-side.
-function LeadForm() {
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [consent, setConsent] = useState(false);
-  const [state, setState] = useState<'idle' | 'sending' | 'done'>('idle');
-  const [error, setError] = useState('');
-
-  const submit = async () => {
-    if (state === 'sending') return;
-    setError('');
-    setState('sending');
-    try {
-      const res = await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, phone, consent })
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Could not save your details.');
-      setState('done');
-    } catch (e) {
-      setError((e as Error).message);
-      setState('idle');
-    }
-  };
-
-  if (state === 'done') {
-    return (
-      <p className="mt-8 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl px-5 py-4 text-sm font-semibold">
-        Thanks! We'll send your offer shortly. 🧺
-      </p>
-    );
-  }
-
-  return (
-    <div className="mt-8 flex flex-col gap-3 text-left">
-      <input
-        value={name}
-        onChange={e => setName(e.target.value)}
-        placeholder="Your name"
-        className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 outline-none focus:border-blue-500"
-      />
-      <input
-        type="tel"
-        inputMode="numeric"
-        maxLength={10}
-        value={phone}
-        onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
-        placeholder="10-digit mobile number"
-        className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 outline-none focus:border-blue-500"
-      />
-      <label className="flex items-start gap-2.5 text-[13px] text-gray-600 leading-snug">
-        <input
-          type="checkbox"
-          checked={consent}
-          onChange={e => setConsent(e.target.checked)}
-          className="mt-0.5 size-4 shrink-0 accent-blue-600"
-        />
-        <span>I agree to receive offers and updates from PressGo on WhatsApp/SMS. You can opt out any time.</span>
-      </label>
-      {error && <p className="text-[13px] text-red-700 font-semibold">{error}</p>}
-      <button
-        onClick={submit}
-        disabled={!consent || phone.length !== 10 || state === 'sending'}
-        className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-bold px-7 py-3.5 rounded-xl shadow-lg transition-colors"
-      >
-        {state === 'sending' ? 'Sending…' : 'Send me the offer'}
-      </button>
-    </div>
-  );
-}
+// The lead-capture form lived here. It is removed while the first-order campaign is
+// paused: it advertised two free orders and collected a phone number, but nothing
+// grants those credits and the leads table does not exist, so a visitor who filled it
+// in got an error and no offer. Recoverable from git history when the campaign runs —
+// note that it carried a deliberately unticked consent checkbox, which WhatsApp
+// requires before it will approve a marketing template.
 
 export default function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -341,17 +271,10 @@ export default function LandingPage({ onGetStarted }: { onGetStarted: () => void
         </div>
       </section>
 
-      {/* Lead capture — the only place the campaign gets anyone to message */}
-      <section id="offer" className="bg-white py-16 sm:py-20">
-        <div className="max-w-xl mx-auto px-5 sm:px-8 text-center">
-          <h2 className="font-display text-3xl sm:text-4xl font-bold text-gray-900">Your first 2 orders are free</h2>
-          <p className="mt-4 text-gray-600 text-base leading-relaxed">
-            Up to ₹100 off each, free pickup &amp; delivery, back to you in 24 hours.
-            Leave your number and we'll send the offer straight to you.
-          </p>
-          <LeadForm />
-        </div>
-      </section>
+      {/* The lead-capture section is withheld while the first-order campaign is paused.
+          It advertised two free orders and asked for a phone number, but nothing grants
+          those credits and the leads table does not exist, so a visitor who filled it in
+          got an error and no offer. LeadForm below is intact for when the campaign runs. */}
 
       {/* Footer */}
       <footer className="border-t border-gray-100 bg-white">

@@ -621,15 +621,19 @@ async function upsertSystemSetting(itemName, iconValue) {
 // the history list is just empty until the table exists.
 async function logWalletTransaction(phone, type, amount, description) {
   if (!supabase) return;
-  try {
-    await supabase.from('wallet_transactions').insert([{
-      customer_phone: phone,
-      type,
-      amount,
-      description
-    }]);
-  } catch (err) {
-    console.warn('wallet_transactions insert skipped (table may not exist yet):', err.message);
+  // The client returns { error } rather than throwing, so the try/catch that used to
+  // wrap this never fired — a missing table meant money moved with no record and not
+  // even a log line. Still non-fatal (a failed ledger write must not fail the payment
+  // that already succeeded) but now it is loud, because a silent one hid the fact that
+  // wallet_transactions had never been created at all.
+  const { error } = await supabase.from('wallet_transactions').insert([{
+    customer_phone: phone,
+    type,
+    amount,
+    description
+  }]);
+  if (error) {
+    console.error(`WALLET LEDGER WRITE FAILED — ${type} ₹${amount} for ${phone} (${description}):`, error.message);
   }
 }
 
@@ -1858,7 +1862,13 @@ app.get('/api/wallet/transactions', authMiddleware, requireRole('customer'), asy
     .eq('customer_phone', req.user.phone)
     .order('created_at', { ascending: false })
     .limit(50);
-  if (error) return res.json([]); // table probably doesn't exist yet — degrade gracefully
+  if (error) {
+    // An empty list and a broken table look identical to the customer, which is how a
+    // missing wallet_transactions went unnoticed. Still returns [] so the screen
+    // renders, but the cause is now recoverable from the logs.
+    console.error('Wallet history fetch failed:', error.message);
+    return res.json([]);
+  }
   res.json(data.map(t => ({
     id: t.id,
     type: t.type,
