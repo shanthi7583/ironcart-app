@@ -427,7 +427,7 @@ export default function App() {
 
   // Mirrors PRICING_DEFAULTS on the server. These are display estimates only — the
   // server recomputes every one of them authoritatively before anything is charged.
-  const PRICING_FALLBACK = { welcomePercent: 0.25, welcomeMinOrder: 150, freeDeliveryAbove: 250, deliveryFee: 30, expressMarkup: 1.0, urgentMarkup: 2.0, primeEnabled: false };
+  const PRICING_FALLBACK = { welcomePercent: 0.25, welcomeMinOrder: 150, freeDeliveryAbove: 250, deliveryFee: 30, expressMarkup: 1.0, urgentMarkup: 2.0, primeEnabled: false, gstPercent: 0 };
   const [pricingRules, setPricingRules] = useState(PRICING_FALLBACK);
   const [editingPricing, setEditingPricing] = useState(PRICING_FALLBACK);
 
@@ -920,7 +920,7 @@ export default function App() {
     const deliveryFee = subtotal > 0 && subtotal < pricingRules.freeDeliveryAbove ? pricingRules.deliveryFee : 0;
 
     const taxableAmount = Math.max(0, subtotal - discount + markup + deliveryFee);
-    const tax = parseFloat((taxableAmount * 0.05).toFixed(2)); // 5% GST
+    const tax = parseFloat((taxableAmount * (pricingRules.gstPercent / 100)).toFixed(2));
     const total = parseFloat((taxableAmount + tax).toFixed(2));
 
     return { subtotal, discount, markup, deliveryFee, tax, total, totalItems, discountLabel };
@@ -1316,6 +1316,7 @@ export default function App() {
         freeDeliveryAbove: editingPricing.freeDeliveryAbove,
         deliveryFee: editingPricing.deliveryFee,
         primeEnabled: editingPricing.primeEnabled,
+        gstPercent: editingPricing.gstPercent,
         expressMarkup: Math.round(editingPricing.expressMarkup * 100),
         urgentMarkup: Math.round(editingPricing.urgentMarkup * 100)
       })
@@ -3045,10 +3046,15 @@ export default function App() {
                                 Add ₹{Math.ceil(pricingRules.freeDeliveryAbove - calculateTotals().subtotal)} more for free pickup &amp; delivery.
                               </p>
                             )}
-                            <div className="flex justify-between">
-                              <span>GST (5%)</span>
-                              <span className="font-bold text-gray-900">₹{calculateTotals().tax}</span>
-                            </div>
+                            {/* Only shown once there's a GSTIN to charge against. With no
+                                rate set, prices are simply tax-inclusive — which is how
+                                both competitors quote, so there's nothing to explain. */}
+                            {pricingRules.gstPercent > 0 && (
+                              <div className="flex justify-between">
+                                <span>GST ({pricingRules.gstPercent}%)</span>
+                                <span className="font-bold text-gray-900">₹{calculateTotals().tax}</span>
+                              </div>
+                            )}
                             <div className="flex justify-between border-t border-gray-200 pt-1.5 text-xs font-bold text-blue-700">
                               <span>Estimated Total</span>
                               <span>₹{calculateTotals().total}</span>
@@ -4464,6 +4470,18 @@ export default function App() {
                           />
                         </div>
                         <div className="flex flex-col gap-1">
+                          <label className="text-[12px] font-semibold text-gray-500">GST (%)</label>
+                          <input
+                            type="number" min={0} max={50}
+                            value={editingPricing.gstPercent}
+                            onChange={e => setEditingPricing({ ...editingPricing, gstPercent: Number(e.target.value) || 0 })}
+                            className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 outline-none focus:border-blue-500"
+                          />
+                          <p className="text-[11px] text-gray-500">
+                            Leave at 0 until you have a GSTIN. At 0 the tax line is hidden and prices are tax-inclusive.
+                          </p>
+                        </div>
+                        <div className="flex flex-col gap-1">
                           <label className="text-[12px] font-semibold text-gray-500">Urgent Markup (%)</label>
                           <input
                             type="number" min={0}
@@ -4665,10 +4683,14 @@ export default function App() {
                 <span>Delivery speed ({selectedInvoice.speed})</span>
                 <span className="font-mono">₹{selectedInvoice.markup}</span>
               </div>
-              <div className="flex justify-between">
-                <span>GST Tax (5%)</span>
-                <span className="font-mono">₹{selectedInvoice.tax}</span>
-              </div>
+              {/* Historic orders keep whatever tax was charged at the time, so this reads
+                  the order's own figure rather than today's rate. Hidden when there was none. */}
+              {Number(selectedInvoice.tax) > 0 && (
+                <div className="flex justify-between">
+                  <span>GST</span>
+                  <span className="font-mono">₹{selectedInvoice.tax}</span>
+                </div>
+              )}
               <div className="flex justify-between border-t border-slate-200 pt-2 font-black text-sm text-slate-900">
                 <span>Grand Total</span>
                 <span className="font-mono">₹{selectedInvoice.total}</span>

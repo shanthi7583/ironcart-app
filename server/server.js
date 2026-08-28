@@ -208,6 +208,10 @@ const PRICING_DEFAULTS = {
   // roughly triple for it; +20%/+50% was leaving that margin on the table.
   expressMarkup: 1.0,
   urgentMarkup: 2.0,
+  // Zero until a GSTIN exists. Charging a tax line you cannot remit is not something
+  // to leave switched on by default, and both competitors quote tax-inclusive prices
+  // anyway. Set this to the real rate the day registration comes through.
+  gstPercent: 0,
   // Prime is off by default. See the subscriptions/activate guard for why.
   primeEnabled: false,
   // Campaign: "your first 2 orders are free, up to ₹100 each". A credit covers the
@@ -370,7 +374,7 @@ async function computeQuote({ cartItems, couponCode, customerPhone, speed }) {
     : rules.deliveryFee;
 
   const taxable = Math.max(0, subtotal - discount + markup + deliveryFee);
-  const tax = Math.round(taxable * 0.05 * 100) / 100;
+  const tax = Math.round(taxable * (rules.gstPercent / 100) * 100) / 100;
   const total = Math.round((taxable + tax) * 100) / 100;
 
   return {
@@ -1070,7 +1074,7 @@ app.post('/api/admin/campaign/send', authMiddleware, requireRole('admin'), async
 // these are the numbers most likely to need tuning once real order volume shows what
 // the average basket and the true cost of a pickup actually are.
 app.put('/api/settings/pricing', authMiddleware, requireRole('admin'), async (req, res) => {
-  const { welcomePercent, welcomeMinOrder, freeDeliveryAbove, deliveryFee, expressMarkup, urgentMarkup, primeEnabled } = req.body;
+  const { welcomePercent, welcomeMinOrder, freeDeliveryAbove, deliveryFee, expressMarkup, urgentMarkup, primeEnabled, gstPercent } = req.body;
 
   const num = (v, min, max) => {
     const n = Number(v);
@@ -1084,7 +1088,8 @@ app.put('/api/settings/pricing', authMiddleware, requireRole('admin'), async (re
   const fee = num(deliveryFee, 0, 10000);
   const express = num(expressMarkup, 0, 1000);
   const urgent = num(urgentMarkup, 0, 1000);
-  if (pct === null || minOrder === null || freeAbove === null || fee === null || express === null || urgent === null) {
+  const gst = num(gstPercent, 0, 50);
+  if (pct === null || minOrder === null || freeAbove === null || fee === null || express === null || urgent === null || gst === null) {
     return res.status(400).json({ error: 'Enter a welcome discount of 0-100%, speed markups of 0-1000%, and non-negative amounts for the order and delivery values.' });
   }
 
@@ -1092,7 +1097,8 @@ app.put('/api/settings/pricing', authMiddleware, requireRole('admin'), async (re
     welcomePercent: pct / 100, welcomeMinOrder: minOrder,
     freeDeliveryAbove: freeAbove, deliveryFee: fee,
     expressMarkup: express / 100, urgentMarkup: urgent / 100,
-    primeEnabled: primeEnabled === true
+    primeEnabled: primeEnabled === true,
+    gstPercent: gst
   };
   if (supabase) {
     const result = await upsertSystemSetting('pricing_rules', JSON.stringify(rules));
