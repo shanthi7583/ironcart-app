@@ -646,6 +646,153 @@ async function logWalletTransaction(phone, type, amount, description) {
   }
 }
 
+// --- Email one-time codes ---
+//
+// A login route that depends on neither Google nor a telecom operator. Phone OTP runs
+// through Firebase, which needs a verified Google Cloud account, and every SMS
+// alternative needs DLT registration with TRAI — both document queues outside our
+// control. Email sending verifies a domain we already own, so this stays available
+// whatever happens to those.
+//
+// A fallback for existing customers rather than a second signup route: it signs
+// someone in by finding the phone number their email is registered against, and the
+// email can only be attached while already signed in via phone.
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const EMAIL_FROM = process.env.EMAIL_FROM || 'PressGo <noreply@pressgo.co.in>';
+const emailConfigured = !!RESEND_API_KEY;
+
+const OTP_TTL_MS = 10 * 60 * 1000;
+const OTP_MAX_ATTEMPTS = 5;
+const OTP_MAX_SENDS_PER_WINDOW = 5;
+const OTP_WINDOW_MS = 60 * 60 * 1000;
+
+// Hashed with the session secret so the stored value is useless on its own — an OTP
+// table in the clear is a list of live credentials sitting beside the accounts it opens.
+const hashOtp = code => crypto.createHmac('sha256', secret).update(String(code)).digest('hex');
+
+async function sendEmail(to, subject, text) {
+  if (!emailConfigured) {
+    console.error('Email OTP requested but RESEND_API_KEY is not set.');
+    return false;
+  }
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: EMAIL_FROM, to: [to], subject, text })
+    });
+    if (!res.ok) {
+      console.error('Email send failed:', res.status, (await res.text()).slice(0, 200));
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('Email send error:', err.message);
+    return false;
+  }
+}
+
+// Always reports success. Saying "no account with that email" would turn this into a
+// way to test which addresses are registered, so an unknown address simply results in
+// no mail being sent.
+app.post('/api/auth/email-otp/send', async (req, res) => {
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    return res.status(400).json({ error: 'Enter a valid email address.' });
+  }
+  if (!supabase) return res.status(503).json({ error: 'Sign-in is unavailable right now.' });
+
+  const { data: matches } = await supabase.from('customers').select('phone').ilike('email', email).limit(1);
+  const customer = matches && matches[0];
+
+  if (customer) {
+    const { data: existing } = await supabase.from('email_otps').select('*').eq('email', email).limit(1);
+    const row = existing && existing[0];
+    const windowFresh = row && (Date.now() - new Date(row.window_start).getTime()) < OTP_WINDOW_MS;
+    const sends = windowFresh ? row.send_count : 0;
+
+    if (windowFresh && sends >= OTP_MAX_SENDS_PER_WINDOW) {
+      // Deliberately the one case that does report a problem: the person hitting this
+      // already knows the address exists, and silence would look like a broken login.
+      return res.status(429).json({ error: 'Too many codes requested. Please try again in an hour.' });
+    }
+
+    const code = String(crypto.randomInt(100000, 1000000));
+    const { error } = await supabase.from('email_otps').upsert([{
+      email,
+      code_hash: hashOtp(code),
+      expires_at: new Date(Date.now() + OTP_TTL_MS).toISOString(),
+      attempts: 0,
+      send_count: sends + 1,
+      window_start: windowFresh ? row.window_start : new Date().toISOString()
+    }], { onConflict: 'email' });
+
+    if (error) console.error('Email OTP save failed:', error.message);
+    else await sendEmail(email, 'Your PressGo sign-in code',
+      `Your PressGo sign-in code is ${code}\n\nIt expires in 10 minutes. If you didn't ask to sign in, you can ignore this email.`);
+  }
+
+  res.json({ sent: true });
+});
+
+app.post('/api/auth/email-otp/verify', async (req, res) => {
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  const code = String(req.body?.code || '').trim();
+  if (!email || !/^\d{6}$/.test(code)) return res.status(400).json({ error: 'Enter the 6-digit code from your email.' });
+  if (!supabase) return res.status(503).json({ error: 'Sign-in is unavailable right now.' });
+
+  const { data: rows } = await supabase.from('email_otps').select('*').eq('email', email).limit(1);
+  const row = rows && rows[0];
+  // One message for every failure mode — wrong code, expired, never requested — so
+  // none of them can be told apart from outside.
+  const reject = () => res.status(400).json({ error: 'That code is not valid or has expired. Please request a new one.' });
+
+  if (!row) return reject();
+  if (new Date(row.expires_at).getTime() < Date.now()) return reject();
+  if (row.attempts >= OTP_MAX_ATTEMPTS) return reject();
+
+  const given = Buffer.from(hashOtp(code));
+  const stored = Buffer.from(String(row.code_hash));
+  const ok = given.length === stored.length && crypto.timingSafeEqual(given, stored);
+
+  if (!ok) {
+    await supabase.from('email_otps').update({ attempts: row.attempts + 1 }).eq('email', email);
+    return reject();
+  }
+
+  // Single use: consumed the moment it works, so a code cannot be replayed.
+  await supabase.from('email_otps').delete().eq('email', email);
+
+  const { data: matches } = await supabase.from('customers').select('phone').ilike('email', email).limit(1);
+  if (!matches || !matches[0]) return reject();
+
+  const result = await issueSessionForPhone(matches[0].phone);
+  res.status(result.status).json(result.body);
+});
+
+// Attaching an email requires an existing signed-in session, so an address can only
+// ever be bound to an account whose phone has already been verified. Without that,
+// this endpoint would be a way to take over an account.
+app.post('/api/customers/email', authMiddleware, requireRole('customer'), async (req, res) => {
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    return res.status(400).json({ error: 'Enter a valid email address.' });
+  }
+  if (!supabase) return res.status(503).json({ error: 'Not available right now.' });
+
+  const { data: taken } = await supabase.from('customers').select('phone').ilike('email', email).limit(1);
+  if (taken && taken[0] && taken[0].phone !== req.user.phone) {
+    return res.status(409).json({ error: 'That email is already linked to another account.' });
+  }
+
+  const { error } = await supabase.from('customers').update({ email }).eq('phone', req.user.phone);
+  if (error) {
+    console.error('Email link failed:', error.message);
+    return res.status(500).json({ error: 'Could not save your email. Please try again.' });
+  }
+  res.json({ success: true, email });
+});
+
 // --- AUTH ROUTES ---
 
 // Issues a signed session token scoped to a phone number once it's been verified.

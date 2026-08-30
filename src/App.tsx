@@ -419,6 +419,14 @@ export default function App() {
   // Admin access state
   const [adminPin, setAdminPin] = useState('');
 
+  // Email sign-in fallback state.
+  const [emailLoginOpen, setEmailLoginOpen] = useState(false);
+  const [profileEmail, setProfileEmail] = useState('');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authEmailCode, setAuthEmailCode] = useState('');
+  const [emailCodeSent, setEmailCodeSent] = useState(false);
+  const [isEmailBusy, setIsEmailBusy] = useState(false);
+
   // Customer Placing Order State
   const [selectedService, setSelectedService] = useState<'Ironing' | 'Dry Cleaning' | 'Laundry'>('Ironing');
   // Still sent to the server on every quote so a future campaign code works end to
@@ -630,6 +638,72 @@ export default function App() {
     if (code.includes('network-request-failed')) return 'Network problem — check your connection and try again.';
     if (code.includes('too-many-requests')) return 'Too many attempts. Please wait a few minutes and try again.';
     return 'Could not verify that code. Please try again.';
+  };
+
+  const saveProfileEmail = () => {
+    fetch(API_URL + '/customers/email', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ email: profileEmail })
+    })
+      .then(async res => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Could not save your email.');
+        triggerNotification('✅ Backup email saved.');
+      })
+      .catch(err => customAlert(err.message));
+  };
+
+  const handleSendEmailOtp = async () => {
+    if (isEmailBusy) return;
+    setIsEmailBusy(true);
+    try {
+      const res = await fetch(`${API_URL}/auth/email-otp/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: authEmail })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Could not send the code.');
+      setEmailCodeSent(true);
+      // Says "if" rather than "we have", because the server deliberately stays silent
+      // about whether the address is registered.
+      triggerNotification('📧 If that email is on your account, a code is on its way.');
+    } catch (e) {
+      customAlert((e as Error).message);
+    } finally {
+      setIsEmailBusy(false);
+    }
+  };
+
+  const handleVerifyEmailOtp = async () => {
+    if (isEmailBusy) return;
+    setIsEmailBusy(true);
+    try {
+      const res = await fetch(`${API_URL}/auth/email-otp/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: authEmail, code: authEmailCode })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'That code did not work.');
+      // Same session the phone route issues, so everything downstream is unchanged —
+      // reuses the phone flow's own completion path rather than a parallel one.
+      setSession(data.token);
+      if (data.exists && data.customer) {
+        setCurrentCustomer(data.customer);
+        setCustomerActiveTab('home');
+      } else {
+        setAuthStep('register');
+      }
+      setEmailLoginOpen(false);
+      setAuthEmailCode('');
+      setEmailCodeSent(false);
+    } catch (e) {
+      customAlert((e as Error).message);
+    } finally {
+      setIsEmailBusy(false);
+    }
   };
 
   const handleSendOTP = async () => {
@@ -2185,6 +2259,50 @@ export default function App() {
                           {isSendingOtp ? 'Sending OTP…' : 'Send OTP Verification'}
                         </button>
 
+                        {/* Email fallback. Phone OTP runs through Firebase, which depends on a
+                            Google account we do not fully control; email sending only depends
+                            on our own domain. Deliberately understated — it works for customers
+                            who have linked an email, so it is a way back in rather than a
+                            second front door. */}
+                        {!emailLoginOpen ? (
+                          <button
+                            onClick={() => setEmailLoginOpen(true)}
+                            className="text-[12px] text-blue-700 hover:text-blue-800 underline self-center"
+                          >
+                            Not receiving the SMS? Sign in with email
+                          </button>
+                        ) : (
+                          <div className="flex flex-col gap-2 text-left border-t border-gray-200 pt-4">
+                            <label className="text-[12px] font-bold text-gray-500 uppercase">Email Address</label>
+                            <input
+                              type="email"
+                              value={authEmail}
+                              onChange={e => setAuthEmail(e.target.value)}
+                              placeholder="you@example.com"
+                              className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
+                            />
+                            {emailCodeSent && (
+                              <input
+                                type="text" inputMode="numeric" maxLength={6}
+                                value={authEmailCode}
+                                onChange={e => setAuthEmailCode(e.target.value.replace(/\D/g, ''))}
+                                placeholder="6-digit code"
+                                className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500 tracking-widest"
+                              />
+                            )}
+                            <button
+                              onClick={emailCodeSent ? handleVerifyEmailOtp : handleSendEmailOtp}
+                              disabled={isEmailBusy}
+                              className="w-full bg-gray-900 hover:bg-black disabled:bg-gray-400 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md"
+                            >
+                              {isEmailBusy ? 'Please wait…' : emailCodeSent ? 'Verify & Sign In' : 'Email me a code'}
+                            </button>
+                            <p className="text-[11px] text-gray-500">
+                              Works if you've added an email to your profile. Otherwise sign in by mobile once and add one.
+                            </p>
+                          </div>
+                        )}
+
                         {/* Admin Login Gateway Switcher */}
                         <div className="mt-8 pt-4 flex flex-col items-center gap-2 pb-2">
                           {showConsoleInput ? (
@@ -3580,8 +3698,35 @@ export default function App() {
                             )}
                           </div>
 
+                          {/* Backup sign-in. Without an email on file the fallback login has
+                              nothing to match, so this has to exist before it's ever needed. */}
+                          <div className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-2xl flex flex-col gap-2">
+                            <div className="flex items-center gap-2">
+                              
+                              <span className="text-xs font-bold text-gray-900">Backup Sign-In Email</span>
+                            </div>
+                            <p className="text-[11px] text-gray-500 leading-snug">
+                              Add an email and you can still sign in if an SMS ever fails to arrive.
+                            </p>
+                            <div className="flex gap-2">
+                              <input
+                                type="email"
+                                value={profileEmail}
+                                onChange={e => setProfileEmail(e.target.value)}
+                                placeholder="you@example.com"
+                                className="flex-1 bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 outline-none focus:border-blue-500"
+                              />
+                              <button
+                                onClick={saveProfileEmail}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-xl text-xs font-semibold"
+                              >
+                                Save
+                              </button>
+                            </div>
+                          </div>
+
                           {/* Help & Support Button inside Profile */}
-                          <button 
+                          <button
                             onClick={() => setCustomerActiveTab('support')}
                             className="w-full text-left p-3.5 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-2xl text-blue-800 flex justify-between items-center shadow-sm"
                           >
