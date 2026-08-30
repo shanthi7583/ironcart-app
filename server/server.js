@@ -1172,8 +1172,12 @@ app.get('/api/admin/schema-check', authMiddleware, requireRole('admin'), async (
     'orders.vendor_id':            await probe('orders', 'vendor_id'),
     'pending_orders':              await probe('pending_orders'),
     'leads':                       await probe('leads'),
+    'customers.email':             await probe('customers', 'email'),
+    'email_otps':                  await probe('email_otps'),
     'wallet_transactions':         await probe('wallet_transactions'),
-    'prices':                      await probe('prices')
+    'prices':                      await probe('prices'),
+    // Boolean only — never echo the key itself.
+    'emailSending.configured':     { ok: emailConfigured, detail: emailConfigured ? undefined : 'RESEND_API_KEY not set in the environment' }
   });
 });
 
