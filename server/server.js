@@ -676,7 +676,7 @@ const hashOtp = code => crypto.createHmac('sha256', secret).update(String(code))
 async function sendEmail(to, subject, text) {
   if (!emailConfigured) {
     console.error('Email OTP requested but RESEND_API_KEY is not set.');
-    return false;
+    return { ok: false, detail: 'RESEND_API_KEY not set' };
   }
   try {
     const res = await fetch('https://api.resend.com/emails', {
@@ -685,13 +685,14 @@ async function sendEmail(to, subject, text) {
       body: JSON.stringify({ from: EMAIL_FROM, to: [to], subject, text })
     });
     if (!res.ok) {
-      console.error('Email send failed:', res.status, (await res.text()).slice(0, 200));
-      return false;
+      const detail = (await res.text()).slice(0, 300);
+      console.error('Email send failed:', res.status, detail);
+      return { ok: false, status: res.status, detail };
     }
-    return true;
+    return { ok: true };
   } catch (err) {
     console.error('Email send error:', err.message);
-    return false;
+    return { ok: false, detail: err.message };
   }
 }
 
@@ -1149,6 +1150,13 @@ app.get('/api/admin/density', authMiddleware, requireRole('admin'), async (req, 
     },
     rows
   });
+});
+
+app.post('/api/admin/email-test', authMiddleware, requireRole('admin'), async (req, res) => {
+  const to = String(req.body?.to || '').trim();
+  if (!/^[^@s]+@[^@s]+.[^@s]+$/.test(to)) return res.status(400).json({ error: 'Provide a valid 	o address.' });
+  const result = await sendEmail(to, 'PressGo test email', 'If you can read this, email sending works.');
+  res.json({ from: EMAIL_FROM, to, ...result });
 });
 
 // Which migrations have actually been applied. Added because schema drift has caused
