@@ -422,6 +422,9 @@ export default function App() {
   // Email sign-in fallback state.
   const [emailLoginOpen, setEmailLoginOpen] = useState(false);
   const [profileEmail, setProfileEmail] = useState('');
+  const [backupEmailDismissed, setBackupEmailDismissed] = useState(() => {
+    try { return localStorage.getItem('pressgo_backup_email_dismissed') === '1'; } catch { return false; }
+  });
   const [authEmail, setAuthEmail] = useState('');
   const [authEmailCode, setAuthEmailCode] = useState('');
   const [emailCodeSent, setEmailCodeSent] = useState(false);
@@ -649,6 +652,7 @@ export default function App() {
       .then(async res => {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || 'Could not save your email.');
+        setCurrentCustomer(prev => prev ? { ...prev, email: data.email } : prev);
         triggerNotification('✅ Backup email saved.');
       })
       .catch(err => customAlert(err.message));
@@ -2490,6 +2494,47 @@ export default function App() {
                           <div className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white text-[11px] font-extrabold py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 shadow-sm">
                             <span className="animate-pulse">⚡ FLASH OFFER: Get 35% off on Gold Prime subscription this week!</span>
                           </div>
+
+                          {/* Asks for a backup email while phone sign-in still works. The
+                              fallback matches on an email already on file, so anyone without
+                              one is locked out precisely when it would be needed — which
+                              means this has to be asked before there's a problem, not after.
+                              Captured inline rather than linking to Profile; a second screen
+                              is where these prompts get abandoned. */}
+                          {currentCustomer && !currentCustomer.email && !backupEmailDismissed && (
+                            <div className="bg-white border border-blue-200 rounded-2xl p-3.5 flex flex-col gap-2 shadow-sm">
+                              <div className="flex items-start justify-between gap-2">
+                                <div>
+                                  <p className="text-xs font-bold text-gray-900">Add a backup sign-in email</p>
+                                  <p className="text-[11px] text-gray-500 leading-snug mt-0.5">
+                                    So you can still get in if an SMS doesn't arrive. Takes a second.
+                                  </p>
+                                </div>
+                                <button
+                                  onClick={() => { setBackupEmailDismissed(true); localStorage.setItem('pressgo_backup_email_dismissed', '1'); }}
+                                  className="text-[11px] text-gray-400 hover:text-gray-600 shrink-0"
+                                  aria-label="Dismiss"
+                                >
+                                  Not now
+                                </button>
+                              </div>
+                              <div className="flex gap-2">
+                                <input
+                                  type="email"
+                                  value={profileEmail}
+                                  onChange={e => setProfileEmail(e.target.value)}
+                                  placeholder="you@example.com"
+                                  className="flex-1 bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 outline-none focus:border-blue-500"
+                                />
+                                <button
+                                  onClick={saveProfileEmail}
+                                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-xl text-xs font-semibold shadow-sm"
+                                >
+                                  Save
+                                </button>
+                              </div>
+                            </div>
+                          )}
 
                           {/* Welcome User Greeting */}
                           <div className="text-left mt-1 animate-slide-up">

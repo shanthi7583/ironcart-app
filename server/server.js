@@ -606,7 +606,10 @@ const mapCustomerToFrontend = (c) => ({
   address: c.address || '',
   addresses: c.addresses,
   referralCode: c.referral_code,
-  referredBy: c.referred_by
+  referredBy: c.referred_by,
+  // Drives the prompt to add a backup sign-in email. Selected with '*' throughout, so
+  // this stays null rather than erroring until db/email-otp.sql has been run.
+  email: c.email || ''
 });
 
 // Returns { ok, error } instead of swallowing failures — a silent failure here is
