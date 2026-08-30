@@ -1154,7 +1154,7 @@ app.get('/api/admin/density', authMiddleware, requireRole('admin'), async (req, 
 
 app.post('/api/admin/email-test', authMiddleware, requireRole('admin'), async (req, res) => {
   const to = String(req.body?.to || '').trim();
-  if (!/^[^@s]+@[^@s]+.[^@s]+$/.test(to)) return res.status(400).json({ error: 'Provide a valid 	o address.' });
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return res.status(400).json({ error: 'Provide a valid "to" address.' });
   const result = await sendEmail(to, 'PressGo test email', 'If you can read this, email sending works.');
   res.json({ from: EMAIL_FROM, to, ...result });
 });
