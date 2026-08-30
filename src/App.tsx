@@ -1268,6 +1268,18 @@ export default function App() {
       .catch(err => customAlert(err.message));
   };
 
+  const [densityReport, setDensityReport] = useState<any>(null);
+
+  const loadDensity = () => {
+    fetch(`${API_URL}/admin/density?days=30`, { headers: authHeaders() })
+      .then(async res => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Could not load the run report');
+        setDensityReport(data);
+      })
+      .catch(err => customAlert(err.message));
+  };
+
   const loadMargins = () => {
     fetch(`${API_URL}/admin/margins`, { headers: authHeaders() })
       .then(async res => {
@@ -4518,6 +4530,80 @@ export default function App() {
                       >
                         Save Offer &amp; Delivery
                       </button>
+                    </div>
+
+                    <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 flex flex-col gap-3 mt-4">
+                      <div>
+                        <h3 className="text-sm font-bold text-gray-900">Collection Runs</h3>
+                        <p className="text-[12px] text-gray-500">
+                          Orders grouped by pickup day and address. A trip costs the same whether it collects
+                          from one home or six, so this is where the money actually is — not in the prices.
+                        </p>
+                      </div>
+
+                      {!densityReport ? (
+                        <button
+                          onClick={loadDensity}
+                          className="bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl text-xs font-semibold self-start px-6 shadow-md"
+                        >
+                          Show Last 30 Days
+                        </button>
+                      ) : densityReport.rows.length === 0 ? (
+                        <p className="text-[12px] text-gray-600 bg-white border border-gray-200 rounded-xl px-3 py-2">
+                          No orders in the last 30 days yet.
+                        </p>
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {([
+                              ['Runs', densityReport.summary.trips],
+                              ['Losing money', densityReport.summary.losingTrips],
+                              ['Avg orders/run', densityReport.summary.avgOrdersPerTrip],
+                              ['Profit', '₹' + densityReport.summary.totalProfit]
+                            ] as [string, any][]).map(([label, value]) => (
+                              <div key={label} className="bg-white border border-gray-200 rounded-xl px-3 py-2">
+                                <p className="text-[10px] uppercase tracking-wide text-gray-500 font-bold">{label}</p>
+                                <p className={`text-base font-bold ${label === 'Losing money' && value > 0 ? 'text-red-700' : 'text-gray-900'}`}>{value}</p>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-[12px] min-w-[440px]">
+                              <thead>
+                                <tr className="text-gray-500 text-left">
+                                  <th className="font-semibold pb-1.5 pr-2">Day / area</th>
+                                  <th className="font-semibold pb-1.5 pr-2 text-right">Pickups</th>
+                                  <th className="font-semibold pb-1.5 pr-2 text-right">Garments</th>
+                                  <th className="font-semibold pb-1.5 pr-2 text-right">Revenue</th>
+                                  <th className="font-semibold pb-1.5 text-right">Profit</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {densityReport.rows.slice(0, 12).map((r: any, i: number) => (
+                                  <tr key={i} className="border-t border-gray-200">
+                                    <td className="py-1.5 pr-2 text-gray-900">
+                                      {r.pickupDate}
+                                      <span className="block text-[11px] text-gray-500 truncate max-w-[150px]">{r.area}</span>
+                                    </td>
+                                    <td className="py-1.5 pr-2 text-right tabular-nums text-gray-900">{r.orders}</td>
+                                    <td className="py-1.5 pr-2 text-right tabular-nums text-gray-500">{r.garments}</td>
+                                    <td className="py-1.5 pr-2 text-right tabular-nums text-gray-500">₹{r.revenue}</td>
+                                    <td className={`py-1.5 text-right tabular-nums font-bold ${r.losing ? 'text-red-700' : 'text-emerald-700'}`}>
+                                      ₹{r.profit}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                          <p className="text-[11px] text-gray-500">
+                            Worst runs first. Assumes ₹{densityReport.assumptions.deliveryCostPerTrip} a trip and
+                            ₹{densityReport.assumptions.processingPerGarment} a garment — change those in Margin Check below.
+                            A run in red cost more than it earned; the fix is another pickup on the same journey, not a higher price.
+                          </p>
+                        </>
+                      )}
                     </div>
 
                     <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 flex flex-col gap-3 mt-4">

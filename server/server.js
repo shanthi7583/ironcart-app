@@ -932,6 +932,75 @@ app.get('/api/admin/margins', authMiddleware, requireRole('admin'), async (req, 
   });
 });
 
+// Orders grouped by pickup day and address, because the trip is the dominant cost and
+// it is paid per journey rather than per garment. Two orders collected on one run cost
+// roughly the same to serve as one, so the same garments are profitable or not
+// depending entirely on how many pickups share the trip. That is invisible in an order
+// list sorted by time, which is why half-empty runs go unnoticed.
+app.get('/api/admin/density', authMiddleware, requireRole('admin'), async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'No database connection' });
+
+  const days = Math.min(Math.max(Number(req.query.days) || 14, 1), 90);
+  const since = new Date(Date.now() - days * 86400000).toISOString();
+
+  const { data, error } = await supabase
+    .from('orders').select('*')
+    .gte('created_at', since)
+    .neq('status', 'Cancelled');
+  if (error) {
+    console.error('Density report fetch failed:', error.message);
+    return res.status(500).json({ error: 'Could not load orders' });
+  }
+
+  const costs = await getCostSettings();
+
+  // Address is free text, so normalise it enough that "Flat 4, Rose St" and
+  // "flat 4 rose st." land in the same cluster. Crude, but the alternative is asking
+  // customers to pick from a list of areas that does not exist yet.
+  const key = a => String(a || 'unknown').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+  const clusters = {};
+  for (const o of data || []) {
+    const k = `${o.pickup_date || 'unscheduled'}|${key(o.address)}`;
+    const c = (clusters[k] ||= {
+      pickupDate: o.pickup_date || 'unscheduled',
+      area: o.address || 'unknown',
+      orders: 0, garments: 0, revenue: 0
+    });
+    c.orders++;
+    c.garments += (o.items || []).reduce((n, it) => n + (Number(it.qty) || 0), 0);
+    c.revenue += Number(o.total) || 0;
+  }
+
+  const rows = Object.values(clusters).map(c => {
+    // One trip serves the whole cluster — that is the entire point of the report.
+    const tripCost = costs.deliveryCostPerTrip;
+    const processing = c.garments * costs.processingPerGarment;
+    const profit = c.revenue - processing - tripCost;
+    return {
+      ...c,
+      revenue: Math.round(c.revenue * 100) / 100,
+      tripCost,
+      processing: Math.round(processing * 100) / 100,
+      profit: Math.round(profit * 100) / 100,
+      marginPct: c.revenue > 0 ? Math.round((profit / c.revenue) * 1000) / 10 : 0,
+      losing: profit < 0
+    };
+  }).sort((a, b) => a.profit - b.profit);
+
+  res.json({
+    days,
+    assumptions: { deliveryCostPerTrip: costs.deliveryCostPerTrip, processingPerGarment: costs.processingPerGarment },
+    summary: {
+      trips: rows.length,
+      losingTrips: rows.filter(r => r.losing).length,
+      totalProfit: Math.round(rows.reduce((n, r) => n + r.profit, 0) * 100) / 100,
+      avgOrdersPerTrip: rows.length ? Math.round((rows.reduce((n, r) => n + r.orders, 0) / rows.length) * 10) / 10 : 0
+    },
+    rows
+  });
+});
+
 // Which migrations have actually been applied. Added because schema drift has caused
 // three separate live problems — a missing fcm_token silently disabled push, a missing
 // pending_orders left interrupted payments unrecoverable, and a missing
