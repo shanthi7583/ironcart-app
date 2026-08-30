@@ -390,6 +390,11 @@ async function computeQuote({ cartItems, couponCode, customerPhone, speed }) {
 const ADMIN_PIN = process.env.ADMIN_PIN || '9791';
 const RIDER_PIN = process.env.RIDER_PIN || '8888';
 const OWNER_ALERT_PHONE = process.env.OWNER_ALERT_PHONE || '9791019505';
+// Which ironing shop fulfils an order. There is only one today, so every order gets
+// the same value — the point is that orders carry the answer from launch onward rather
+// than being back-filled by guesswork if a second shop is ever added.
+const DEFAULT_VENDOR_ID = 'default';
+
 const PLAN_PRICES = { Bronze: 299, Silver: 499, Gold: 699 };
 
 // Mirrors BASE_GARMENTS in src/App.tsx — kept as a separate literal here (rather than
@@ -945,6 +950,7 @@ app.get('/api/admin/schema-check', authMiddleware, requireRole('admin'), async (
     'customers':                   await probe('customers'),
     'customers.fcm_token':         await probe('customers', 'fcm_token'),
     'customers.free_order_credits': await probe('customers', 'free_order_credits'),
+    'orders.vendor_id':            await probe('orders', 'vendor_id'),
     'pending_orders':              await probe('pending_orders'),
     'leads':                       await probe('leads'),
     'wallet_transactions':         await probe('wallet_transactions'),
@@ -1176,9 +1182,21 @@ async function persistOrder(newOrder, customerPhone, quote, paymentStatus) {
       items: quote.items,
       special_instructions: newOrder.specialInstructions,
       cancel_reason: null,
+      vendor_id: DEFAULT_VENDOR_ID,
       delivery_timeline: []
     };
-    const { error: insertError } = await supabase.from('orders').insert([orderData]);
+    let { error: insertError } = await supabase.from('orders').insert([orderData]);
+
+    // 42703 is undefined_column: this deploy is ahead of the migration. Rather than
+    // fail every checkout until the SQL is run — the ordering has gone wrong more than
+    // once here — drop the new column and write the order without it. Loud, because a
+    // silently missing vendor_id is the thing this column exists to prevent.
+    if (insertError && insertError.code === '42703') {
+      console.error('orders.vendor_id missing — run db/vendor-column.sql. Saving without it for now.');
+      const { vendor_id, ...withoutVendor } = orderData;
+      ({ error: insertError } = await supabase.from('orders').insert([withoutVendor]));
+    }
+
     // 23505 is a unique-violation: this order id already exists, which means the other
     // path — the app's return handler or the Cashfree webhook — got there first. Both
     // now carry the same id, so the loser of that race lands here. It is a success, not
