@@ -673,7 +673,12 @@ const OTP_WINDOW_MS = 60 * 60 * 1000;
 // table in the clear is a list of live credentials sitting beside the accounts it opens.
 const hashOtp = code => crypto.createHmac('sha256', secret).update(String(code)).digest('hex');
 
-async function sendEmail(to, subject, text) {
+// Resend's shared sending domain. It only delivers to the account owner's own
+// address, so it is not a substitute for a verified domain — but it is far better than
+// a code that never arrives while DNS is still settling.
+const RESEND_SHARED_FROM = 'PressGo <onboarding@resend.dev>';
+
+async function sendEmail(to, subject, text, from = EMAIL_FROM) {
   if (!emailConfigured) {
     console.error('Email OTP requested but RESEND_API_KEY is not set.');
     return { ok: false, detail: 'RESEND_API_KEY not set' };
@@ -682,11 +687,20 @@ async function sendEmail(to, subject, text) {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: EMAIL_FROM, to: [to], subject, text })
+      body: JSON.stringify({ from, to: [to], subject, text })
     });
     if (!res.ok) {
       const detail = (await res.text()).slice(0, 300);
       console.error('Email send failed:', res.status, detail);
+      // The configured sender's domain is not verified yet. Rather than drop the
+      // message, send it from Resend's shared domain so the code still arrives, and
+      // say so loudly — this is a stopgap, not a resting state, and it reaches only
+      // the account owner's own address.
+      if (res.status === 403 && /not verified/i.test(detail) && from !== RESEND_SHARED_FROM) {
+        console.error(`Falling back to ${RESEND_SHARED_FROM}. Verify the domain at https://resend.com/domains to reach anyone else.`);
+        const retry = await sendEmail(to, subject, text, RESEND_SHARED_FROM);
+        return { ...retry, usedFallbackSender: true };
+      }
       return { ok: false, status: res.status, detail };
     }
     return { ok: true };
