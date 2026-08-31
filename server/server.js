@@ -593,6 +593,11 @@ const mapOrderToFrontend = (o) => ({
   specialInstructions: o.special_instructions,
   cancelReason: o.cancel_reason,
   deliveryTimeline: o.delivery_timeline,
+  // Who is bringing it back and roughly when. Null until staff set them, and read with
+  // '*', so these stay empty rather than erroring before the migration has been run.
+  riderName: o.rider_name || '',
+  riderPhone: o.rider_phone || '',
+  eta: o.eta || '',
   createdAt: o.created_at
 });
 
@@ -1567,7 +1572,7 @@ app.post('/api/orders', authMiddleware, requireRole('customer', 'admin', 'rider'
 // 5. Update order status (Admin/Rider control; a customer may only cancel their own order)
 app.patch('/api/orders/:id/status', authMiddleware, async (req, res) => {
   const { id } = req.params;
-  const { status, cancelReason, paymentStatus } = req.body;
+  const { status, cancelReason, paymentStatus, riderName, riderPhone, eta } = req.body;
 
   if (!supabase) return res.json({ id, status, cancelReason, paymentStatus });
 
@@ -1582,6 +1587,17 @@ app.patch('/api/orders/:id/status', authMiddleware, async (req, res) => {
 
   const updatePayload = { status };
   if (cancelReason) updatePayload.cancel_reason = cancelReason;
+  // Staff only: this is what the customer is told and who they will ring, so a
+  // customer must not be able to set it on their own order.
+  if (isStaff) {
+    if (riderName !== undefined) updatePayload.rider_name = String(riderName).trim().slice(0, 60) || null;
+    if (riderPhone !== undefined) {
+      const p = String(riderPhone).replace(/D/g, '');
+      if (p && !/^[6-9]d{9}$/.test(p)) return res.status(400).json({ error: 'Enter a valid 10-digit rider mobile number.' });
+      updatePayload.rider_phone = p || null;
+    }
+    if (eta !== undefined) updatePayload.eta = String(eta).trim().slice(0, 60) || null;
+  }
   if (paymentStatus) {
     if (isStaff) {
       updatePayload.payment_status = paymentStatus;

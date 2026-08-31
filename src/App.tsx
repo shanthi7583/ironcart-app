@@ -88,6 +88,12 @@ interface Order {
   specialInstructions: string;
   cancelReason?: string;
   createdAt: string;
+  // Set by staff while an order is in flight, so the customer can see who is bringing
+  // it back and roughly when instead of ringing to ask. Optional: absent on every
+  // order placed before this existed.
+  riderName?: string;
+  riderPhone?: string;
+  eta?: string;
 }
 
 
@@ -1215,6 +1221,27 @@ export default function App() {
   };
 
   // --- Admin Actions ---
+  const [etaDraft, setEtaDraft] = useState<Record<string, string>>({});
+
+  // Sends the ETA, and the support number as the contact, so the customer has someone
+  // to ring. Reuses the status endpoint rather than adding another, keeping one place
+  // where staff-only order fields are written.
+  const setDeliveryContact = (orderId: string, eta: string) => {
+    const order = orders.find(o => o.id === orderId);
+    fetch(API_URL + '/orders/' + orderId + '/status', {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify({ status: order?.status, eta, riderPhone: supportContact.phone })
+    })
+      .then(async res => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Could not save.');
+        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, eta, riderPhone: supportContact.phone } : o));
+        triggerNotification('✅ Customer updated.');
+      })
+      .catch(err => customAlert(err.message));
+  };
+
   const updateOrderStatus = (orderId: string, nextStatus: 'Placed' | 'Picked Up' | 'Ironing' | 'Ready' | 'Delivered') => {
     const order = orders.find(o => o.id === orderId);
     if (order && order.customerPhone) {
@@ -2114,6 +2141,26 @@ export default function App() {
                                 Mark Delivered
                               </button>
                             </div>
+
+                            {/* Tell the customer who is coming and roughly when. Saved against
+                                the order and shown on their tracking screen, so they stop having
+                                to ring the shop to ask. */}
+                            {order.status !== 'Delivered' && order.status !== 'Cancelled' && (
+                              <div className="flex gap-2 mt-2">
+                                <input
+                                  value={etaDraft[order.id] ?? (order.eta || '')}
+                                  onChange={e => setEtaDraft(d => ({ ...d, [order.id]: e.target.value }))}
+                                  placeholder="ETA e.g. about 30 mins"
+                                  className="flex-1 bg-white border border-gray-200 rounded-xl px-3 py-2 text-[12px] text-gray-900 outline-none focus:border-blue-500"
+                                />
+                                <button
+                                  onClick={() => setDeliveryContact(order.id, etaDraft[order.id] ?? (order.eta || ''))}
+                                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-xl text-[12px] font-bold"
+                                >
+                                  Tell
+                                </button>
+                              </div>
+                            )}
                           </div>
                         ))
                       )}
@@ -3387,8 +3434,38 @@ export default function App() {
                                 </div>
                               </div>
 
+                              {/* Who has the clothes and when they arrive — the two things
+                                  order tracking exists to answer. With one rider a name, a
+                                  number and an ETA answer them better than a map, and need no
+                                  location permission or Play Store review. Shown only once
+                                  staff have filled them in. */}
+                              {(selectedOrderForTracking.riderPhone || selectedOrderForTracking.eta) &&
+                               selectedOrderForTracking.status !== 'Delivered' &&
+                               selectedOrderForTracking.status !== 'Cancelled' && (
+                                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3.5 flex flex-col gap-2">
+                                  <p className="text-xs font-bold text-blue-900">
+                                    {selectedOrderForTracking.riderName
+                                      ? `${selectedOrderForTracking.riderName} is handling your order`
+                                      : 'Your order is on the way'}
+                                  </p>
+                                  {selectedOrderForTracking.eta && (
+                                    <p className="text-[12px] text-blue-800">
+                                      Expected: <strong>{selectedOrderForTracking.eta}</strong>
+                                    </p>
+                                  )}
+                                  {selectedOrderForTracking.riderPhone && (
+                                    <a
+                                      href={`tel:+91${selectedOrderForTracking.riderPhone}`}
+                                      className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl text-center shadow-sm"
+                                    >
+                                      Call +91 {selectedOrderForTracking.riderPhone}
+                                    </a>
+                                  )}
+                                </div>
+                              )}
+
                               {selectedOrderForTracking.status === 'Delivered' && (
-                                <button 
+                                <button
                                   onClick={() => setSelectedInvoice(selectedOrderForTracking)}
                                   className="w-full bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-900 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 mt-2"
                                 >
