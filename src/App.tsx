@@ -3198,6 +3198,20 @@ export default function App() {
                               <span>Subtotal ({calculateTotals().totalItems} {calculateTotals().totalItems === 1 ? 'item' : 'items'})</span>
                               <span className="font-bold text-gray-900">₹{calculateTotals().subtotal}</span>
                             </div>
+                            {/* The first-order minimum is tested against the item subtotal, not the
+                                bill — a speed markup cannot buy your way to it. Without saying so,
+                                a customer whose total passes ₹150 on Express is told they missed a
+                                ₹150 minimum, which reads as broken. Stating the gap in item terms
+                                turns the rule into a target instead of a surprise. */}
+                            {orders.length === 0
+                              && pricingRules.welcomePercent > 0
+                              && calculateTotals().subtotal > 0
+                              && calculateTotals().subtotal < pricingRules.welcomeMinOrder && (
+                              <p className="text-[11px] text-blue-700">
+                                Add ₹{Math.ceil(pricingRules.welcomeMinOrder - calculateTotals().subtotal)} more of items
+                                for {Math.round(pricingRules.welcomePercent * 100)}% off your first order.
+                              </p>
+                            )}
                             {calculateTotals().discount > 0 && (
                               <div className="flex justify-between text-emerald-700">
                                 <span>Discount{calculateTotals().discountLabel ? ` (${calculateTotals().discountLabel})` : ''}</span>
