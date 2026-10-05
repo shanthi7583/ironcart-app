@@ -362,7 +362,7 @@ export default function App() {
   // before the server's saved value arrives.
   const [supportContact, setSupportContact] = useState<{ phone: string, whatsapp: string }>(() => {
     const saved = localStorage.getItem('iron_support_contact');
-    return saved ? JSON.parse(saved) : { phone: '9791019505', whatsapp: '9791019505' };
+    return saved ? JSON.parse(saved) : { phone: '9611362505', whatsapp: '9611362505' };
   });
   const [editingSupport, setEditingSupport] = useState<{ phone: string, whatsapp: string } | null>(null);
 

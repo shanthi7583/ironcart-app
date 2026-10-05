@@ -76,7 +76,7 @@ const svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http
   ${pressgoBand(1288)}
 
   ${line(1486, 'Free demo — see it running before you pay', 29, 600, '0.82')}
-  ${line(1548, 'pressgo.co.in · WhatsApp 96117 62505', 36, 700, '1')}
+  ${line(1548, 'pressgo.co.in · WhatsApp 96113 62505', 36, 700, '1')}
 </svg>`;
 
 (async () => {
