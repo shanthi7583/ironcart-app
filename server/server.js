@@ -387,8 +387,27 @@ async function computeQuote({ cartItems, couponCode, customerPhone, speed }) {
   };
 }
 
-const ADMIN_PIN = process.env.ADMIN_PIN || '9791';
-const RIDER_PIN = process.env.RIDER_PIN || '8888';
+// These used to fall back to '9791' and '8888'. The first is the opening four digits
+// of the phone number printed on our own posters, and the second is the guess anyone
+// makes first — so an unconfigured deployment handed its admin panel to whoever read
+// the marketing. That matters most on a copy of this app set up for another shop,
+// where nobody would think to set the variables at all.
+//
+// Fall back to a random PIN instead, announced once at startup. An unconfigured
+// deployment is then merely locked rather than open, and the log says how to fix it.
+function pinFromEnv(configured, name) {
+  const trimmed = String(configured || '').trim();
+  if (trimmed) return trimmed;
+  const generated = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+  console.warn(
+    `${name} is not set. Using a random PIN for this process: ${generated}\n` +
+    `  It changes on every restart. Set ${name} in the environment to choose your own.`
+  );
+  return generated;
+}
+
+const ADMIN_PIN = pinFromEnv(process.env.ADMIN_PIN, 'ADMIN_PIN');
+const RIDER_PIN = pinFromEnv(process.env.RIDER_PIN, 'RIDER_PIN');
 const OWNER_ALERT_PHONE = process.env.OWNER_ALERT_PHONE || '9791019505';
 // Which ironing shop fulfils an order. There is only one today, so every order gets
 // the same value — the point is that orders carry the answer from launch onward rather
