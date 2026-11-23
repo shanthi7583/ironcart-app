@@ -1291,7 +1291,7 @@ export default function App() {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || 'Could not save the bag count.');
         setOrders(prev => prev.map(o => o.id === orderId ? { ...o, bagCount: bags } : o));
-        triggerNotification(`🏷️ ${bags} bag${bags === 1 ? '' : 's'} recorded — tag them before you leave.`);
+        triggerNotification(`🏷️ ${bags} bag${bags === 1 ? '' : 's'} recorded — write the tags on them.`);
       })
       .catch(err => customAlert(err.message));
   };
@@ -4477,30 +4477,62 @@ export default function App() {
                                 <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${o.speed === 'Urgent' ? 'bg-red-500/20 text-red-700' : o.speed === 'Express' ? 'bg-amber-500/20 text-amber-700' : 'bg-gray-200 text-gray-700'}`}>
                                   {o.speed} Delivery
                                 </span>
-                                {/* The count to check against what is physically on the
-                                    bench. Called out in amber when nobody recorded it,
+                                {/* Called out in amber when nobody recorded a count,
                                     because an uncounted order is the one that quietly
-                                    goes back a bag short. */}
-                                {o.bagCount ? (
-                                  <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-800">
-                                    {o.bagCount} bag{o.bagCount === 1 ? '' : 's'}
-                                  </span>
-                                ) : !['Delivered', 'Cancelled'].includes(o.status) && (
+                                    goes back a bag short. The number itself sits on the
+                                    stepper below rather than being repeated here. */}
+                                {!o.bagCount && !['Delivered', 'Cancelled'].includes(o.status) && (
                                   <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-800">
                                     Bags not counted
                                   </span>
                                 )}
                               </div>
-                              {o.bagCount ? (
-                                <div className="flex flex-wrap items-center gap-1.5">
-                                  <span className="text-[11px] text-gray-500">Tags:</span>
-                                  {bagTags(o.id, o.bagCount).map(tag => (
-                                    <span key={tag} className="bg-white border border-gray-300 text-gray-900 font-mono font-bold text-[11px] px-1.5 py-0.5 rounded">
-                                      {tag}
-                                    </span>
-                                  ))}
-                                </div>
-                              ) : null}
+                              {/* Countable from here as well as the rider view: one person
+                                  does both jobs, and a count that could only be set on the
+                                  rider screen would mean switching PIN mid-shift just to
+                                  correct a miscount. Finished orders keep the record but
+                                  lose the controls. */}
+                              {(!['Delivered', 'Cancelled'].includes(o.status) || o.bagCount) ? (() => {
+                                const bags = bagDraft[o.id] ?? (o.bagCount || 0);
+                                const saved = o.bagCount || 0;
+                                const step = (by: number) => setBagDraft(d => ({ ...d, [o.id]: Math.max(0, Math.min(50, bags + by)) }));
+                                const locked = ['Delivered', 'Cancelled'].includes(o.status);
+                                return (
+                                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+                                    <span className="text-[11px] font-bold text-gray-500 uppercase">Bags</span>
+                                    {locked ? (
+                                      <span className="text-sm font-extrabold text-gray-900 tabular-nums">{saved}</span>
+                                    ) : (
+                                      <>
+                                        <button
+                                          onClick={() => step(-1)}
+                                          disabled={bags === 0}
+                                          aria-label="One bag fewer"
+                                          className="size-6 rounded bg-white border border-gray-300 text-gray-900 font-bold leading-none disabled:opacity-30"
+                                        >−</button>
+                                        <span className="w-5 text-center text-sm font-extrabold text-gray-900 tabular-nums">{bags}</span>
+                                        <button
+                                          onClick={() => step(1)}
+                                          aria-label="One bag more"
+                                          className="size-6 rounded bg-white border border-gray-300 text-gray-900 font-bold leading-none"
+                                        >+</button>
+                                        <button
+                                          onClick={() => setBagCount(o.id, bags)}
+                                          disabled={bags === saved}
+                                          className="bg-gray-900 hover:bg-gray-700 disabled:opacity-25 disabled:pointer-events-none text-white px-2 h-6 rounded text-[11px] font-bold"
+                                        >
+                                          {saved === 0 ? 'Save' : 'Update'}
+                                        </button>
+                                      </>
+                                    )}
+                                    {bags > 0 && bagTags(o.id, bags).map(tag => (
+                                      <span key={tag} className="bg-white border border-gray-300 text-gray-900 font-mono font-bold text-[11px] px-1.5 py-0.5 rounded">
+                                        {tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                );
+                              })() : null}
                               <div className="text-xs text-gray-900">
                                 <strong>Customer:</strong> {o.customerName} ({o.customerPhone})
                               </div>
