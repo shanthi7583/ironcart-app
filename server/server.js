@@ -617,6 +617,8 @@ const mapOrderToFrontend = (o) => ({
   riderName: o.rider_name || '',
   riderPhone: o.rider_phone || '',
   eta: o.eta || '',
+  // How many bags the order was collected in. 0 means nobody has counted yet.
+  bagCount: o.bag_count || 0,
   createdAt: o.created_at
 });
 
@@ -1591,7 +1593,7 @@ app.post('/api/orders', authMiddleware, requireRole('customer', 'admin', 'rider'
 // 5. Update order status (Admin/Rider control; a customer may only cancel their own order)
 app.patch('/api/orders/:id/status', authMiddleware, async (req, res) => {
   const { id } = req.params;
-  const { status, cancelReason, paymentStatus, riderName, riderPhone, eta } = req.body;
+  const { status, cancelReason, paymentStatus, riderName, riderPhone, eta, bagCount } = req.body;
 
   if (!supabase) return res.json({ id, status, cancelReason, paymentStatus });
 
@@ -1611,11 +1613,19 @@ app.patch('/api/orders/:id/status', authMiddleware, async (req, res) => {
   if (isStaff) {
     if (riderName !== undefined) updatePayload.rider_name = String(riderName).trim().slice(0, 60) || null;
     if (riderPhone !== undefined) {
-      const p = String(riderPhone).replace(/D/g, '');
-      if (p && !/^[6-9]d{9}$/.test(p)) return res.status(400).json({ error: 'Enter a valid 10-digit rider mobile number.' });
+      const p = String(riderPhone).replace(/\D/g, '');
+      if (p && !/^[6-9]\d{9}$/.test(p)) return res.status(400).json({ error: 'Enter a valid 10-digit rider mobile number.' });
       updatePayload.rider_phone = p || null;
     }
     if (eta !== undefined) updatePayload.eta = String(eta).trim().slice(0, 60) || null;
+    // How many bags this order was collected in. Recorded at the door, because that is
+    // the only moment anyone knows the number, and checked again at the shop and at
+    // delivery — three bags in has to mean three bags out.
+    if (bagCount !== undefined) {
+      const n = Number(bagCount);
+      if (!Number.isInteger(n) || n < 0 || n > 50) return res.status(400).json({ error: 'Bag count must be a whole number between 0 and 50.' });
+      updatePayload.bag_count = n || null;
+    }
   }
   if (paymentStatus) {
     if (isStaff) {
@@ -1631,6 +1641,15 @@ app.patch('/api/orders/:id/status', authMiddleware, async (req, res) => {
   const { data, error } = await supabase.from('orders').update(updatePayload).eq('id', id).select();
   if (!error && data && data.length > 0) {
     const order = mapOrderToFrontend(data[0]);
+    // Only tell the customer when the status genuinely moved. Staff also use this
+    // endpoint to set an ETA, a rider contact or a bag count without advancing the
+    // order, and messaging "your status is now: Placed" on each of those costs real
+    // money and trains people to ignore the updates. Gating the referral reward on the
+    // same transition also stops a re-save of a delivered order crediting ₹50 twice.
+    const statusChanged = status && status !== existing.status;
+    if (!statusChanged) {
+      return res.json(order);
+    }
     if (status === 'Cancelled') {
       waitUntil(sendNotification('whatsapp', order.customerPhone, `Dear ${order.customerName}, your PressGo order ${order.id} has been Cancelled. Reason: ${cancelReason}`));
       waitUntil(sendPushNotification(order.customerPhone, 'Order cancelled', `Order ${order.id} was cancelled. Reason: ${cancelReason}`, { orderId: order.id, status: 'Cancelled' }));

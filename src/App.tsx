@@ -94,7 +94,37 @@ interface Order {
   riderName?: string;
   riderPhone?: string;
   eta?: string;
+  // How many bags the order was collected in. 0 or absent means nobody has counted
+  // yet — on every order placed before bag tagging existed, and on new ones until the
+  // rider records it at the door.
+  bagCount?: number;
 }
+
+// The number written on a physical bag tag. ORD-481920 collected in three bags is
+// tagged 481920-1, 481920-2, 481920-3: the stem says whose it is, the suffix says
+// which of their bags, and nothing has to be stored or kept in sync because both come
+// out of the order id and the count.
+const tagStem = (orderId: string) => orderId.replace(/^ORD-/i, '');
+
+const bagTags = (orderId: string, bags: number) =>
+  Array.from({ length: Math.max(1, bags) }, (_, i) => `${tagStem(orderId)}-${i + 1}`);
+
+// A bag arrives at the shop with "481920-2" biroed on it and the shop needs to know
+// whose it is. This takes whatever is on the tag in front of them — with or without
+// the bag suffix, with or without the ORD- prefix — and also matches a name or a phone
+// number, so one box answers "who does this belong to" and "where is Priya's order".
+const orderMatchesTag = (o: Order, query: string) => {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return true;
+  // Drop a trailing bag suffix before reading the digits, or "481920-2" becomes the
+  // seven-digit 4819202 and matches nothing.
+  const digits = needle.replace(/-\d{1,2}$/, '').replace(/\D/g, '');
+  return (
+    o.id.toLowerCase().includes(needle) ||
+    o.customerName.toLowerCase().includes(needle) ||
+    (digits.length >= 3 && (tagStem(o.id).includes(digits) || o.customerPhone.includes(digits)))
+  );
+};
 
 
 
@@ -1222,6 +1252,10 @@ export default function App() {
 
   // --- Admin Actions ---
   const [etaDraft, setEtaDraft] = useState<Record<string, string>>({});
+  // Per-order bag count the rider is adjusting but hasn't saved, and the tag number the
+  // shop is looking up in the admin queue.
+  const [bagDraft, setBagDraft] = useState<Record<string, number>>({});
+  const [tagSearch, setTagSearch] = useState('');
 
   // Sends the ETA, and the support number as the contact, so the customer has someone
   // to ring. Reuses the status endpoint rather than adding another, keeping one place
@@ -1238,6 +1272,26 @@ export default function App() {
         if (!res.ok) throw new Error(data.error || 'Could not save.');
         setOrders(prev => prev.map(o => o.id === orderId ? { ...o, eta, riderPhone: supportContact.phone } : o));
         triggerNotification('✅ Customer updated.');
+      })
+      .catch(err => customAlert(err.message));
+  };
+
+  // Recorded at the door: the number of bags is only knowable at the moment the clothes
+  // go into them. Reuses the status endpoint, like the ETA above, so every staff-only
+  // order field is written in one place — and because that endpoint now only messages
+  // the customer when the status actually moves, saving a count stays silent.
+  const setBagCount = (orderId: string, bags: number) => {
+    const order = orders.find(o => o.id === orderId);
+    fetch(`${API_URL}/orders/${orderId}/status`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify({ status: order?.status, bagCount: bags })
+    })
+      .then(async res => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Could not save the bag count.');
+        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, bagCount: bags } : o));
+        triggerNotification(`🏷️ ${bags} bag${bags === 1 ? '' : 's'} recorded — tag them before you leave.`);
       })
       .catch(err => customAlert(err.message));
   };
@@ -2125,8 +2179,64 @@ export default function App() {
                               </a>
                             </div>
 
+                            {/* Count the bags at the door and tag them before leaving.
+                                Nothing else in the app knows how many bags an order is,
+                                so until this is set there is no way to tell at delivery
+                                whether anything was left behind. */}
+                            {order.status !== 'Delivered' && order.status !== 'Cancelled' && (() => {
+                              const bags = bagDraft[order.id] ?? (order.bagCount || 0);
+                              const saved = order.bagCount || 0;
+                              const step = (by: number) => setBagDraft(d => ({ ...d, [order.id]: Math.max(0, Math.min(50, bags + by)) }));
+                              return (
+                                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex flex-col gap-2.5 mt-1">
+                                  {/* Label on its own line: at 375px the stepper and the
+                                      button already fill the row, and letting the label
+                                      share it wraps "Bags collected" onto two lines and
+                                      squashes the controls. */}
+                                  <div className="flex flex-col gap-2">
+                                    <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wide">Bags collected</span>
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        onClick={() => step(-1)}
+                                        aria-label="One bag fewer"
+                                        className="size-8 rounded-lg bg-white border border-amber-300 text-amber-900 font-bold text-base leading-none disabled:opacity-30"
+                                        disabled={bags === 0}
+                                      >−</button>
+                                      <span className="w-7 text-center text-lg font-extrabold text-amber-900 tabular-nums">{bags}</span>
+                                      <button
+                                        onClick={() => step(1)}
+                                        aria-label="One bag more"
+                                        className="size-8 rounded-lg bg-white border border-amber-300 text-amber-900 font-bold text-base leading-none"
+                                      >+</button>
+                                      <button
+                                        onClick={() => setBagCount(order.id, bags)}
+                                        disabled={bags === saved}
+                                        className="bg-amber-600 hover:bg-amber-700 disabled:opacity-30 disabled:pointer-events-none text-white px-3 h-8 rounded-lg text-[12px] font-bold"
+                                      >
+                                        {saved === 0 ? 'Save' : 'Update'}
+                                      </button>
+                                    </div>
+                                  </div>
+                                  {bags > 0 ? (
+                                    <div className="flex flex-col gap-1.5">
+                                      <span className="text-[11px] text-amber-800">Write one of these on each bag tag:</span>
+                                      <div className="flex flex-wrap gap-1.5">
+                                        {bagTags(order.id, bags).map(tag => (
+                                          <span key={tag} className="bg-white border border-amber-300 text-amber-900 font-mono font-bold text-[13px] px-2 py-1 rounded-md">
+                                            {tag}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <span className="text-[11px] text-amber-800">Not counted yet — count the bags before you mark this picked up.</span>
+                                  )}
+                                </div>
+                              );
+                            })()}
+
                             <div className="grid grid-cols-2 gap-2 mt-1 border-t border-gray-200 pt-3">
-                              <button 
+                              <button
                                 onClick={() => updateOrderStatus(order.id, 'Picked Up')}
                                 disabled={['Picked Up', 'In Progress', 'Out for Delivery'].includes(order.status)}
                                 className="bg-amber-600 hover:bg-amber-700 disabled:opacity-30 disabled:pointer-events-none text-white text-[12px] font-bold py-2 rounded-xl uppercase tracking-wide"
@@ -3432,6 +3542,17 @@ export default function App() {
                                   <span>Total amount</span>
                                   <span className="font-bold text-gray-900">₹{selectedOrderForTracking.total} ({selectedOrderForTracking.paymentStatus})</span>
                                 </div>
+                                {/* Shown only once it has been counted. Telling the
+                                    customer the number is the point: they can check the
+                                    same count at the door instead of trusting it. */}
+                                {selectedOrderForTracking.bagCount ? (
+                                  <div className="flex justify-between">
+                                    <span>Bags collected</span>
+                                    <span className="font-bold text-gray-900">
+                                      {selectedOrderForTracking.bagCount} · tagged {tagStem(selectedOrderForTracking.id)}
+                                    </span>
+                                  </div>
+                                ) : null}
                               </div>
 
                               {/* Who has the clothes and when they arrive — the two things
@@ -4307,17 +4428,46 @@ export default function App() {
                 )}
 
                 {/* MANAGE ORDERS PANEL */}
-                {adminActiveTab === 'orders' && (
+                {adminActiveTab === 'orders' && (() => {
+                  const matching = orders.filter(o => orderMatchesTag(o, tagSearch));
+                  return (
                   <div className="flex flex-col gap-4 text-left">
-                    <h3 className="text-sm font-bold text-gray-900">All Orders Management Queue</h3>
-                    
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                      <h3 className="text-sm font-bold text-gray-900 shrink-0">All Orders Management Queue</h3>
+                      {/* A bag turns up on the bench with a number biroed on it and the
+                          shop needs to know whose it is. This reads the tag exactly as
+                          written — with or without the bag suffix — and takes a name or
+                          a phone number too, so it answers that and "where is Priya's
+                          order" from the same box. */}
+                      <div className="relative flex-1 min-w-0">
+                        <input
+                          value={tagSearch}
+                          onChange={e => setTagSearch(e.target.value)}
+                          placeholder="Find by bag tag, name or phone — e.g. 481920-2"
+                          className="w-full bg-white border border-gray-300 rounded-xl pl-3 pr-14 py-2 text-xs text-gray-900 outline-none focus:border-blue-500"
+                        />
+                        {tagSearch && (
+                          <button
+                            onClick={() => setTagSearch('')}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-bold text-gray-500 hover:text-gray-900"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
                     <div className="flex flex-col gap-3">
                       {orders.length === 0 ? (
                         <div className="bg-gray-50 border border-gray-200 p-8 rounded-2xl text-center text-xs text-gray-500">
                           No order records. Try booking an order in the Customer App on the left!
                         </div>
+                      ) : matching.length === 0 ? (
+                        <div className="bg-gray-50 border border-gray-200 p-8 rounded-2xl text-center text-xs text-gray-500">
+                          Nothing matches &ldquo;{tagSearch}&rdquo;. Check the tag number, or search the customer&apos;s name instead.
+                        </div>
                       ) : (
-                        orders.map(o => (
+                        matching.map(o => (
                           <div key={o.id} className="bg-gray-50 border border-gray-200 p-5 rounded-2xl flex flex-col lg:flex-row justify-between gap-4">
                             
                             {/* Order Details Left Column */}
@@ -4327,7 +4477,30 @@ export default function App() {
                                 <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${o.speed === 'Urgent' ? 'bg-red-500/20 text-red-700' : o.speed === 'Express' ? 'bg-amber-500/20 text-amber-700' : 'bg-gray-200 text-gray-700'}`}>
                                   {o.speed} Delivery
                                 </span>
+                                {/* The count to check against what is physically on the
+                                    bench. Called out in amber when nobody recorded it,
+                                    because an uncounted order is the one that quietly
+                                    goes back a bag short. */}
+                                {o.bagCount ? (
+                                  <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-800">
+                                    {o.bagCount} bag{o.bagCount === 1 ? '' : 's'}
+                                  </span>
+                                ) : !['Delivered', 'Cancelled'].includes(o.status) && (
+                                  <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-800">
+                                    Bags not counted
+                                  </span>
+                                )}
                               </div>
+                              {o.bagCount ? (
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <span className="text-[11px] text-gray-500">Tags:</span>
+                                  {bagTags(o.id, o.bagCount).map(tag => (
+                                    <span key={tag} className="bg-white border border-gray-300 text-gray-900 font-mono font-bold text-[11px] px-1.5 py-0.5 rounded">
+                                      {tag}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : null}
                               <div className="text-xs text-gray-900">
                                 <strong>Customer:</strong> {o.customerName} ({o.customerPhone})
                               </div>
@@ -4431,7 +4604,8 @@ export default function App() {
                       )}
                     </div>
                   </div>
-                )}
+                  );
+                })()}
 
                 {/* OFFERS TAB */}
                 {adminActiveTab === 'offers' && (
