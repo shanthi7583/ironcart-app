@@ -1413,13 +1413,67 @@ app.put('/api/settings/festive-offer', authMiddleware, requireRole('admin'), asy
 });
 
 // 3. Get all orders (Admin / Rider dashboards only — this used to be public)
+// Riders and the admin queue both read this, but they want different slices. A rider only
+// ever works today's open jobs; the admin queue is a history that grows for as long as the
+// shop trades. Returning every order ever written made this response — and the page built
+// from it — heavier every week with no ceiling, so it is paged, and a rider asks for the
+// open ones only.
+const ORDER_PAGE_DEFAULT = 200;
+const ORDER_PAGE_MAX = 500;
+const OPEN_STATUSES = ['Placed', 'Picked Up', 'Ironing', 'Ready'];
+
 app.get('/api/orders', authMiddleware, requireRole('admin', 'rider'), async (req, res) => {
   if (supabase) {
-    const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+    const limit = Math.min(ORDER_PAGE_MAX, Math.max(1, Number(req.query.limit) || ORDER_PAGE_DEFAULT));
+    const offset = Math.max(0, Number(req.query.offset) || 0);
+
+    let query = supabase.from('orders').select('*').order('created_at', { ascending: false });
+    if (req.query.status === 'open') query = query.in('status', OPEN_STATUSES);
+
+    const { data, error } = await query.range(offset, offset + limit - 1);
     if (!error && data) return res.json(data.map(mapOrderToFrontend));
     if (error) console.error('Order list fetch failed:', error.message);
   }
   res.json([]);
+});
+
+// The admin tiles count and total every order there has ever been, which the paged list
+// above deliberately no longer returns. Counting in the database keeps those figures right
+// however long the history gets, and costs four small queries instead of shipping every
+// row to the browser to be added up there.
+app.get('/api/orders/stats', authMiddleware, requireRole('admin'), async (req, res) => {
+  const empty = { totalRevenue: 0, placed: 0, inProgress: 0, delivered: 0, total: 0 };
+  if (!supabase) return res.json(empty);
+
+  const countOf = async (narrow) => {
+    const { count, error } = await narrow(supabase.from('orders').select('id', { count: 'exact', head: true }));
+    if (error) {
+      console.error('Order stats count failed:', error.message);
+      return 0;
+    }
+    return count || 0;
+  };
+
+  // Just the one column. The sum has to cover every paid order however many there are, but
+  // nothing else about them is needed, so the items and addresses stay in the database.
+  const { data: paidRows, error: paidError } = await supabase
+    .from('orders').select('total').eq('payment_status', 'Paid');
+  if (paidError) console.error('Order stats revenue failed:', paidError.message);
+
+  const [placed, inProgress, delivered, total] = await Promise.all([
+    countOf(q => q.eq('status', 'Placed')),
+    countOf(q => q.in('status', ['Picked Up', 'Ironing'])),
+    countOf(q => q.eq('status', 'Delivered')),
+    countOf(q => q),
+  ]);
+
+  res.json({
+    totalRevenue: (paidRows || []).reduce((sum, row) => sum + Number(row.total || 0), 0),
+    placed,
+    inProgress,
+    delivered,
+    total,
+  });
 });
 
 // 3.5 A customer's own orders only

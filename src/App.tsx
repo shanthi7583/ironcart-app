@@ -289,16 +289,51 @@ export default function App() {
       .catch(err => console.error('Failed to fetch orders:', err));
   };
 
-  const fetchAllOrdersAndCustomers = (token: string) => {
-    fetch(`${API_URL}/orders`, { headers: { 'Authorization': `Bearer ${token}` } })
+  // The overview tiles count every order the shop has ever taken, which the order list no
+  // longer carries now that it is paged. Null until the server has answered, so the tiles
+  // can fall back to counting what is loaded rather than flashing a zero.
+  const [orderStats, setOrderStats] = useState<{ totalRevenue: number, placed: number, inProgress: number, delivered: number, total: number } | null>(null);
+
+  const fetchAllOrdersAndCustomers = (token: string, role: 'admin' | 'rider') => {
+    const auth = { headers: { 'Authorization': `Bearer ${token}` } };
+    // A rider works open jobs and nothing else, so there is no reason to send them the
+    // whole history — and the customer list and takings are not theirs to see anyway.
+    const scope = role === 'rider' ? '?status=open' : '';
+
+    fetch(`${API_URL}/orders${scope}`, auth)
       .then(res => res.ok ? res.json() : [])
       .then(data => setOrders(data))
       .catch(err => console.error('Failed to fetch orders:', err));
 
-    fetch(`${API_URL}/customers`, { headers: { 'Authorization': `Bearer ${token}` } })
+    if (role !== 'admin') return;
+
+    fetch(`${API_URL}/customers`, auth)
       .then(res => res.ok ? res.json() : [])
       .then(data => setCustomers(data))
       .catch(err => console.error('Failed to fetch customers:', err));
+
+    fetch(`${API_URL}/orders/stats`, auth)
+      .then(res => res.ok ? res.json() : null)
+      .then(data => setOrderStats(data))
+      .catch(err => console.error('Failed to fetch order stats:', err));
+  };
+
+  // Paging the list would otherwise put the shop's older orders out of reach entirely —
+  // including from the bag-tag search, which only looks at what is loaded. This fetches the
+  // next page and adds it on. Orders placed between the two calls shift the offset, so
+  // anything already held is skipped rather than appearing twice.
+  const [loadingOlderOrders, setLoadingOlderOrders] = useState(false);
+  const loadOlderOrders = () => {
+    if (!sessionToken || loadingOlderOrders) return;
+    setLoadingOlderOrders(true);
+    fetch(`${API_URL}/orders?limit=200&offset=${orders.length}`, { headers: { 'Authorization': `Bearer ${sessionToken}` } })
+      .then(res => res.ok ? res.json() : [])
+      .then((older: Order[]) => setOrders(prev => {
+        const held = new Set(prev.map(o => o.id));
+        return [...prev, ...older.filter(o => !held.has(o.id))];
+      }))
+      .catch(err => console.error('Failed to fetch older orders:', err))
+      .finally(() => setLoadingOlderOrders(false));
   };
 
   // Fetch the public price/offers catalog (no auth needed — it's meant to be seen by anyone)
@@ -373,7 +408,7 @@ export default function App() {
   useEffect(() => {
     if (!sessionToken) return;
     if (viewMode === 'dual' || viewMode === 'rider' || viewMode === 'admin') {
-      fetchAllOrdersAndCustomers(sessionToken);
+      fetchAllOrdersAndCustomers(sessionToken, viewMode === 'rider' ? 'rider' : 'admin');
     } else if (currentCustomer) {
       fetchMyOrders(sessionToken);
     }
@@ -1527,6 +1562,10 @@ export default function App() {
   // Metrics calculations
   const completedOrders = orders.filter(o => o.status === 'Delivered');
   const totalRevenue = orders.filter(o => o.paymentStatus === 'Paid').reduce((acc, o) => acc + o.total, 0);
+  // The server counts the whole history; these two only count the page that is loaded, so
+  // they stand in until it answers and understate the figure if it never does.
+  const stat = (fromServer: number | undefined, fromLoadedPage: number) =>
+    orderStats ? (fromServer ?? 0) : fromLoadedPage;
 
   const [showAddMoney, setShowAddMoney] = useState(false);
   const [addMoneyAmount, setAddMoneyAmount] = useState('');
@@ -4335,14 +4374,14 @@ export default function App() {
                       
                       <div className="bg-gray-50 border border-gray-200 p-4 rounded-2xl flex flex-col gap-1.5">
                         <span className="text-[12px] font-bold text-gray-500 uppercase">Total Revenue</span>
-                        <div className="text-2xl font-extrabold text-gray-900">₹{totalRevenue.toFixed(2)}</div>
+                        <div className="text-2xl font-extrabold text-gray-900">₹{stat(orderStats?.totalRevenue, totalRevenue).toFixed(2)}</div>
                         <span className="text-[11px] text-emerald-700 font-semibold">100% digital payouts</span>
                       </div>
 
                       <div className="bg-gray-50 border border-gray-200 p-4 rounded-2xl flex flex-col gap-1.5">
                         <span className="text-[12px] font-bold text-gray-500 uppercase">Pending Pickups</span>
                         <div className="text-2xl font-extrabold text-blue-700">
-                          {orders.filter(o => o.status === 'Placed').length}
+                          {stat(orderStats?.placed, orders.filter(o => o.status === 'Placed').length)}
                         </div>
                         <span className="text-[11px] text-gray-500">Needs immediate assignment</span>
                       </div>
@@ -4350,7 +4389,7 @@ export default function App() {
                       <div className="bg-gray-50 border border-gray-200 p-4 rounded-2xl flex flex-col gap-1.5">
                         <span className="text-[12px] font-bold text-gray-500 uppercase">Active In-process</span>
                         <div className="text-2xl font-extrabold text-amber-700">
-                          {orders.filter(o => o.status === 'Picked Up' || o.status === 'Ironing').length}
+                          {stat(orderStats?.inProgress, orders.filter(o => o.status === 'Picked Up' || o.status === 'Ironing').length)}
                         </div>
                         <span className="text-[11px] text-gray-500">Undergoing ironing flow</span>
                       </div>
@@ -4358,7 +4397,7 @@ export default function App() {
                       <div className="bg-gray-50 border border-gray-200 p-4 rounded-2xl flex flex-col gap-1.5">
                         <span className="text-[12px] font-bold text-gray-500 uppercase">Completed orders</span>
                         <div className="text-2xl font-extrabold text-emerald-700">
-                          {completedOrders.length}
+                          {stat(orderStats?.delivered, completedOrders.length)}
                         </div>
                         <span className="text-[11px] text-emerald-700 font-semibold">Delivered & Closed</span>
                       </div>
@@ -4633,6 +4672,20 @@ export default function App() {
 
                           </div>
                         ))
+                      )}
+
+                      {/* Only when the shop has more history than is loaded. The count comes
+                          from the server, so it is the real remainder, not a guess. */}
+                      {orderStats && orders.length < orderStats.total && (
+                        <button
+                          onClick={loadOlderOrders}
+                          disabled={loadingOlderOrders}
+                          className="bg-gray-50 hover:bg-gray-100 disabled:opacity-50 border border-gray-200 text-gray-900 py-2.5 rounded-xl text-xs font-bold"
+                        >
+                          {loadingOlderOrders
+                            ? 'Loading…'
+                            : `Show older orders (${orderStats.total - orders.length} more)`}
+                        </button>
                       )}
                     </div>
                   </div>
