@@ -2314,21 +2314,35 @@ export default function App() {
                               );
                             })()}
 
+                            {/* The whole cycle, not just its two ends. Ironing and Ready were
+                                admin-only buttons, so someone running the shop single-handed
+                                had to borrow the owner PIN — which also hands over the customer
+                                list, the prices and the takings — just to say the clothes were
+                                on the board. The server always let a rider set these; only the
+                                buttons were missing. A step forward may be skipped, so a
+                                same-day job can go straight to Delivered, but nothing moves
+                                backwards. */}
                             <div className="grid grid-cols-2 gap-2 mt-1 border-t border-gray-200 pt-3">
-                              <button
-                                onClick={() => updateOrderStatus(order.id, 'Picked Up')}
-                                disabled={['Picked Up', 'In Progress', 'Out for Delivery'].includes(order.status)}
-                                className="bg-amber-600 hover:bg-amber-700 disabled:opacity-30 disabled:pointer-events-none text-white text-[12px] font-bold py-2 rounded-xl uppercase tracking-wide"
-                              >
-                                Mark Picked
-                              </button>
-                              <button 
-                                onClick={() => updateOrderStatus(order.id, 'Delivered')}
-                                disabled={order.status === 'Delivered'}
-                                className="bg-emerald-700 hover:bg-emerald-800 text-white text-[12px] font-bold py-2 rounded-xl uppercase tracking-wide"
-                              >
-                                Mark Delivered
-                              </button>
+                              {(() => {
+                                const flow = ['Placed', 'Picked Up', 'Ironing', 'Ready', 'Delivered'];
+                                const reached = flow.indexOf(order.status);
+                                const steps: { to: 'Picked Up' | 'Ironing' | 'Ready' | 'Delivered', label: string, colour: string }[] = [
+                                  { to: 'Picked Up', label: 'Mark Picked', colour: 'bg-amber-600 hover:bg-amber-700' },
+                                  { to: 'Ironing', label: 'Start Ironing', colour: 'bg-blue-600 hover:bg-blue-700' },
+                                  { to: 'Ready', label: 'Mark Ready', colour: 'bg-cyan-700 hover:bg-cyan-800' },
+                                  { to: 'Delivered', label: 'Mark Delivered', colour: 'bg-emerald-700 hover:bg-emerald-800' },
+                                ];
+                                return steps.map(step => (
+                                  <button
+                                    key={step.to}
+                                    onClick={() => updateOrderStatus(order.id, step.to)}
+                                    disabled={reached < 0 || reached >= flow.indexOf(step.to)}
+                                    className={`${step.colour} disabled:opacity-25 disabled:pointer-events-none text-white text-[12px] font-bold py-2 rounded-xl uppercase tracking-wide`}
+                                  >
+                                    {step.label}
+                                  </button>
+                                ));
+                              })()}
                             </div>
 
                             {/* Tell the customer who is coming and roughly when. Saved against
