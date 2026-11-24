@@ -460,13 +460,30 @@ const BASE_GARMENTS = [
   { name: 'Comforter', price: 120, category: 'Household' },
   { name: 'Curtain', price: 80, category: 'Household' },
   { name: 'Sofa Cover', price: 90, category: 'Household' },
+
+  // From Nagaraj N P's price board. Shirt was the glaring absence — the most-ironed
+  // garment in the country, and the catalogue only had T-Shirt. Dupatta is his
+  // "VEL (HONI)"; Saree here is the plain one, Designer and Silk being listed above.
+  // Live prices come from db/nagaraj-garments.sql, not from this list.
+  { name: 'Shirt', price: 20, category: 'Light Weight' },
+  { name: 'Ladies Dress', price: 20, category: 'Light Weight' },
+  { name: 'Ladies Long Top', price: 30, category: 'Light Weight' },
+  { name: 'Jubba', price: 20, category: 'Light Weight' },
+  { name: 'Dupatta', price: 20, category: 'Light Weight' },
+  { name: 'Saree', price: 100, category: 'Medium/Heavy' },
+  { name: 'Bed Cover', price: 80, category: 'Household' },
+  { name: 'Carpet', price: 600, category: 'Household', services: ['Dry Cleaning'] },
 ];
 
 const DEFAULT_PRICE_LIST = [];
 BASE_GARMENTS.forEach(item => {
-  DEFAULT_PRICE_LIST.push({ ...item, serviceType: 'Ironing' });
-  DEFAULT_PRICE_LIST.push({ ...item, price: Math.round(item.price * 2.5), serviceType: 'Dry Cleaning' });
-  DEFAULT_PRICE_LIST.push({ ...item, price: Math.round(item.price * 1.5), serviceType: 'Laundry' });
+  // Most garments take all three services. A few only make sense for one — nobody irons
+  // a carpet — and the customer screen lists an item under a service only where a row
+  // exists, so leaving the others out keeps it off those screens entirely.
+  const takes = (service) => !item.services || item.services.includes(service);
+  if (takes('Ironing')) DEFAULT_PRICE_LIST.push({ ...item, serviceType: 'Ironing' });
+  if (takes('Dry Cleaning')) DEFAULT_PRICE_LIST.push({ ...item, price: Math.round(item.price * 2.5), serviceType: 'Dry Cleaning' });
+  if (takes('Laundry')) DEFAULT_PRICE_LIST.push({ ...item, price: Math.round(item.price * 1.5), serviceType: 'Laundry' });
 });
 
 const DEFAULT_CUSTOMERS = [

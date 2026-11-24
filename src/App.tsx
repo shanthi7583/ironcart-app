@@ -171,13 +171,31 @@ const BASE_GARMENTS = [
   { name: 'Comforter', price: 120, category: 'Household', icon: '🛌' },
   { name: 'Curtain', price: 80, category: 'Household', icon: '🪟' },
   { name: 'Sofa Cover', price: 90, category: 'Household', icon: '🛋️' },
+
+  // From Nagaraj N P's price board. Shirt was the glaring absence — the most-ironed
+  // garment in the country, and the catalogue only had T-Shirt. Dupatta is his
+  // "VEL (HONI)"; Saree here is the plain one, Designer and Silk being listed above.
+  // Live prices come from db/nagaraj-garments.sql, not from this list.
+  { name: 'Shirt', price: 20, category: 'Light Weight', icon: '👔' },
+  { name: 'Ladies Dress', price: 20, category: 'Light Weight', icon: '👗' },
+  { name: 'Ladies Long Top', price: 30, category: 'Light Weight', icon: '👚' },
+  { name: 'Jubba', price: 20, category: 'Light Weight', icon: '🥻' },
+  { name: 'Dupatta', price: 20, category: 'Light Weight', icon: '🧣' },
+  { name: 'Saree', price: 100, category: 'Medium/Heavy', icon: '🥻' },
+  { name: 'Bed Cover', price: 80, category: 'Household', icon: '🛏️' },
+  { name: 'Carpet', price: 600, category: 'Household', icon: '🧶', services: ['Dry Cleaning'] },
 ];
 
 const DEFAULT_PRICE_LIST: GarmentItem[] = [];
 BASE_GARMENTS.forEach(item => {
-  DEFAULT_PRICE_LIST.push({ ...item, serviceType: 'Ironing' });
-  DEFAULT_PRICE_LIST.push({ ...item, price: Math.round(item.price * 2.5), serviceType: 'Dry Cleaning' });
-  DEFAULT_PRICE_LIST.push({ ...item, price: Math.round(item.price * 1.5), serviceType: 'Laundry' });
+  // Most garments take all three services. A few only make sense for one — nobody irons
+  // a carpet — and the customer screen lists an item under a service only where a row
+  // exists, so leaving the others out keeps it off those screens entirely.
+  const offered = (item as { services?: string[] }).services;
+  const takes = (service: string) => !offered || offered.includes(service);
+  if (takes('Ironing')) DEFAULT_PRICE_LIST.push({ ...item, serviceType: 'Ironing' });
+  if (takes('Dry Cleaning')) DEFAULT_PRICE_LIST.push({ ...item, price: Math.round(item.price * 2.5), serviceType: 'Dry Cleaning' });
+  if (takes('Laundry')) DEFAULT_PRICE_LIST.push({ ...item, price: Math.round(item.price * 1.5), serviceType: 'Laundry' });
 });
 
 // Category picker thumbnails. Deliberately covers both taxonomies that have existed in
