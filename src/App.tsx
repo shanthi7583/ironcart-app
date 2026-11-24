@@ -1140,7 +1140,18 @@ export default function App() {
         setShowCheckoutModal(true);
       })
       .catch(err => {
-        customAlert('Failed to connect to checkout gateway: ' + err.message);
+        // The gateway is only needed for card, UPI and net banking. Losing it must not
+        // also stop someone paying cash on pickup, which needs nothing from Cashfree —
+        // yet this used to leave the checkout screen unopened, so a gateway outage took
+        // the whole shop offline rather than just its card payments. Open it anyway, on
+        // the one method that still works, and let the server price the order as it
+        // always does.
+        console.error('Checkout gateway unavailable:', err);
+        setGatewayOrderData(null);
+        setConfirmedQuote(null);
+        setPaymentMethod('COD');
+        setShowCheckoutModal(true);
+        triggerNotification('Online payment is unavailable right now — you can still book and pay on pickup.');
       })
       .finally(() => setIsCreatingCheckout(false));
   };
