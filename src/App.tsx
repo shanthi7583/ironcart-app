@@ -1374,11 +1374,16 @@ export default function App() {
   const updateOrderStatus = (orderId: string, nextStatus: 'Placed' | 'Picked Up' | 'Ironing' | 'Ready' | 'Delivered') => {
     const order = orders.find(o => o.id === orderId);
     if (order && order.customerPhone) {
+      // Only the two steps a customer can act on. Each of these opens WhatsApp for
+      // staff to send by hand, and a shop doing twenty orders a day was being thrown
+      // out to WhatsApp eighty times — four per order, for steps like "being ironed"
+      // that tell the customer nothing they can use. Picked Up says their clothes are
+      // gone from the house; Ready says they can expect them back. The rest the
+      // customer can see on their tracking screen, and the server still records every
+      // change.
       const statuses: Record<string, string> = {
         'Picked Up': `Hello ${order.customerName}, your garments for order *${order.id}* have been Picked Up! 🛵💨`,
-        'Ironing': `Hi ${order.customerName}, your garments for order *${order.id}* are currently being Ironed & Processed! 👔✨`,
-        'Ready': `Great news ${order.customerName}! Your order *${order.id}* is Ready for delivery. 🎉`,
-        'Delivered': `Thank you ${order.customerName}! 🌟\n\nYour garments for order *${order.id}* have been successfully Delivered.\n\n*--- INVOICE ---*\nTotal Amount: ₹${order.total}\nPayment Status: ${order.paymentStatus} (${order.paymentMethod})\n\nWe hope you love the crisp finish! 👔✨`
+        'Ready': `Great news ${order.customerName}! Your order *${order.id}* is Ready for delivery. 🎉`
       };
       if (statuses[nextStatus]) {
         const whatsappUrl = `https://wa.me/91${order.customerPhone}?text=${encodeURIComponent(statuses[nextStatus])}`;
