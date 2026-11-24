@@ -1240,6 +1240,17 @@ export default function App() {
       return;
     }
 
+    // Card and net banking have no path that avoids the gateway. Without a live session
+    // this used to fall through to plain order creation, so the customer was told their
+    // order was confirmed, no money was taken, and nothing recorded that any was owed by
+    // card. UPI is deliberately not in this guard — it falls through on purpose, to the
+    // QR on the screen behind this, which the customer can pay without the gateway.
+    if ((paymentMethod === 'Card' || paymentMethod === 'NetBanking') && !gatewayOrderData?.liveMode) {
+      customAlert('Card and net banking are unavailable right now. Please choose UPI, your wallet, or pay on pickup.');
+      setIsSubmittingOrder(false);
+      return;
+    }
+
     if ((paymentMethod === 'UPI' || paymentMethod === 'Card' || paymentMethod === 'NetBanking') && gatewayOrderData?.liveMode) {
       // The gateway order created back in handlePlaceOrder (before the customer had
       // picked a method) can't be restricted to one method yet, so Cashfree's checkout
@@ -4215,25 +4226,35 @@ export default function App() {
                       </div>
                     </button>
 
-                    <button 
+                    {/* Card and net banking exist only on the gateway's own screen, so
+                        without a live session there is nothing to send the customer to.
+                        Offering them anyway placed an order that said "confirmed" and was
+                        never paid, which is worse than not offering them at all. */}
+                    <button
                       onClick={() => setPaymentMethod('Card')}
-                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${paymentMethod === 'Card' ? 'bg-blue-500/10 border-blue-500 text-blue-700' : 'bg-white border-gray-200 text-gray-700'}`}
+                      disabled={!gatewayOrderData?.liveMode}
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all disabled:opacity-40 disabled:pointer-events-none ${paymentMethod === 'Card' ? 'bg-blue-500/10 border-blue-500 text-blue-700' : 'bg-white border-gray-200 text-gray-700'}`}
                     >
                       <CreditCard className="size-4 text-blue-500" />
                       <div className="text-xs font-semibold text-left">
                         <span>Credit / Debit Cards</span>
-                        <div className="text-[11px] opacity-75">Pay securely via Visa, Mastercard, RuPay</div>
+                        <div className="text-[11px] opacity-75">
+                          {gatewayOrderData?.liveMode ? 'Pay securely via Visa, Mastercard, RuPay' : 'Unavailable right now'}
+                        </div>
                       </div>
                     </button>
 
-                    <button 
+                    <button
                       onClick={() => setPaymentMethod('NetBanking')}
-                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${paymentMethod === 'NetBanking' ? 'bg-blue-500/10 border-blue-500 text-blue-700' : 'bg-white border-gray-200 text-gray-700'}`}
+                      disabled={!gatewayOrderData?.liveMode}
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all disabled:opacity-40 disabled:pointer-events-none ${paymentMethod === 'NetBanking' ? 'bg-blue-500/10 border-blue-500 text-blue-700' : 'bg-white border-gray-200 text-gray-700'}`}
                     >
                       <Landmark className="size-4 text-amber-700" />
                       <div className="text-xs font-semibold text-left">
                         <span>NetBanking</span>
-                        <div className="text-[11px] opacity-75">Pay directly through your bank account</div>
+                        <div className="text-[11px] opacity-75">
+                          {gatewayOrderData?.liveMode ? 'Pay directly through your bank account' : 'Unavailable right now'}
+                        </div>
                       </div>
                     </button>
 
