@@ -354,9 +354,11 @@ export default function App() {
       .finally(() => setLoadingOlderOrders(false));
   };
 
-  // Fetch the public price/offers catalog (no auth needed — it's meant to be seen by anyone)
+  // The catalogue and the offers are public — they are meant to be seen by anyone. The
+  // shop's UPI address and support number ride along in the same response but travel
+  // only to a request carrying a session, so this re-runs on sign-in to collect them.
   useEffect(() => {
-    fetch(`${API_URL}/prices`)
+    fetch(`${API_URL}/prices`, sessionToken ? { headers: { 'Authorization': `Bearer ${sessionToken}` } } : undefined)
       .then(res => res.json())
       .then(data => {
         if (data && data.length > 0) {
@@ -406,7 +408,7 @@ export default function App() {
         }
       })
       .catch(err => console.error('Failed to fetch prices:', err));
-  }, []);
+  }, [sessionToken]);
 
   // Sync user session to LocalStorage
   useEffect(() => {

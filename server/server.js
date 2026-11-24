@@ -920,11 +920,26 @@ app.post('/api/auth/admin-login', (req, res) => {
 // --- API ROUTES ---
 
 // 1. Get prices (public catalog, safe to expose — also carries system rows for upi/offers)
+// The shop's UPI address and its support number ride along in this catalogue so the
+// checkout can draw a payment QR. The catalogue itself is public, which put a personal
+// UPI handle — and the name and mailbox it is built from — on a URL anyone could read
+// without signing in. Neither is needed until someone is actually checking out, so both
+// now travel only to a request carrying a session. Pricing rules and offers stay public:
+// the booking screen prices a basket before anyone has logged in.
+const PRIVATE_SETTINGS = new Set(['upi_details', 'support_contact']);
+
+function visibleToRequest(rows, req) {
+  const header = req.headers.authorization || '';
+  const session = verifyToken(header.startsWith('Bearer ') ? header.slice(7) : null);
+  if (session) return rows;
+  return rows.filter(r => !(r.category === 'system' && PRIVATE_SETTINGS.has(r.item_name)));
+}
+
 app.get('/api/prices', async (req, res) => {
   if (supabase) {
     const { data, error } = await supabase.from('prices').select('*').order('id', { ascending: true });
     const hasGarments = data && data.some(p => p.category !== 'system');
-    if (!error && hasGarments) return res.json(data);
+    if (!error && hasGarments) return res.json(visibleToRequest(data, req));
 
     // The garment catalog specifically is missing — could be a fully empty table,
     // or (as found in production) a table that has only "system" rows (UPI
@@ -938,7 +953,7 @@ app.get('/api/prices', async (req, res) => {
       const { data: seeded, error: seedError } = await supabase.from('prices').insert(seedRows).select();
       if (!seedError && seeded && seeded.length > 0) {
         console.log(`Seeded ${seeded.length} default price rows — the garment catalog was empty.`);
-        return res.json([...(data || []), ...seeded]);
+        return res.json(visibleToRequest([...(data || []), ...seeded], req));
       }
       if (seedError) console.error('Failed to seed default prices:', seedError.message);
     }

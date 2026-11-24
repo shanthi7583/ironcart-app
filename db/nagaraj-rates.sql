@@ -13,8 +13,7 @@
 -- service only when a row exists, so nothing offers a price he never gave.
 --
 -- Two names were tidied from the board's spelling: "PILLO COVER" and "LADIEES LONG
--- TOP". "CARTON" is kept exactly as written -- check with him what it means before
--- customers see it.
+-- TOP". His "CARTON" is read as Curtain, which is what it costs to dry clean one.
 
 delete from public.prices where category <> 'system';
 
@@ -44,4 +43,4 @@ insert into public.prices (category, item_name, price, service_type) values
   ('Household', 'Bed Cover', 150, 'Laundry'),
   ('Household', 'Single Blanket', 300, 'Dry Cleaning'),
   ('Household', 'Carpet (Mat)', 1000, 'Dry Cleaning'),
-  ('Household', 'Carton', 350, 'Dry Cleaning');
+  ('Household', 'Curtain', 350, 'Dry Cleaning');
