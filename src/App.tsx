@@ -4,7 +4,8 @@ import {
   TrendingUp, Users, Smartphone,
   ChevronRight, ShoppingBag,
   FileText, CreditCard, ArrowLeft, Settings,
-  Bell, HelpCircle, LogOut, Eye, RefreshCw, Key, Star, Navigation, Wallet, X, Phone, Gift, Landmark, Truck, User, Sparkles
+  Bell, HelpCircle, LogOut, Eye, RefreshCw, Key, Star, Navigation, Wallet, X, Phone, Gift, Landmark, Truck, User, Sparkles,
+  MessageCircle
 } from 'lucide-react'
 import { auth as firebaseAuth, RecaptchaVerifier } from './firebaseConfig'
 import { signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth'
@@ -99,6 +100,24 @@ interface Order {
   // rider records it at the door.
   bagCount?: number;
 }
+
+// The two moments worth messaging a customer about: their clothes have left the house,
+// and they can expect them back. The rest they can see on their tracking screen.
+//
+// This is a link somebody taps, not a window the code opens. Opening one from a status
+// handler is a pop-up as far as a phone browser is concerned, and most block it without
+// saying so — which is why pressing Mark Picked appeared to do nothing on a phone. A
+// real link also means a missed message can still be sent five minutes later.
+const WHATSAPP_AT: Record<string, (o: Order) => string> = {
+  'Picked Up': o => `Hello ${o.customerName}, your garments for order *${o.id}* have been Picked Up! 🛵💨`,
+  'Ready': o => `Great news ${o.customerName}! Your order *${o.id}* is Ready for delivery. 🎉`,
+};
+
+const whatsappLink = (o: Order) => {
+  const compose = WHATSAPP_AT[o.status];
+  if (!compose || !o.customerPhone) return null;
+  return `https://wa.me/91${o.customerPhone}?text=${encodeURIComponent(compose(o))}`;
+};
 
 // The number written on a physical bag tag. ORD-481920 collected in three bags is
 // tagged 481920-1, 481920-2, 481920-3: the stem says whose it is, the suffix says
@@ -1375,23 +1394,9 @@ export default function App() {
 
   const updateOrderStatus = (orderId: string, nextStatus: 'Placed' | 'Picked Up' | 'Ironing' | 'Ready' | 'Delivered') => {
     const order = orders.find(o => o.id === orderId);
-    if (order && order.customerPhone) {
-      // Only the two steps a customer can act on. Each of these opens WhatsApp for
-      // staff to send by hand, and a shop doing twenty orders a day was being thrown
-      // out to WhatsApp eighty times — four per order, for steps like "being ironed"
-      // that tell the customer nothing they can use. Picked Up says their clothes are
-      // gone from the house; Ready says they can expect them back. The rest the
-      // customer can see on their tracking screen, and the server still records every
-      // change.
-      const statuses: Record<string, string> = {
-        'Picked Up': `Hello ${order.customerName}, your garments for order *${order.id}* have been Picked Up! 🛵💨`,
-        'Ready': `Great news ${order.customerName}! Your order *${order.id}* is Ready for delivery. 🎉`
-      };
-      if (statuses[nextStatus]) {
-        const whatsappUrl = `https://wa.me/91${order.customerPhone}?text=${encodeURIComponent(statuses[nextStatus])}`;
-        window.open(whatsappUrl, '_blank');
-      }
-    }
+    // No WhatsApp is opened from here any more — see WHATSAPP_AT. The order card grows
+    // a Send WhatsApp link once it reaches Picked Up or Ready, which a phone browser
+    // will actually open because the person tapped it themselves.
 
     let payload: any = { status: nextStatus };
     if (nextStatus === 'Delivered' && order?.paymentStatus === 'Pending') {
@@ -2351,6 +2356,20 @@ export default function App() {
                                 ));
                               })()}
                             </div>
+
+                            {/* Appears once the order reaches a step the customer cares
+                                about, and stays until it moves on, so a message missed in
+                                the moment can still be sent from the doorstep. */}
+                            {whatsappLink(order) && (
+                              <a
+                                href={whatsappLink(order)!}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="bg-[#25D366] hover:brightness-95 text-white text-[12px] font-bold py-2.5 rounded-xl flex items-center justify-center gap-1.5"
+                              >
+                                <MessageCircle className="size-3.5" /> Tell {order.customerName.split(' ')[0]} on WhatsApp
+                              </a>
+                            )}
 
                             {/* Tell the customer who is coming and roughly when. Saved against
                                 the order and shown on their tracking screen, so they stop having
@@ -4725,7 +4744,18 @@ export default function App() {
                                   </button>
                                 )}
                                 
-                                <button 
+                                {whatsappLink(o) && (
+                                  <a
+                                    href={whatsappLink(o)!}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="bg-[#25D366] hover:brightness-95 text-white px-2 py-1.5 rounded-lg text-[12px] font-bold flex items-center gap-1"
+                                  >
+                                    <MessageCircle className="size-3" /> WhatsApp
+                                  </a>
+                                )}
+
+                                <button
                                   onClick={() => setSelectedInvoice(o)}
                                   className="bg-gray-200 hover:bg-gray-300 text-gray-900 px-2 py-1.5 rounded-lg text-[12px] font-bold flex items-center gap-1"
                                 >
